@@ -1,17 +1,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import Avatar from "../components/Avatar";
 import LoadingSpinner from "../components/LoadingSpinner";
 import AttendeeList from "../components/AttendeeList";
-import CapacityBar from "../components/CapacityBar";
 import { ClassDetail as ClassDetailType, Attendee } from "../types";
 import { fetchClassDetails, checkInToClass, cancelCheckIn } from "../api/classApi";
-import { ArrowLeft, Clock, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ClassHeader from "../components/ClassHeader";
+import ClassCoachInfo from "../components/ClassCoachInfo";
+import ClassCapacityInfo from "../components/ClassCapacityInfo";
+import ClassCheckInButton from "../components/ClassCheckInButton";
 
 const ClassDetail = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -117,87 +115,25 @@ const ClassDetail = () => {
     );
   }
 
-  const formattedDate = format(classData.startTime, "d 'de' MMMM", {
-    locale: ptBR,
-  });
-  const startTimeFormatted = format(classData.startTime, "HH:mm");
-  const endTimeFormatted = format(classData.endTime, "HH:mm");
   const isFull = classData.attendeeCount >= classData.maxCapacity;
   const canCheckIn = !isFull || isCheckedIn;
 
   return (
     <div className="max-w-md mx-auto px-4 pb-10">
-      <header className="py-4">
-        <button
-          className="flex items-center text-blue-500 mb-4"
-          onClick={() => navigate("/check-in")}
-        >
-          <ArrowLeft size={18} className="mr-1" />
-          Voltar
-        </button>
-        <h1 className="text-2xl font-bold">{classData.program.name}</h1>
-        <div className="flex items-center gap-1 text-gray-600 mt-1">
-          <Clock size={16} />
-          <span>{formattedDate} • {startTimeFormatted} - {endTimeFormatted}</span>
-        </div>
-      </header>
+      <ClassHeader classData={classData} />
 
       <div className="bg-white rounded-lg border p-4 mb-6 shadow-sm">
-        <div className="mb-4">
-          <h2 className="text-sm font-medium text-gray-500 mb-2">Professor</h2>
-          <div className="flex items-center gap-3">
-            <Avatar
-              url={classData.coach.avatarUrl}
-              name={classData.coach.name}
-              size={40}
-            />
-            <span className="font-medium">{classData.coach.name}</span>
-          </div>
-        </div>
-
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-medium text-gray-500">Capacidade</h2>
-            <div className="flex items-center">
-              <Users size={16} className="mr-1 text-gray-500" />
-              <span className="text-sm text-gray-700">
-                {classData.attendeeCount}/{classData.maxCapacity}
-              </span>
-            </div>
-          </div>
-          <CapacityBar
-            current={classData.attendeeCount}
-            total={classData.maxCapacity}
-          />
-        </div>
+        <ClassCoachInfo classData={classData} />
+        <ClassCapacityInfo classData={classData} />
       </div>
 
-      <div className="mb-8">
-        {isCheckedIn ? (
-          <Button 
-            variant="outline" 
-            className="w-full py-6 text-base"
-            onClick={handleCancelCheckIn}
-            disabled={processing}
-          >
-            {processing ? "Cancelando..." : "Cancelar Check-in"}
-          </Button>
-        ) : (
-          <Button
-            className="w-full py-6 text-base"
-            disabled={!canCheckIn || processing}
-            onClick={handleCheckIn}
-          >
-            {processing ? "Confirmando..." : "Confirmar Check-in"}
-          </Button>
-        )}
-
-        {!canCheckIn && !isCheckedIn && (
-          <p className="text-center text-red-500 text-sm mt-2">
-            Esta aula está lotada.
-          </p>
-        )}
-      </div>
+      <ClassCheckInButton
+        isCheckedIn={isCheckedIn}
+        canCheckIn={canCheckIn}
+        processing={processing}
+        onCheckIn={handleCheckIn}
+        onCancelCheckIn={handleCancelCheckIn}
+      />
 
       <div>
         <h2 className="text-xl font-semibold mb-4">
