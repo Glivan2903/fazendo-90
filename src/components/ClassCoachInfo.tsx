@@ -1,5 +1,6 @@
 
 import React from "react";
+import { Link } from "react-router-dom";
 import Avatar from "./Avatar";
 import { ClassDetail } from "../types";
 
@@ -11,14 +12,14 @@ const ClassCoachInfo: React.FC<ClassCoachInfoProps> = ({ classData }) => {
   return (
     <div className="mb-4">
       <h2 className="text-sm font-medium text-gray-500 mb-2">Professor</h2>
-      <div className="flex items-center gap-3">
+      <Link to="/teacher-dashboard" className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors">
         <Avatar
           url={classData.coach.avatarUrl}
           name={classData.coach.name}
           size={40}
         />
         <span className="font-medium">{classData.coach.name}</span>
-      </div>
+      </Link>
     </div>
   );
 };

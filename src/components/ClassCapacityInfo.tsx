@@ -9,13 +9,21 @@ interface ClassCapacityInfoProps {
 }
 
 const ClassCapacityInfo: React.FC<ClassCapacityInfoProps> = ({ classData }) => {
+  // Determinar a cor baseada na capacidade
+  const getCapacityColor = () => {
+    const percentage = (classData.attendeeCount / classData.maxCapacity) * 100;
+    if (percentage >= 90) return "text-red-500";
+    if (percentage >= 70) return "text-yellow-500";
+    return "text-gray-700";
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-sm font-medium text-gray-500">Capacidade</h2>
         <div className="flex items-center">
-          <Users size={16} className="mr-1 text-gray-500" />
-          <span className="text-sm text-gray-700">
+          <Users size={16} className={`mr-1 ${getCapacityColor()}`} />
+          <span className={`text-sm ${getCapacityColor()}`}>
             {classData.attendeeCount}/{classData.maxCapacity}
           </span>
         </div>
