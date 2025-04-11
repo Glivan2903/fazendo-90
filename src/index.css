@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 212 100% 47%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -79,14 +80,6 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
 
@@ -97,5 +90,57 @@
 
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .date-selector {
+    @apply flex overflow-x-auto gap-2 pb-4 scrollbar-hide;
+  }
+
+  .date-item {
+    @apply flex flex-col items-center justify-center h-16 min-w-14 rounded-lg border border-border transition-all cursor-pointer;
+  }
+
+  .date-item.today {
+    @apply bg-blue-500/10;
+  }
+
+  .date-item.selected {
+    @apply bg-blue-500 text-white border-blue-500;
+  }
+  
+  .class-item {
+    @apply flex justify-between bg-white rounded-lg p-4 shadow-sm border border-border cursor-pointer transition-all hover:shadow-md;
+  }
+
+  .class-item.full {
+    @apply opacity-80;
+  }
+
+  .class-item.checked-in {
+    @apply border-blue-500 border-2;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .capacity-bar {
+    @apply h-2 bg-gray-200 rounded-full overflow-hidden;
+  }
+
+  .capacity-fill {
+    @apply h-full bg-blue-500 rounded-full transition-all;
+  }
+
+  .check-in-indicator {
+    @apply text-blue-500 rounded-full w-5 h-5 flex items-center justify-center;
   }
 }
