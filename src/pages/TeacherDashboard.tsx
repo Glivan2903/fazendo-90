@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -8,13 +8,139 @@ import {
   BarChart, 
   LayoutDashboard,
   Clock,
-  UserCheck
+  UserCheck,
+  Loader2
 } from "lucide-react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarFooter } from "@/components/ui/sidebar";
+import { fetchClasses } from "../api/classApi";
+import { format, addDays, parseISO } from "date-fns";
+import { Class, User } from "../types";
+import EditUserDialog from "@/components/EditUserDialog";
+import { fetchUsers, updateUser } from "@/api/userApi";
+import { fetchAttendance } from "@/api/attendanceApi";
+import { toast } from "sonner";
 
 const TeacherDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [todayClasses, setTodayClasses] = useState<Class[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [users, setUsers] = useState<User[]>([]);
+  const [attendance, setAttendance] = useState<any[]>([]);
+  const [scheduleClasses, setScheduleClasses] = useState<Class[]>([]);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [userEditLoading, setUserEditLoading] = useState(false);
+  
+  // Fetch today's classes for overview
+  useEffect(() => {
+    const fetchTodayClasses = async () => {
+      setLoading(true);
+      try {
+        const today = new Date();
+        const classes = await fetchClasses(today);
+        setTodayClasses(classes);
+      } catch (error) {
+        console.error("Error fetching classes:", error);
+        toast.error("Erro ao carregar aulas de hoje");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTodayClasses();
+  }, []);
+  
+  // Fetch weekly schedule when tab changes to schedule
+  useEffect(() => {
+    if (activeTab === "schedule") {
+      const fetchWeeklySchedule = async () => {
+        setLoading(true);
+        try {
+          const today = new Date();
+          let allClasses: Class[] = [];
+          
+          // Fetch classes for the next 7 days
+          for (let i = 0; i < 7; i++) {
+            const date = addDays(today, i);
+            const classes = await fetchClasses(date);
+            allClasses = [...allClasses, ...classes];
+          }
+          
+          setScheduleClasses(allClasses);
+        } catch (error) {
+          console.error("Error fetching weekly schedule:", error);
+          toast.error("Erro ao carregar grade horária");
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchWeeklySchedule();
+    }
+  }, [activeTab]);
+  
+  // Fetch users when tab changes to users
+  useEffect(() => {
+    if (activeTab === "users") {
+      const loadUsers = async () => {
+        setLoading(true);
+        try {
+          const userData = await fetchUsers();
+          setUsers(userData);
+        } catch (error) {
+          console.error("Error fetching users:", error);
+          toast.error("Erro ao carregar usuários");
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadUsers();
+    }
+  }, [activeTab]);
+  
+  // Fetch attendance when tab changes to attendance
+  useEffect(() => {
+    if (activeTab === "attendance") {
+      const loadAttendance = async () => {
+        setLoading(true);
+        try {
+          const attendanceData = await fetchAttendance();
+          setAttendance(attendanceData);
+        } catch (error) {
+          console.error("Error fetching attendance:", error);
+          toast.error("Erro ao carregar dados de presença");
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      loadAttendance();
+    }
+  }, [activeTab]);
+  
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setIsDialogOpen(true);
+  };
+  
+  const handleSaveUser = async (userData: User) => {
+    if (!selectedUser) return;
+    
+    setUserEditLoading(true);
+    try {
+      await updateUser(userData);
+      setUsers(users.map(u => u.id === userData.id ? userData : u));
+      toast.success("Usuário atualizado com sucesso!");
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      toast.error("Erro ao atualizar usuário");
+    } finally {
+      setUserEditLoading(false);
+    }
+  };
   
   return (
     <SidebarProvider>
@@ -59,28 +185,56 @@ const TeacherDashboard = () => {
         <main className="flex-1 overflow-auto p-6">
           <h1 className="text-2xl font-bold mb-6">Painel de Controle</h1>
           
+          {loading && activeTab !== "overview" && (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            </div>
+          )}
+          
           {activeTab === "overview" && (
-            <OverviewTab />
+            <OverviewTab classes={todayClasses} loading={loading} />
           )}
           
-          {activeTab === "schedule" && (
-            <ScheduleTab />
+          {activeTab === "schedule" && !loading && (
+            <ScheduleTab classes={scheduleClasses} />
           )}
           
-          {activeTab === "users" && (
-            <UsersTab />
+          {activeTab === "users" && !loading && (
+            <UsersTab users={users} onEditUser={handleEditUser} />
           )}
           
-          {activeTab === "attendance" && (
-            <AttendanceTab />
+          {activeTab === "attendance" && !loading && (
+            <AttendanceTab attendanceData={attendance} />
           )}
         </main>
       </div>
+      
+      <EditUserDialog
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+        user={selectedUser}
+        onSave={handleSaveUser}
+        isLoading={userEditLoading}
+      />
     </SidebarProvider>
   );
 };
 
-const OverviewTab = () => {
+const OverviewTab = ({ classes, loading }: { classes: Class[], loading: boolean }) => {
+  // Calculate metrics
+  const totalStudents = 128; // This could be fetched from an API
+  const classesCount = classes.length;
+  const completedClasses = classes.filter(c => 
+    new Date(c.startTime) < new Date()
+  ).length;
+  
+  const attendanceRate = classes.length > 0 
+    ? Math.round((classes.reduce((sum, c) => sum + c.attendeeCount, 0) / 
+        (classes.reduce((sum, c) => sum + c.maxCapacity, 0)) * 100))
+    : 0;
+    
+  const nextClass = classes.find(c => new Date(c.startTime) > new Date());
+  
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
       <Card>
@@ -89,7 +243,7 @@ const OverviewTab = () => {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">128</div>
+          <div className="text-2xl font-bold">{totalStudents}</div>
           <p className="text-xs text-muted-foreground">+12% em relação ao mês anterior</p>
         </CardContent>
       </Card>
@@ -100,8 +254,8 @@ const OverviewTab = () => {
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">24</div>
-          <p className="text-xs text-muted-foreground">3 aulas por dia em média</p>
+          <div className="text-2xl font-bold">{classesCount}</div>
+          <p className="text-xs text-muted-foreground">{Math.round(classesCount/7)} aulas por dia em média</p>
         </CardContent>
       </Card>
       
@@ -111,8 +265,8 @@ const OverviewTab = () => {
           <BarChart className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">87%</div>
-          <p className="text-xs text-muted-foreground">+3% em relação ao mês anterior</p>
+          <div className="text-2xl font-bold">{attendanceRate}%</div>
+          <p className="text-xs text-muted-foreground">Baseado nas aulas de hoje</p>
         </CardContent>
       </Card>
       
@@ -122,8 +276,23 @@ const OverviewTab = () => {
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">15:00</div>
-          <p className="text-xs text-muted-foreground">CrossFit - 12 alunos</p>
+          {nextClass ? (
+            <>
+              <div className="text-2xl font-bold">
+                {format(new Date(nextClass.startTime), "HH:mm")}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {nextClass.programName} - {nextClass.attendeeCount} alunos
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="text-2xl font-bold">--:--</div>
+              <p className="text-xs text-muted-foreground">
+                Nenhuma aula programada
+              </p>
+            </>
+          )}
         </CardContent>
       </Card>
       
@@ -132,91 +301,81 @@ const OverviewTab = () => {
           <CardTitle>Aulas de Hoje</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Horário</TableHead>
-                <TableHead>Programa</TableHead>
-                <TableHead>Professor</TableHead>
-                <TableHead>Alunos</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>06:00 - 07:00</TableCell>
-                <TableCell>CrossFit</TableCell>
-                <TableCell>João Silva</TableCell>
-                <TableCell>12/20</TableCell>
-                <TableCell><span className="px-2 py-1 rounded-full bg-green-100 text-green-800">Concluída</span></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>07:00 - 08:00</TableCell>
-                <TableCell>CrossFit</TableCell>
-                <TableCell>João Silva</TableCell>
-                <TableCell>18/20</TableCell>
-                <TableCell><span className="px-2 py-1 rounded-full bg-green-100 text-green-800">Concluída</span></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>08:00 - 09:00</TableCell>
-                <TableCell>Musculation</TableCell>
-                <TableCell>Maria Santos</TableCell>
-                <TableCell>8/15</TableCell>
-                <TableCell><span className="px-2 py-1 rounded-full bg-green-100 text-green-800">Concluída</span></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>15:00 - 16:00</TableCell>
-                <TableCell>CrossFit</TableCell>
-                <TableCell>Carlos Oliveira</TableCell>
-                <TableCell>12/20</TableCell>
-                <TableCell><span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">Em breve</span></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>17:00 - 18:00</TableCell>
-                <TableCell>CrossFit</TableCell>
-                <TableCell>João Silva</TableCell>
-                <TableCell>15/20</TableCell>
-                <TableCell><span className="px-2 py-1 rounded-full bg-gray-100 text-gray-800">Agendada</span></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell>18:00 - 19:00</TableCell>
-                <TableCell>CrossFit</TableCell>
-                <TableCell>Maria Santos</TableCell>
-                <TableCell>20/20</TableCell>
-                <TableCell><span className="px-2 py-1 rounded-full bg-gray-100 text-gray-800">Agendada</span></TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+            </div>
+          ) : classes.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Horário</TableHead>
+                  <TableHead>Programa</TableHead>
+                  <TableHead>Professor</TableHead>
+                  <TableHead>Alunos</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {classes.map((cls) => {
+                  const startTime = new Date(cls.startTime);
+                  const endTime = new Date(cls.endTime);
+                  const now = new Date();
+                  let status = "Agendada";
+                  let statusClass = "bg-gray-100 text-gray-800";
+                  
+                  if (now > endTime) {
+                    status = "Concluída";
+                    statusClass = "bg-green-100 text-green-800";
+                  } else if (now >= startTime) {
+                    status = "Em progresso";
+                    statusClass = "bg-yellow-100 text-yellow-800";
+                  } else if (startTime.getTime() - now.getTime() < 3600000) { // within an hour
+                    status = "Em breve";
+                    statusClass = "bg-yellow-100 text-yellow-800";
+                  }
+                  
+                  return (
+                    <TableRow key={cls.id}>
+                      <TableCell>
+                        {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+                      </TableCell>
+                      <TableCell>{cls.programName}</TableCell>
+                      <TableCell>{cls.coachName}</TableCell>
+                      <TableCell>{cls.attendeeCount}/{cls.maxCapacity}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded-full ${statusClass}`}>
+                          {status}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              Nenhuma aula agendada para hoje
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 };
 
-const ScheduleTab = () => {
-  const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+const ScheduleTab = ({ classes }: { classes: Class[] }) => {
+  const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
   const hours = ["06:00", "07:00", "08:00", "09:00", "17:00", "18:00", "19:00"];
   
-  // Dados simulados das aulas
-  const classes = [
-    { day: 0, hour: "06:00", program: "CrossFit", coach: "João Silva", capacity: "15/20" },
-    { day: 0, hour: "07:00", program: "CrossFit", coach: "Maria Santos", capacity: "12/20" },
-    { day: 0, hour: "18:00", program: "CrossFit", coach: "Carlos Oliveira", capacity: "18/20" },
-    { day: 1, hour: "06:00", program: "CrossFit", coach: "João Silva", capacity: "14/20" },
-    { day: 1, hour: "19:00", program: "Musculation", coach: "Ana Costa", capacity: "10/15" },
-    { day: 2, hour: "07:00", program: "CrossFit", coach: "João Silva", capacity: "20/20" },
-    { day: 2, hour: "08:00", program: "CrossFit", coach: "Maria Santos", capacity: "18/20" },
-    { day: 2, hour: "18:00", program: "CrossFit", coach: "Carlos Oliveira", capacity: "17/20" },
-    { day: 3, hour: "06:00", program: "CrossFit", coach: "Maria Santos", capacity: "16/20" },
-    { day: 3, hour: "17:00", program: "Musculation", coach: "Ana Costa", capacity: "12/15" },
-    { day: 4, hour: "06:00", program: "CrossFit", coach: "João Silva", capacity: "18/20" },
-    { day: 4, hour: "07:00", program: "CrossFit", coach: "Carlos Oliveira", capacity: "15/20" },
-    { day: 4, hour: "18:00", program: "CrossFit", coach: "Maria Santos", capacity: "20/20" },
-    { day: 5, hour: "09:00", program: "CrossFit", coach: "João Silva", capacity: "10/20" },
-  ];
-  
-  const getClassData = (day: number, hour: string) => {
-    return classes.find(c => c.day === day && c.hour === hour);
+  // Transform API data to fit our grid
+  const getClassDataForDayAndHour = (day: number, hour: string) => {
+    return classes.filter(cls => {
+      const classDate = new Date(cls.startTime);
+      const classHour = format(classDate, "HH:mm");
+      const dayOfWeek = (classDate.getDay() + 6) % 7; // Convert to 0 = Monday, 6 = Sunday
+      return dayOfWeek === day && classHour === hour;
+    });
   };
   
   return (
@@ -241,16 +400,20 @@ const ScheduleTab = () => {
                   <TableRow key={hour}>
                     <TableCell className="font-medium">{hour}</TableCell>
                     {days.map((_, dayIndex) => {
-                      const classData = getClassData(dayIndex, hour);
+                      const classesForCell = getClassDataForDayAndHour(dayIndex, hour);
                       return (
                         <TableCell key={dayIndex}>
-                          {classData ? (
+                          {classesForCell.length > 0 && (
                             <div className="p-2 bg-blue-50 rounded border border-blue-200">
-                              <div className="font-medium text-blue-800">{classData.program}</div>
-                              <div className="text-sm">{classData.coach}</div>
-                              <div className="text-xs text-gray-500">{classData.capacity}</div>
+                              {classesForCell.map((cls, idx) => (
+                                <div key={idx} className="mb-2 last:mb-0">
+                                  <div className="font-medium text-blue-800">{cls.programName}</div>
+                                  <div className="text-sm">{cls.coachName}</div>
+                                  <div className="text-xs text-gray-500">{cls.attendeeCount}/{cls.maxCapacity}</div>
+                                </div>
+                              ))}
                             </div>
-                          ) : null}
+                          )}
                         </TableCell>
                       );
                     })}
@@ -265,20 +428,7 @@ const ScheduleTab = () => {
   );
 };
 
-const UsersTab = () => {
-  const users = [
-    { id: 1, name: "Ana Silva", email: "ana.silva@email.com", role: "Aluno", plan: "Mensal", status: "Ativo" },
-    { id: 2, name: "Bruno Costa", email: "bruno.costa@email.com", role: "Aluno", plan: "Trimestral", status: "Ativo" },
-    { id: 3, name: "Carla Oliveira", email: "carla.oliveira@email.com", role: "Aluno", plan: "Anual", status: "Ativo" },
-    { id: 4, name: "Daniel Santos", email: "daniel.santos@email.com", role: "Aluno", plan: "Mensal", status: "Inativo" },
-    { id: 5, name: "Eduardo Lima", email: "eduardo.lima@email.com", role: "Aluno", plan: "Mensal", status: "Ativo" },
-    { id: 6, name: "Fernanda Alves", email: "fernanda.alves@email.com", role: "Aluno", plan: "Trimestral", status: "Ativo" },
-    { id: 7, name: "Gabriel Mendes", email: "gabriel.mendes@email.com", role: "Aluno", plan: "Mensal", status: "Ativo" },
-    { id: 8, name: "Helena Martins", email: "helena.martins@email.com", role: "Aluno", plan: "Anual", status: "Ativo" },
-    { id: 9, name: "João Silva", email: "joao.silva@email.com", role: "Professor", plan: "N/A", status: "Ativo" },
-    { id: 10, name: "Maria Santos", email: "maria.santos@email.com", role: "Professor", plan: "N/A", status: "Ativo" },
-  ];
-
+const UsersTab = ({ users, onEditUser }: { users: User[], onEditUser: (user: User) => void }) => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between">
@@ -310,7 +460,7 @@ const UsersTab = () => {
                   <TableCell>{user.name}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.role}</TableCell>
-                  <TableCell>{user.plan}</TableCell>
+                  <TableCell>{user.plan || 'N/A'}</TableCell>
                   <TableCell>
                     <span className={`px-2 py-1 rounded-full ${
                       user.status === "Ativo" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
@@ -320,8 +470,15 @@ const UsersTab = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <button className="p-1 text-blue-600 hover:text-blue-800">Editar</button>
-                      <button className="p-1 text-red-600 hover:text-red-800">Excluir</button>
+                      <button 
+                        className="p-1 text-blue-600 hover:text-blue-800"
+                        onClick={() => onEditUser(user)}
+                      >
+                        Editar
+                      </button>
+                      <button className="p-1 text-red-600 hover:text-red-800">
+                        Excluir
+                      </button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -334,15 +491,7 @@ const UsersTab = () => {
   );
 };
 
-const AttendanceTab = () => {
-  const attendanceData = [
-    { date: "2023-04-10", class: "06:00 - CrossFit", coach: "João Silva", present: 15, absent: 3, total: 18 },
-    { date: "2023-04-10", class: "07:00 - CrossFit", coach: "Maria Santos", present: 12, absent: 2, total: 14 },
-    { date: "2023-04-10", class: "18:00 - CrossFit", coach: "Carlos Oliveira", present: 18, absent: 0, total: 18 },
-    { date: "2023-04-11", class: "06:00 - CrossFit", coach: "João Silva", present: 14, absent: 1, total: 15 },
-    { date: "2023-04-11", class: "19:00 - Musculation", coach: "Ana Costa", present: 10, absent: 3, total: 13 },
-  ];
-
+const AttendanceTab = ({ attendanceData }: { attendanceData: any[] }) => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -356,7 +505,7 @@ const AttendanceTab = () => {
             <option>CrossFit</option>
             <option>Musculation</option>
           </select>
-          <input type="date" className="p-2 border rounded" defaultValue="2023-04-11" />
+          <input type="date" className="p-2 border rounded" defaultValue={format(new Date(), 'yyyy-MM-dd')} />
         </div>
       </div>
       
@@ -377,7 +526,7 @@ const AttendanceTab = () => {
             <TableBody>
               {attendanceData.map((item, index) => (
                 <TableRow key={index}>
-                  <TableCell>{item.date}</TableCell>
+                  <TableCell>{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
                   <TableCell>{item.class}</TableCell>
                   <TableCell>{item.coach}</TableCell>
                   <TableCell>{item.present}</TableCell>

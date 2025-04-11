@@ -34,3 +34,13 @@ export interface ClassDetail {
   maxCapacity: number;
   attendeeCount: number;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  role: string;
+  plan?: string;
+  status: string;
+}

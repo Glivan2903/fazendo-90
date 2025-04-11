@@ -1,16 +1,15 @@
-
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
-import { addDays } from "date-fns";
+import { addDays, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 
-// Mock API service to fetch classes for a specific date
+// API para buscar aulas para uma data específica
 export const fetchClasses = async (date: Date): Promise<Class[]> => {
   try {
-    // Format date to ISO string for database query
-    const formattedDate = date.toISOString().split('T')[0];
+    // Formatar data para consulta no banco de dados
+    const formattedDate = format(date, 'yyyy-MM-dd');
 
-    // Attempt to fetch from Supabase
+    // Tentar buscar do Supabase
     const { data: classesData, error } = await supabase
       .from('classes')
       .select(`
@@ -25,11 +24,11 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
       .eq('date', formattedDate)
       .order('start_time', { ascending: true });
 
-    // Fall back to mock data if there's an error
+    // Usar dados mockados se houver erro
     if (error || !classesData || classesData.length === 0) {
       console.log("Using mock data for classes:", error);
       
-      // Calculate day offset from today
+      // Calcular diferença de dias em relação a hoje
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       date.setHours(0, 0, 0, 0);
@@ -40,16 +39,13 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
       return generateClassesForDay(diffDays);
     }
 
-    // Process Supabase data
+    // Processar dados do Supabase
     return classesData.map(cls => {
-      // Count check-ins
+      // Contar check-ins
       const attendeeCount = cls.checkins ? cls.checkins.length : 0;
       
-      // Get current user (would need auth integration)
-      const user = supabase.auth.getUser();
-      
-      // Check if current user is checked in (simplified)
-      const isCheckedIn = false; // Placeholder until auth is implemented
+      // Verificar se o usuário atual está inscrito (simplificado)
+      const isCheckedIn = false; // Placeholder até implementar autenticação
       
       return {
         id: cls.id,
@@ -67,7 +63,7 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
   } catch (error) {
     console.error("Error in fetchClasses:", error);
     
-    // Fall back to mock data on any error
+    // Usar dados mockados em caso de erro
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     date.setHours(0, 0, 0, 0);
@@ -79,7 +75,7 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
   }
 };
 
-// Mock API service to fetch a specific class details
+// API para buscar detalhes de uma aula específica
 export const fetchClassDetails = async (classId: string): Promise<{classDetail: ClassDetail, attendees: Attendee[]}> => {
   try {
     // First try to get data from Supabase
@@ -201,7 +197,7 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
   }
 };
 
-// Check in to a class
+// API para fazer check-in em uma aula
 export const checkInToClass = async (classId: string): Promise<boolean> => {
   try {
     // Get current user
@@ -237,7 +233,7 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
   }
 };
 
-// Cancel check-in
+// API para cancelar check-in
 export const cancelCheckIn = async (classId: string): Promise<boolean> => {
   try {
     // Get current user
