@@ -1,7 +1,9 @@
+
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 // API para buscar aulas para uma data específica
 export const fetchClasses = async (date: Date): Promise<Class[]> => {
@@ -39,13 +41,17 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
       return generateClassesForDay(diffDays);
     }
 
+    // Get current user ID to check if user is checked in
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id;
+
     // Processar dados do Supabase
     return classesData.map(cls => {
       // Contar check-ins
       const attendeeCount = cls.checkins ? cls.checkins.length : 0;
       
-      // Verificar se o usuário atual está inscrito (simplificado)
-      const isCheckedIn = false; // Placeholder até implementar autenticação
+      // Verificar se o usuário atual está inscrito
+      const isCheckedIn = userId ? cls.checkins?.some(checkin => checkin.user_id === userId) || false : false;
       
       return {
         id: cls.id,
@@ -62,6 +68,7 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
     });
   } catch (error) {
     console.error("Error in fetchClasses:", error);
+    toast.error("Erro ao carregar as aulas");
     
     // Usar dados mockados em caso de erro
     const today = new Date();
@@ -98,6 +105,7 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
     
     if (classError || !classData) {
       console.log("Falling back to mock data for class details:", classError);
+      toast.error("Erro ao carregar detalhes da aula");
       
       // Parse day offset and class index from the ID
       const [dayOffsetStr, classIndexStr] = classId.split('-');
@@ -162,6 +170,7 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
     return { classDetail, attendees };
   } catch (error) {
     console.error("Error in fetchClassDetails:", error);
+    toast.error("Erro ao carregar detalhes da aula");
     
     // Fall back to mock data on any error
     const [dayOffsetStr, classIndexStr] = classId.split('-');
@@ -205,31 +214,65 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
     
     if (!user) {
       console.error("No authenticated user");
+      toast.error("Você precisa estar logado para fazer check-in");
+      return false;
+    }
+    
+    // Check if class exists and has available spots
+    const { data: classData, error: classError } = await supabase
+      .from('classes')
+      .select(`
+        id,
+        max_capacity,
+        checkins (id)
+      `)
+      .eq('id', classId)
+      .single();
+      
+    if (classError || !classData) {
+      console.error("Class not found:", classError);
+      toast.error("Aula não encontrada");
+      return false;
+    }
+    
+    // Check if class has available spots
+    if (classData.checkins && classData.checkins.length >= classData.max_capacity) {
+      toast.error("Esta aula está lotada");
+      return false;
+    }
+    
+    // Check if user already checked in
+    const { data: existingCheckin, error: checkinError } = await supabase
+      .from('checkins')
+      .select('id')
+      .eq('class_id', classId)
+      .eq('user_id', user.id);
+      
+    if (existingCheckin && existingCheckin.length > 0) {
+      toast.error("Você já está inscrito nesta aula");
       return false;
     }
     
     // Insert check-in record
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('checkins')
       .insert([
-        { class_id: classId, user_id: user.id }
+        { class_id: classId, user_id: user.id, status: 'confirmed' }
       ]);
     
     if (error) {
       console.error("Error checking in:", error);
+      toast.error("Erro ao fazer check-in");
       return false;
     }
     
     return true;
   } catch (error) {
     console.error("Exception during check-in:", error);
+    toast.error("Erro ao fazer check-in");
     
     // Fall back to mock success for now
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve(true);
-      }, 800);
-    });
+    return true;
   }
 };
 
@@ -241,6 +284,7 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
     
     if (!user) {
       console.error("No authenticated user");
+      toast.error("Você precisa estar logado para cancelar o check-in");
       return false;
     }
     
@@ -248,22 +292,21 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
     const { error } = await supabase
       .from('checkins')
       .delete()
-      .match({ class_id: classId, user_id: user.id });
+      .eq('class_id', classId)
+      .eq('user_id', user.id);
     
     if (error) {
       console.error("Error canceling check-in:", error);
+      toast.error("Erro ao cancelar check-in");
       return false;
     }
     
     return true;
   } catch (error) {
     console.error("Exception during check-in cancellation:", error);
+    toast.error("Erro ao cancelar check-in");
     
     // Fall back to mock success
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve(true);
-      }, 800);
-    });
+    return true;
   }
 };

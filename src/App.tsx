@@ -8,6 +8,10 @@ import CheckIn from "./pages/CheckIn";
 import ClassDetail from "./pages/ClassDetail";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import ScheduleEditor from "./pages/ScheduleEditor";
+import Auth from "./pages/Auth";
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
 import React from "react";
 
 // Create a new QueryClient instance outside of component to ensure it's only created once
@@ -23,19 +27,51 @@ const queryClient = new QueryClient({
 const App = () => (
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner position="top-center" />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Navigate to="/check-in" replace />} />
-            <Route path="/check-in" element={<CheckIn />} />
-            <Route path="/class/:classId" element={<ClassDetail />} />
-            <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner position="top-center" />
+            <Routes>
+              <Route path="/" element={<Navigate to="/check-in" replace />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route 
+                path="/check-in" 
+                element={
+                  <ProtectedRoute>
+                    <CheckIn />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/class/:classId" 
+                element={
+                  <ProtectedRoute>
+                    <ClassDetail />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/teacher-dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "coach"]}>
+                    <TeacherDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/schedule-editor" 
+                element={
+                  <ProtectedRoute allowedRoles={["admin", "coach"]}>
+                    <ScheduleEditor />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>
 );

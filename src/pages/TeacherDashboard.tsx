@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
@@ -9,10 +9,15 @@ import {
   LayoutDashboard,
   Clock,
   UserCheck,
-  Loader2
+  Loader2,
+  CalendarDays,
+  LogOut,
+  User as UserIcon
 } from "lucide-react";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { SidebarProvider, Sidebar, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarHeader, SidebarFooter } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { fetchClasses } from "../api/classApi";
 import { format, addDays, parseISO } from "date-fns";
 import { Class, User } from "../types";
@@ -20,6 +25,7 @@ import EditUserDialog from "@/components/EditUserDialog";
 import { fetchUsers, updateUser } from "@/api/userApi";
 import { fetchAttendance } from "@/api/attendanceApi";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TeacherDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -31,8 +37,16 @@ const TeacherDashboard = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userEditLoading, setUserEditLoading] = useState(false);
+  const navigate = useNavigate();
+  const { signOut, userRole } = useAuth();
   
-  // Fetch today's classes for overview
+  useEffect(() => {
+    if (userRole !== "admin" && userRole !== "coach") {
+      toast.error("Você não tem permissão para acessar essa página");
+      navigate("/check-in");
+    }
+  }, [userRole, navigate]);
+  
   useEffect(() => {
     const fetchTodayClasses = async () => {
       setLoading(true);
@@ -51,7 +65,6 @@ const TeacherDashboard = () => {
     fetchTodayClasses();
   }, []);
   
-  // Fetch weekly schedule when tab changes to schedule
   useEffect(() => {
     if (activeTab === "schedule") {
       const fetchWeeklySchedule = async () => {
@@ -60,7 +73,6 @@ const TeacherDashboard = () => {
           const today = new Date();
           let allClasses: Class[] = [];
           
-          // Fetch classes for the next 7 days
           for (let i = 0; i < 7; i++) {
             const date = addDays(today, i);
             const classes = await fetchClasses(date);
@@ -80,7 +92,6 @@ const TeacherDashboard = () => {
     }
   }, [activeTab]);
   
-  // Fetch users when tab changes to users
   useEffect(() => {
     if (activeTab === "users") {
       const loadUsers = async () => {
@@ -100,7 +111,6 @@ const TeacherDashboard = () => {
     }
   }, [activeTab]);
   
-  // Fetch attendance when tab changes to attendance
   useEffect(() => {
     if (activeTab === "attendance") {
       const loadAttendance = async () => {
@@ -175,15 +185,61 @@ const TeacherDashboard = () => {
                   <span>Presença</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => navigate("/schedule-editor")}>
+                  <CalendarDays size={20} />
+                  <span>Editor de Grade</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => navigate("/check-in")}>
+                  <Clock size={20} />
+                  <span>Check-in</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter className="p-4">
-            <div className="text-sm text-gray-500">Versão 1.0</div>
+            <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Sair
+            </Button>
           </SidebarFooter>
         </Sidebar>
         
         <main className="flex-1 overflow-auto p-6">
-          <h1 className="text-2xl font-bold mb-6">Painel de Controle</h1>
+          <div className="flex justify-between items-center mb-6">
+            <h1 className="text-2xl font-bold">Painel de Controle</h1>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <UserIcon className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => navigate("/check-in")}
+                >
+                  Check-in
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => navigate("/schedule-editor")}
+                >
+                  Editor de Grade
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer text-red-500"
+                  onClick={signOut}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
           
           {loading && activeTab !== "overview" && (
             <div className="flex justify-center items-center h-64">
@@ -221,8 +277,7 @@ const TeacherDashboard = () => {
 };
 
 const OverviewTab = ({ classes, loading }: { classes: Class[], loading: boolean }) => {
-  // Calculate metrics
-  const totalStudents = 128; // This could be fetched from an API
+  const totalStudents = 128;
   const classesCount = classes.length;
   const completedClasses = classes.filter(c => 
     new Date(c.startTime) < new Date()
@@ -330,7 +385,7 @@ const OverviewTab = ({ classes, loading }: { classes: Class[], loading: boolean 
                   } else if (now >= startTime) {
                     status = "Em progresso";
                     statusClass = "bg-yellow-100 text-yellow-800";
-                  } else if (startTime.getTime() - now.getTime() < 3600000) { // within an hour
+                  } else if (startTime.getTime() - now.getTime() < 3600000) {
                     status = "Em breve";
                     statusClass = "bg-yellow-100 text-yellow-800";
                   }
@@ -368,12 +423,11 @@ const ScheduleTab = ({ classes }: { classes: Class[] }) => {
   const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
   const hours = ["06:00", "07:00", "08:00", "09:00", "17:00", "18:00", "19:00"];
   
-  // Transform API data to fit our grid
   const getClassDataForDayAndHour = (day: number, hour: string) => {
     return classes.filter(cls => {
       const classDate = new Date(cls.startTime);
       const classHour = format(classDate, "HH:mm");
-      const dayOfWeek = (classDate.getDay() + 6) % 7; // Convert to 0 = Monday, 6 = Sunday
+      const dayOfWeek = (classDate.getDay() + 6) % 7;
       return dayOfWeek === day && classHour === hour;
     });
   };
