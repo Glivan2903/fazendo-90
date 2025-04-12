@@ -1,4 +1,3 @@
-
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format } from "date-fns";
@@ -44,18 +43,40 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
       // Verificar se o usuário atual está inscrito
       const isCheckedIn = userId ? cls.checkins?.some(checkin => checkin.user_id === userId) || false : false;
       
-      return {
-        id: cls.id,
-        startTime: new Date(cls.start_time),
-        endTime: new Date(cls.end_time),
-        programName: cls.programs?.name || "CrossFit",
-        coachName: cls.profiles?.name || "Coach",
-        coachAvatar: cls.profiles?.avatar_url,
-        maxCapacity: cls.max_capacity,
-        attendeeCount: attendeeCount,
-        spotsLeft: cls.max_capacity - attendeeCount,
-        isCheckedIn: isCheckedIn
-      };
+      // Ensure valid date objects by creating new Date objects
+      const startTime = new Date(cls.start_time);
+      const endTime = new Date(cls.end_time);
+      
+      // Check if the dates are valid
+      if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
+        return {
+          id: cls.id,
+          startTime,
+          endTime,
+          programName: cls.programs?.name || "CrossFit",
+          coachName: cls.profiles?.name || "Coach",
+          coachAvatar: cls.profiles?.avatar_url,
+          maxCapacity: cls.max_capacity,
+          attendeeCount: attendeeCount,
+          spotsLeft: cls.max_capacity - attendeeCount,
+          isCheckedIn: isCheckedIn
+        };
+      } else {
+        // If dates are invalid, use current time + offset as fallback
+        const now = new Date();
+        return {
+          id: cls.id,
+          startTime: new Date(now.setHours(now.getHours())),
+          endTime: new Date(now.setHours(now.getHours() + 1)),
+          programName: cls.programs?.name || "CrossFit",
+          coachName: cls.profiles?.name || "Coach",
+          coachAvatar: cls.profiles?.avatar_url,
+          maxCapacity: cls.max_capacity,
+          attendeeCount: attendeeCount,
+          spotsLeft: cls.max_capacity - attendeeCount,
+          isCheckedIn: isCheckedIn
+        };
+      }
     });
   } catch (error) {
     console.error("Error in fetchClasses:", error);
@@ -76,12 +97,25 @@ const fetchMockClasses = async (date: Date): Promise<Class[]> => {
   
   const mockClasses = generateClassesForDay(diffDays);
   
-  // Convertemos os IDs para formato UUID válido
-  return mockClasses.map(cls => ({
-    ...cls,
-    // Criar um UUID válido para cada classe mock
-    id: crypto.randomUUID()
-  }));
+  // Convertemos os IDs para formato UUID válido e garantimos datas válidas
+  return mockClasses.map(cls => {
+    // Verify that startTime and endTime are valid Date objects
+    const startTime = cls.startTime instanceof Date && !isNaN(cls.startTime.getTime()) 
+      ? cls.startTime 
+      : new Date();
+      
+    const endTime = cls.endTime instanceof Date && !isNaN(cls.endTime.getTime()) 
+      ? cls.endTime 
+      : new Date(Date.now() + 3600000);
+      
+    return {
+      ...cls,
+      // Criar um UUID válido para cada classe mock
+      id: crypto.randomUUID(),
+      startTime,
+      endTime
+    };
+  });
 };
 
 // API para buscar detalhes de uma aula específica

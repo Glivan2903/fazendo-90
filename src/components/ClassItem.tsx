@@ -1,6 +1,6 @@
 
 import React from "react";
-import { format } from "date-fns";
+import { format, isValid } from "date-fns";
 import { Class } from "../types";
 import { cn } from "@/lib/utils";
 import Avatar from "./Avatar";
@@ -23,8 +23,15 @@ const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
     isCheckedIn,
   } = classData;
 
-  const startTimeFormatted = format(startTime, "HH:mm");
-  const endTimeFormatted = format(endTime, "HH:mm");
+  // Check if startTime and endTime are valid Date objects before formatting
+  const startTimeFormatted = isValid(startTime) 
+    ? format(startTime, "HH:mm") 
+    : "00:00";
+    
+  const endTimeFormatted = isValid(endTime) 
+    ? format(endTime, "HH:mm") 
+    : "00:00";
+    
   const isFull = attendeeCount >= maxCapacity;
 
   return (

@@ -4,8 +4,14 @@ import { addDays, setHours, setMinutes } from "date-fns";
 
 // Helper function to create a date with specific hours and minutes
 const createDate = (dayOffset: number, hours: number, minutes: number): Date => {
-  const date = addDays(new Date(), dayOffset);
-  return setMinutes(setHours(date, hours), minutes);
+  try {
+    const date = addDays(new Date(), dayOffset);
+    return setMinutes(setHours(date, hours), minutes);
+  } catch (error) {
+    console.error("Error creating date:", error);
+    // Return current time as fallback
+    return new Date();
+  }
 };
 
 // Generate mock classes for a specific day
@@ -66,10 +72,23 @@ export const generateClassesForDay = (dayOffset: number): Class[] => {
     const attendeeCount = Math.floor(Math.random() * (template.maxCapacity + 1));
     const isCheckedIn = Math.random() > 0.7;
     
+    // Create valid Date objects with try-catch to handle any potential errors
+    let startTime, endTime;
+    try {
+      startTime = createDate(dayOffset, template.time.start, 0);
+      endTime = createDate(dayOffset, template.time.end, 0);
+    } catch (error) {
+      console.error("Error creating date objects:", error);
+      // Fallback to current time + offset
+      const now = new Date();
+      startTime = new Date(now);
+      endTime = new Date(now.setHours(now.getHours() + 1));
+    }
+    
     return {
       id: `${dayOffset}-${index}`,
-      startTime: createDate(dayOffset, template.time.start, 0),
-      endTime: createDate(dayOffset, template.time.end, 0),
+      startTime,
+      endTime,
       programName: template.programName,
       coachName: template.coachName,
       coachAvatar: template.coachAvatar,
