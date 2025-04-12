@@ -8,25 +8,36 @@ import CheckIn from "./pages/CheckIn";
 import ClassDetail from "./pages/ClassDetail";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/TeacherDashboard";
+import React from "react";
 
-const queryClient = new QueryClient();
+// Create a new QueryClient instance outside of component to ensure it's only created once
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60000, // 1 minute
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner position="top-center" />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/check-in" replace />} />
-          <Route path="/check-in" element={<CheckIn />} />
-          <Route path="/class/:classId" element={<ClassDetail />} />
-          <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner position="top-center" />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/check-in" replace />} />
+            <Route path="/check-in" element={<CheckIn />} />
+            <Route path="/class/:classId" element={<ClassDetail />} />
+            <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </React.StrictMode>
 );
 
 export default App;
