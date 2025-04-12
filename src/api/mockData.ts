@@ -1,12 +1,20 @@
 
 import { Class, Attendee, ClassDetail } from "../types";
-import { addDays, setHours, setMinutes } from "date-fns";
+import { addDays, setHours, setMinutes, isValid } from "date-fns";
 
 // Helper function to create a date with specific hours and minutes
 const createDate = (dayOffset: number, hours: number, minutes: number): Date => {
   try {
     const date = addDays(new Date(), dayOffset);
-    return setMinutes(setHours(date, hours), minutes);
+    const result = setMinutes(setHours(date, hours), minutes);
+    
+    // Verificar se o resultado é uma data válida
+    if (!isValid(result)) {
+      console.error("Data inválida criada:", { dayOffset, hours, minutes, result });
+      return new Date(); // Fallback para data atual
+    }
+    
+    return result;
   } catch (error) {
     console.error("Error creating date:", error);
     // Return current time as fallback
@@ -77,6 +85,11 @@ export const generateClassesForDay = (dayOffset: number): Class[] => {
     try {
       startTime = createDate(dayOffset, template.time.start, 0);
       endTime = createDate(dayOffset, template.time.end, 0);
+      
+      // Verificação adicional
+      if (!isValid(startTime) || !isValid(endTime)) {
+        throw new Error("Datas inválidas criadas");
+      }
     } catch (error) {
       console.error("Error creating date objects:", error);
       // Fallback to current time + offset
@@ -85,8 +98,16 @@ export const generateClassesForDay = (dayOffset: number): Class[] => {
       endTime = new Date(now.setHours(now.getHours() + 1));
     }
     
+    // Garantindo que as datas são objetos válidos
+    if (!(startTime instanceof Date) || !(endTime instanceof Date) || 
+        isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+      const now = new Date();
+      startTime = new Date(now);
+      endTime = new Date(now.setHours(now.getHours() + 1));
+    }
+    
     return {
-      id: `${dayOffset}-${index}`,
+      id: crypto.randomUUID(), // Usamos UUID direto em vez do formato day-index
       startTime,
       endTime,
       programName: template.programName,

@@ -37,18 +37,28 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
 
     // Processar dados do Supabase
     return classesData.map(cls => {
-      // Contar check-ins
-      const attendeeCount = cls.checkins ? cls.checkins.length : 0;
-      
-      // Verificar se o usuário atual está inscrito
-      const isCheckedIn = userId ? cls.checkins?.some(checkin => checkin.user_id === userId) || false : false;
-      
-      // Ensure valid date objects by creating new Date objects
-      const startTime = new Date(cls.start_time);
-      const endTime = new Date(cls.end_time);
-      
-      // Check if the dates are valid
-      if (!isNaN(startTime.getTime()) && !isNaN(endTime.getTime())) {
+      try {
+        // Contar check-ins
+        const attendeeCount = cls.checkins ? cls.checkins.length : 0;
+        
+        // Verificar se o usuário atual está inscrito
+        const isCheckedIn = userId ? cls.checkins?.some(checkin => checkin.user_id === userId) || false : false;
+        
+        // Criar objetos Date a partir dos valores de string e validar
+        const startTime = cls.start_time ? new Date(cls.start_time) : new Date();
+        const endTime = cls.end_time ? new Date(cls.end_time) : new Date(Date.now() + 3600000);
+        
+        // Validar as datas
+        if (!isValid(startTime)) {
+          console.error("Data de início inválida:", cls.start_time);
+          throw new Error("Data de início inválida");
+        }
+        
+        if (!isValid(endTime)) {
+          console.error("Data de término inválida:", cls.end_time);
+          throw new Error("Data de término inválida");
+        }
+        
         return {
           id: cls.id,
           startTime,
@@ -61,20 +71,22 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
           spotsLeft: cls.max_capacity - attendeeCount,
           isCheckedIn: isCheckedIn
         };
-      } else {
-        // If dates are invalid, use current time + offset as fallback
+      } catch (error) {
+        console.error("Erro ao processar classe:", error);
+        
+        // Se houver erro ao processar uma classe, retornamos uma classe com valores padrão seguros
         const now = new Date();
         return {
-          id: cls.id,
-          startTime: new Date(now.setHours(now.getHours())),
-          endTime: new Date(now.setHours(now.getHours() + 1)),
+          id: cls.id || crypto.randomUUID(),
+          startTime: new Date(now),
+          endTime: new Date(now.getTime() + 3600000),
           programName: cls.programs?.name || "CrossFit",
           coachName: cls.profiles?.name || "Coach",
           coachAvatar: cls.profiles?.avatar_url,
-          maxCapacity: cls.max_capacity,
-          attendeeCount: attendeeCount,
-          spotsLeft: cls.max_capacity - attendeeCount,
-          isCheckedIn: isCheckedIn
+          maxCapacity: cls.max_capacity || 15,
+          attendeeCount: attendeeCount || 0,
+          spotsLeft: (cls.max_capacity || 15) - (attendeeCount || 0),
+          isCheckedIn: isCheckedIn || false
         };
       }
     });
@@ -374,4 +386,9 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
     // Fall back to mock success
     return true;
   }
+};
+
+// Helper function to check if a Date object is valid
+const isValid = (date: Date): boolean => {
+  return !isNaN(date.getTime());
 };

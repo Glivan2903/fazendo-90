@@ -23,12 +23,12 @@ const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
     isCheckedIn,
   } = classData;
 
-  // Check if startTime and endTime are valid Date objects before formatting
-  const startTimeFormatted = isValid(startTime) 
+  // Garantir que as datas são objetos Date válidos antes de formatar
+  const startTimeFormatted = startTime instanceof Date && isValid(startTime) 
     ? format(startTime, "HH:mm") 
     : "00:00";
     
-  const endTimeFormatted = isValid(endTime) 
+  const endTimeFormatted = endTime instanceof Date && isValid(endTime)
     ? format(endTime, "HH:mm") 
     : "00:00";
     
@@ -37,9 +37,9 @@ const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
   return (
     <div
       className={cn(
-        "class-item",
-        isFull ? "full" : "",
-        isCheckedIn ? "checked-in" : ""
+        "class-item p-4 border rounded-lg shadow-sm mb-4 flex justify-between items-start cursor-pointer hover:shadow-md transition-shadow",
+        isFull ? "bg-red-50" : "bg-white",
+        isCheckedIn ? "border-blue-500 bg-blue-50" : ""
       )}
       onClick={onClick}
     >
