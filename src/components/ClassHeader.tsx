@@ -8,9 +8,10 @@ import { ClassDetail } from "../types";
 
 interface ClassHeaderProps {
   classData: ClassDetail;
+  className?: string;
 }
 
-const ClassHeader: React.FC<ClassHeaderProps> = ({ classData }) => {
+const ClassHeader: React.FC<ClassHeaderProps> = ({ classData, className }) => {
   const navigate = useNavigate();
   
   const formattedDate = format(classData.startTime, "d 'de' MMMM", {
@@ -20,7 +21,7 @@ const ClassHeader: React.FC<ClassHeaderProps> = ({ classData }) => {
   const endTimeFormatted = format(classData.endTime, "HH:mm");
 
   return (
-    <header className="py-4">
+    <header className={`py-4 ${className || ''}`}>
       <button
         className="flex items-center text-blue-500 mb-4"
         onClick={() => navigate("/check-in")}

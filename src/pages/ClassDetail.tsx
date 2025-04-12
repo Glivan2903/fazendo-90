@@ -130,11 +130,6 @@ const ClassDetail = () => {
     );
   }
 
-  const classDate = new Date(classDetail.startTime);
-  const formattedDate = format(classDate, "EEEE, d 'de' MMMM", {
-    locale: ptBR,
-  });
-
   return (
     <div className="max-w-md mx-auto px-4 pb-8">
       <header className="py-6 flex items-center justify-between">
@@ -192,26 +187,11 @@ const ClassDetail = () => {
       </header>
 
       <div>
-        <ClassHeader
-          className="mb-6"
-          programName={classDetail.program.name}
-          time={`${format(new Date(classDetail.startTime), "HH:mm")} - ${format(
-            new Date(classDetail.endTime),
-            "HH:mm"
-          )}`}
-          date={formattedDate}
-        />
+        <ClassHeader classData={classDetail} className="mb-6" />
 
-        <ClassCoachInfo
-          coachName={classDetail.coach.name}
-          coachAvatar={classDetail.coach.avatarUrl}
-        />
+        <ClassCoachInfo classData={classDetail} />
 
-        <ClassCapacityInfo
-          attendeeCount={classDetail.attendeeCount}
-          maxCapacity={classDetail.maxCapacity}
-          className="mb-6"
-        />
+        <ClassCapacityInfo classData={classDetail} className="mb-6" />
 
         <ClassCheckInButton
           isCheckedIn={isCheckedIn}

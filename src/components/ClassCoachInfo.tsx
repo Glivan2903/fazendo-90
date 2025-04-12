@@ -6,11 +6,12 @@ import { ClassDetail } from "../types";
 
 interface ClassCoachInfoProps {
   classData: ClassDetail;
+  className?: string;
 }
 
-const ClassCoachInfo: React.FC<ClassCoachInfoProps> = ({ classData }) => {
+const ClassCoachInfo: React.FC<ClassCoachInfoProps> = ({ classData, className }) => {
   return (
-    <div className="mb-4">
+    <div className={`mb-4 ${className || ''}`}>
       <h2 className="text-sm font-medium text-gray-500 mb-2">Professor</h2>
       <Link to="/teacher-dashboard" className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors">
         <Avatar
