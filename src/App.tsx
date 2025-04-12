@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import CheckIn from "./pages/CheckIn";
 import ClassDetail from "./pages/ClassDetail";
+import ClassDetailRedirect from "./pages/ClassDetailRedirect";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import ScheduleEditor from "./pages/ScheduleEditor";
@@ -45,6 +46,14 @@ const App = () => (
               />
               <Route 
                 path="/class/:classId" 
+                element={
+                  <ProtectedRoute>
+                    <ClassDetailRedirect />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/class/:classId/:uuid" 
                 element={
                   <ProtectedRoute>
                     <ClassDetail />
