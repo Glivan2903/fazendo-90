@@ -1,6 +1,7 @@
+
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
-import { addDays, format } from "date-fns";
+import { addDays, format, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -67,15 +68,18 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
           coachName: cls.profiles?.name || "Coach",
           coachAvatar: cls.profiles?.avatar_url,
           maxCapacity: cls.max_capacity,
-          attendeeCount: attendeeCount,
+          attendeeCount,
           spotsLeft: cls.max_capacity - attendeeCount,
-          isCheckedIn: isCheckedIn
+          isCheckedIn
         };
       } catch (error) {
         console.error("Erro ao processar classe:", error);
         
         // Se houver erro ao processar uma classe, retornamos uma classe com valores padrão seguros
         const now = new Date();
+        const attendeeCount = cls.checkins ? cls.checkins.length : 0;
+        const isCheckedIn = userId ? cls.checkins?.some(checkin => checkin.user_id === userId) || false : false;
+        
         return {
           id: cls.id || crypto.randomUUID(),
           startTime: new Date(now),
@@ -84,9 +88,9 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
           coachName: cls.profiles?.name || "Coach",
           coachAvatar: cls.profiles?.avatar_url,
           maxCapacity: cls.max_capacity || 15,
-          attendeeCount: attendeeCount || 0,
-          spotsLeft: (cls.max_capacity || 15) - (attendeeCount || 0),
-          isCheckedIn: isCheckedIn || false
+          attendeeCount,
+          spotsLeft: (cls.max_capacity || 15) - attendeeCount,
+          isCheckedIn
         };
       }
     });
