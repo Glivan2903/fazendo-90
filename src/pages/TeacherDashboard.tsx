@@ -90,7 +90,13 @@ const TeacherDashboard = () => {
         setLoading(true);
         try {
           const userData = await fetchUsers();
-          setUsers(userData);
+          const updatedUsers = userData.map(user => ({
+            ...user,
+            role: user.role === "Aluno" ? "student" : 
+                 user.role === "Professor" ? "coach" : 
+                 user.role === "Admin" ? "admin" : user.role
+          }));
+          setUsers(updatedUsers);
         } catch (error) {
           console.error("Error fetching users:", error);
           toast.error("Erro ao carregar usuários");
@@ -132,7 +138,11 @@ const TeacherDashboard = () => {
     
     setUserEditLoading(true);
     try {
-      await updateUser(userData);
+      const apiUserData = {
+        ...userData
+      };
+      
+      await updateUser(apiUserData);
       setUsers(users.map(u => u.id === userData.id ? userData : u));
       toast.success("Usuário atualizado com sucesso!");
       setIsDialogOpen(false);

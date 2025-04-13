@@ -21,7 +21,7 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, user, 
     id: "",
     name: "",
     email: "",
-    role: "Aluno",
+    role: "student",
     status: "Ativo"
   });
   
@@ -102,9 +102,9 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, user, 
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Aluno">Aluno</SelectItem>
-                  <SelectItem value="Professor">Professor</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="student">Aluno</SelectItem>
+                  <SelectItem value="coach">Professor</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
                 </SelectContent>
               </Select>
             </div>
