@@ -159,7 +159,6 @@ const TeacherDashboard = () => {
     }
   };
   
-  // Componente de menu mobile
   const MobileMenu = () => (
     <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
       <SheetTrigger asChild>
@@ -183,15 +182,13 @@ const TeacherDashboard = () => {
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gray-50">
-        {!isMobile && (
-          <Sidebar className="hidden md:block">
-            <DashboardSidebar 
-              activeTab={activeTab} 
-              setActiveTab={setActiveTab}
-              signOut={signOut}
-            />
-          </Sidebar>
-        )}
+        <Sidebar className="hidden md:block">
+          <DashboardSidebar 
+            activeTab={activeTab} 
+            setActiveTab={setActiveTab}
+            signOut={signOut}
+          />
+        </Sidebar>
         
         <main className="flex-1 overflow-auto">
           <div className="flex items-center p-4 border-b bg-white">
