@@ -1,4 +1,3 @@
-
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -8,11 +7,9 @@ import { toast } from "sonner";
 // API para buscar aulas para uma data específica
 export const fetchClasses = async (date: Date): Promise<Class[]> => {
   try {
-    // Formatar data para consulta no banco de dados
     const formattedDate = format(date, 'yyyy-MM-dd');
     console.log("Buscando aulas para a data:", formattedDate);
 
-    // Tentar buscar do Supabase
     const { data: classesData, error } = await supabase
       .from('classes')
       .select(`
@@ -27,38 +24,30 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
       .eq('date', formattedDate)
       .order('start_time', { ascending: true });
 
-    // Usar dados mockados se houver erro ou não houver dados
     if (error || !classesData || classesData.length === 0) {
       console.log("Using mock data for classes:", error);
       return fetchMockClasses(date);
     }
 
-    // Get current user ID to check if user is checked in
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
     console.log("Current user ID:", userId);
 
-    // Processar dados do Supabase
     return classesData.map(cls => {
       try {
-        // Contar check-ins - certifique-se de que checkins existe e é um array
         const checkins = Array.isArray(cls.checkins) ? cls.checkins : [];
         const attendeeCount = checkins.length;
         console.log(`Classe ${cls.id}: ${attendeeCount} check-ins`);
         
-        // Verificar se o usuário atual está inscrito
         const isCheckedIn = userId ? checkins.some(checkin => checkin.user_id === userId) || false : false;
         
-        // Calcular vagas restantes
         const spotsLeft = cls.max_capacity - attendeeCount;
         
-        // Criar objetos Date a partir dos valores de string
         const startTimeStr = `${formattedDate}T${cls.start_time}`;
         const endTimeStr = `${formattedDate}T${cls.end_time}`;
         const startTime = new Date(startTimeStr);
         const endTime = new Date(endTimeStr);
         
-        // Validar as datas
         if (!isValid(startTime) || !isValid(endTime)) {
           console.error("Data inválida:", { startTime, endTime, cls });
           throw new Error("Data inválida");
@@ -79,7 +68,6 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
       } catch (error) {
         console.error("Erro ao processar classe:", error);
         
-        // Valores padrão seguros em caso de erro
         const now = new Date();
         const attendeeCount = Array.isArray(cls.checkins) ? cls.checkins.length : 0;
         const isCheckedIn = userId ? (Array.isArray(cls.checkins) ? cls.checkins.some(checkin => checkin.user_id === userId) : false) : false;
@@ -105,9 +93,7 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
   }
 };
 
-// Função para buscar classes mockadas mas com UUID válidos
 const fetchMockClasses = async (date: Date): Promise<Class[]> => {
-  // Calcular diferença de dias em relação a hoje
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   date.setHours(0, 0, 0, 0);
@@ -117,9 +103,7 @@ const fetchMockClasses = async (date: Date): Promise<Class[]> => {
   
   const mockClasses = generateClassesForDay(diffDays);
   
-  // Convertemos os IDs para formato UUID válido e garantimos datas válidas
   return mockClasses.map(cls => {
-    // Verify that startTime and endTime are valid Date objects
     const startTime = cls.startTime instanceof Date && !isNaN(cls.startTime.getTime()) 
       ? cls.startTime 
       : new Date();
@@ -130,7 +114,6 @@ const fetchMockClasses = async (date: Date): Promise<Class[]> => {
       
     return {
       ...cls,
-      // Criar um UUID válido para cada classe mock
       id: crypto.randomUUID(),
       startTime,
       endTime
@@ -138,12 +121,10 @@ const fetchMockClasses = async (date: Date): Promise<Class[]> => {
   });
 };
 
-// API para buscar detalhes de uma aula específica
 export const fetchClassDetails = async (classId: string): Promise<{classDetail: ClassDetail, attendees: Attendee[]}> => {
   try {
     console.log("Buscando detalhes da aula:", classId);
     
-    // First try to get data from Supabase
     const { data: classData, error: classError } = await supabase
       .from('classes')
       .select(`
@@ -169,7 +150,6 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
     
     console.log("Dados da aula:", classData);
     
-    // Process attendees from Supabase data
     const attendees: Attendee[] = [];
     if (classData.checkins && Array.isArray(classData.checkins)) {
       for (const checkin of classData.checkins) {
@@ -185,13 +165,11 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
     
     console.log(`Processados ${attendees.length} participantes`);
     
-    // Combinar data e hora para criar objetos Date completos
     const startTimeStr = `${classData.date}T${classData.start_time}`;
     const endTimeStr = `${classData.date}T${classData.end_time}`;
     const startTime = new Date(startTimeStr);
     const endTime = new Date(endTimeStr);
     
-    // Format class details
     const classDetail: ClassDetail = {
       id: classData.id,
       startTime,
@@ -217,29 +195,22 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
   }
 };
 
-// Função para buscar detalhes de classe mockada
 const fetchMockClassDetails = async (classId: string): Promise<{classDetail: ClassDetail, attendees: Attendee[]}> => {
   try {
-    // Tentamos primeiro parsear o classId como um UUID válido
-    // Se não for um UUID válido, geramos dados mock
     let mockClassDetail: ClassDetail;
-    let attendeeCount = 8; // valor padrão
+    let attendeeCount = 8;
     
-    // Check if the classId is in the day-index format or already a UUID
     if (classId.includes('-') && !classId.includes('-', 2)) {
-      // Parece ser o formato antigo dia-índice, então geramos dados mock
       const [dayOffsetStr, classIndexStr] = classId.split('-');
       const dayOffset = parseInt(dayOffsetStr);
       const classIndex = parseInt(classIndexStr);
       
-      // Get the classes for that day
       const classes = generateClassesForDay(dayOffset);
       const classData = classes[classIndex];
       attendeeCount = classData.attendeeCount;
       
-      // Create class detail object
       mockClassDetail = {
-        id: crypto.randomUUID(), // Geramos um UUID válido
+        id: crypto.randomUUID(),
         startTime: classData.startTime,
         endTime: classData.endTime,
         program: {
@@ -255,7 +226,6 @@ const fetchMockClassDetails = async (classId: string): Promise<{classDetail: Cla
         attendeeCount: classData.attendeeCount
       };
     } else {
-      // Presumimos que é um UUID válido, então apenas geramos dados mock genéricos
       const now = new Date();
       mockClassDetail = {
         id: classId,
@@ -275,14 +245,12 @@ const fetchMockClassDetails = async (classId: string): Promise<{classDetail: Cla
       };
     }
     
-    // Generate random attendees
     const attendees = generateAttendees(attendeeCount);
     
     return { classDetail: mockClassDetail, attendees };
   } catch (error) {
     console.error("Error generating mock class details:", error);
     
-    // Fallback para uma classe genérica em caso de erro
     const mockClassDetail: ClassDetail = {
       id: crypto.randomUUID(),
       startTime: new Date(),
@@ -300,19 +268,16 @@ const fetchMockClassDetails = async (classId: string): Promise<{classDetail: Cla
       attendeeCount: 5
     };
     
-    // Generate random attendees
     const attendees = generateAttendees(5);
     
     return { classDetail: mockClassDetail, attendees };
   }
 };
 
-// API para fazer check-in em uma aula
 export const checkInToClass = async (classId: string): Promise<boolean> => {
   try {
     console.log("Realizando check-in para a aula:", classId);
     
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -321,75 +286,63 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       return false;
     }
     
-    // Check if class exists and has available spots
     const { data: classData, error: classError } = await supabase
       .from('classes')
       .select(`
         id,
         max_capacity,
-        checkins (id)
+        checkins (id, user_id)
       `)
       .eq('id', classId)
       .single();
       
     if (classError || !classData) {
-      console.error("Class not found:", classError);
-      // Tentativa de check-in para aula mock, retornamos success
-      // para permitir UX consistente mesmo em modo offline
-      console.log("Simulating check-in for mock class");
-      return true;
+      console.error("Class not found or error:", classError);
+      toast.error("Aula não encontrada");
+      return false;
     }
     
     const checkins = Array.isArray(classData.checkins) ? classData.checkins : [];
+    console.log(`Aula tem ${checkins.length}/${classData.max_capacity} vagas ocupadas`);
     
-    // Check if class has available spots
     if (checkins.length >= classData.max_capacity) {
       toast.error("Esta aula está lotada");
       return false;
     }
     
-    // Check if user already checked in
-    const { data: existingCheckin, error: checkinError } = await supabase
-      .from('checkins')
-      .select('id')
-      .eq('class_id', classId)
-      .eq('user_id', user.id);
-      
-    if (existingCheckin && existingCheckin.length > 0) {
+    const userCheckin = checkins.find(checkin => checkin.user_id === user.id);
+    if (userCheckin) {
       toast.error("Você já está inscrito nesta aula");
       return false;
     }
     
-    // Insert check-in record
-    const { error } = await supabase
+    const { data: insertData, error: insertError } = await supabase
       .from('checkins')
       .insert([
         { class_id: classId, user_id: user.id, status: 'confirmed' }
-      ]);
+      ])
+      .select();
     
-    if (error) {
-      console.error("Error checking in:", error);
+    if (insertError) {
+      console.error("Error checking in:", insertError);
       toast.error("Erro ao fazer check-in");
       return false;
     }
     
-    console.log("Check-in realizado com sucesso!");
+    console.log("Check-in realizado com sucesso:", insertData);
+    toast.success("Check-in realizado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in:", error);
     toast.error("Erro ao fazer check-in");
-    
-    // Fall back to mock success for now
-    return true;
+    return false;
   }
 };
 
-// API para cancelar check-in
 export const cancelCheckIn = async (classId: string): Promise<boolean> => {
   try {
     console.log("Cancelando check-in para a aula:", classId);
     
-    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
@@ -398,7 +351,6 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
       return false;
     }
     
-    // Delete check-in record
     const { error } = await supabase
       .from('checkins')
       .delete()
@@ -412,12 +364,11 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
     }
     
     console.log("Check-in cancelado com sucesso!");
+    toast.success("Check-in cancelado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in cancellation:", error);
     toast.error("Erro ao cancelar check-in");
-    
-    // Fall back to mock success
-    return true;
+    return false;
   }
 };

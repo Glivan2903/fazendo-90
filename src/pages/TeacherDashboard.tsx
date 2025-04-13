@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Menu } from "lucide-react";
 import { fetchClasses } from "../api/classApi";
 import { fetchUsers, updateUser } from "@/api/userApi";
 import { fetchAttendance } from "@/api/attendanceApi";
@@ -10,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import EditUserDialog from "@/components/EditUserDialog";
 import { Class, User } from "../types";
 import { addDays } from "date-fns";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Import the new component files
 import OverviewTab from "@/components/dashboard/OverviewTab";
@@ -18,6 +21,7 @@ import UsersTab from "@/components/dashboard/UsersTab";
 import AttendanceTab from "@/components/dashboard/AttendanceTab";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import { Button } from "@/components/ui/button";
 
 const TeacherDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -29,8 +33,10 @@ const TeacherDashboard = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userEditLoading, setUserEditLoading] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { signOut, userRole } = useAuth();
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     if (userRole !== "admin" && userRole !== "coach") {
@@ -154,20 +160,51 @@ const TeacherDashboard = () => {
     }
   };
   
+  // Componente de menu mobile
+  const MobileMenu = () => (
+    <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-[240px] p-0">
+        <DashboardSidebar 
+          activeTab={activeTab} 
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            setMenuOpen(false);
+          }}
+          signOut={signOut}
+        />
+      </SheetContent>
+    </Sheet>
+  );
+  
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <Sidebar>
+    <div className="flex min-h-screen w-full bg-gray-50">
+      {!isMobile && (
+        <Sidebar className="hidden md:block">
           <DashboardSidebar 
             activeTab={activeTab} 
             setActiveTab={setActiveTab}
             signOut={signOut}
           />
         </Sidebar>
+      )}
+      
+      <main className="flex-1 overflow-auto">
+        <div className="flex items-center p-4 border-b bg-white">
+          {isMobile && <MobileMenu />}
+          <h1 className="text-xl font-bold ml-2">
+            {activeTab === "overview" && "Visão Geral"}
+            {activeTab === "schedule" && "Grade Horária"}
+            {activeTab === "users" && "Usuários"}
+            {activeTab === "attendance" && "Controle de Presença"}
+          </h1>
+        </div>
         
-        <main className="flex-1 overflow-auto p-6">
-          <DashboardHeader title="Painel de Controle" signOut={signOut} />
-          
+        <div className="p-4">
           {loading && activeTab !== "overview" && (
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -189,8 +226,8 @@ const TeacherDashboard = () => {
           {activeTab === "attendance" && !loading && (
             <AttendanceTab attendanceData={attendance} />
           )}
-        </main>
-      </div>
+        </div>
+      </main>
       
       <EditUserDialog
         isOpen={isDialogOpen}
@@ -199,7 +236,7 @@ const TeacherDashboard = () => {
         onSave={handleSaveUser}
         isLoading={userEditLoading}
       />
-    </SidebarProvider>
+    </div>
   );
 };
 

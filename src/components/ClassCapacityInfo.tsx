@@ -2,6 +2,7 @@
 import React from "react";
 import { ClassDetail } from "@/types";
 import CapacityBar from "@/components/CapacityBar";
+import { Users } from "lucide-react";
 
 interface ClassCapacityInfoProps {
   classData: ClassDetail;
@@ -13,27 +14,22 @@ const ClassCapacityInfo: React.FC<ClassCapacityInfoProps> = ({
   className = "",
 }) => {
   const attendeeText = `${classData.attendeeCount}/${classData.maxCapacity}`;
+  const isFull = classData.attendeeCount >= classData.maxCapacity;
 
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex justify-between items-center">
         <h3 className="text-gray-600">Capacidade</h3>
         <div className="flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-4 w-4 text-gray-500 mr-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-          <span className="text-gray-700">{attendeeText}</span>
+          <Users className="h-4 w-4 text-gray-500 mr-1" />
+          <span className={`${isFull ? "text-red-600 font-medium" : "text-gray-700"}`}>
+            {attendeeText}
+          </span>
+          {isFull && (
+            <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+              Lotado
+            </span>
+          )}
         </div>
       </div>
       <CapacityBar

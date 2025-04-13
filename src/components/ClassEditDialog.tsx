@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon, Users, Loader2, Trash, Save } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse, isValid } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ClassDetail } from "@/types";
 import { toast } from "sonner";
@@ -52,20 +52,22 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
   
   useEffect(() => {
     if (classData && !isNew) {
+      console.log("Editando aula existente:", classData);
+      
       const startTime = new Date(classData.startTime);
       const endTime = new Date(classData.endTime);
       
       setFormData({
-        programId: classData.program.id,
-        programName: classData.program.name,
+        programId: classData.program?.id || "",
+        programName: classData.program?.name || "",
         date: startTime,
         startHour: format(startTime, "HH"),
         startMinute: format(startTime, "mm"),
         endHour: format(endTime, "HH"),
         endMinute: format(endTime, "mm"),
         maxCapacity: classData.maxCapacity,
-        coachId: classData.coach.id,
-        coachName: classData.coach.name
+        coachId: classData.coach?.id || "",
+        coachName: classData.coach?.name || ""
       });
       
       setDate(startTime);
@@ -98,6 +100,7 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
       
       if (error) throw error;
       
+      console.log("Programas carregados:", data);
       setPrograms(data || []);
       
       // If no program is selected but we have programs, select the first one
@@ -112,6 +115,7 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
       console.error("Error fetching programs:", error);
       // Use default values if fetch fails
       setPrograms([{ id: "default", name: "CrossFit" }]);
+      toast.error("Erro ao carregar programas");
     }
   };
   
@@ -122,8 +126,26 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
         .select("id, name")
         .eq("role", "coach");
       
-      if (error) throw error;
+      if (error) {
+        console.error("Erro ao buscar coaches:", error);
+        // Tentar buscar todos os perfis como fallback
+        const { data: allProfiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, name, role");
+          
+        if (profilesError) throw profilesError;
+        
+        // Filtrar apenas coaches
+        const coachProfiles = allProfiles?.filter(profile => 
+          profile.role === "coach"
+        ) || [];
+        
+        console.log("Coaches encontrados (fallback):", coachProfiles);
+        setCoaches(coachProfiles);
+        return;
+      }
       
+      console.log("Coaches carregados:", data);
       setCoaches(data || []);
       
       // If no coach is selected but we have coaches, select the first one
@@ -136,8 +158,9 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
       }
     } catch (error) {
       console.error("Error fetching coaches:", error);
+      toast.error("Erro ao carregar coaches");
       // Use default values if fetch fails
-      setCoaches([{ id: "default", name: "Coach" }]);
+      setCoaches([]);
     }
   };
   
@@ -183,12 +206,40 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
     try {
       setLoading(true);
       
-      // Create date objects for start and end times
+      // Validar dados
+      if (!formData.programId) {
+        toast.error("Selecione um programa");
+        return;
+      }
+      
+      if (!formData.coachId) {
+        toast.error("Selecione um coach");
+        return;
+      }
+      
+      if (!date) {
+        toast.error("Selecione uma data");
+        return;
+      }
+      
+      // Format date as YYYY-MM-DD
       const dateStr = format(formData.date, "yyyy-MM-dd");
-      const startTime = new Date(`${dateStr}T${formData.startHour}:${formData.startMinute}:00`);
-      const endTime = new Date(`${dateStr}T${formData.endHour}:${formData.endMinute}:00`);
+      console.log("Data da aula:", dateStr);
+      
+      // Create time strings
+      const startTimeStr = `${formData.startHour}:${formData.startMinute}:00`;
+      const endTimeStr = `${formData.endHour}:${formData.endMinute}:00`;
+      console.log("Horários:", { start: startTimeStr, end: endTimeStr });
       
       // Validate times
+      const startTime = parse(`${dateStr} ${startTimeStr}`, "yyyy-MM-dd HH:mm:ss", new Date());
+      const endTime = parse(`${dateStr} ${endTimeStr}`, "yyyy-MM-dd HH:mm:ss", new Date());
+      
+      if (!isValid(startTime) || !isValid(endTime)) {
+        toast.error("Horários inválidos");
+        return;
+      }
+      
       if (endTime <= startTime) {
         toast.error("O horário de término deve ser após o horário de início");
         return;
@@ -197,17 +248,18 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
       const classDataToSave = {
         id: classData?.id,
         date: dateStr,
-        start_time: startTime.toISOString(),
-        end_time: endTime.toISOString(),
+        start_time: startTimeStr,
+        end_time: endTimeStr,
         max_capacity: formData.maxCapacity,
-        program_id: formData.programId || null,
-        coach_id: formData.coachId || null
+        program_id: formData.programId,
+        coach_id: formData.coachId
       };
       
+      console.log("Dados da aula a serem salvos:", classDataToSave);
       await onSave(classDataToSave);
       onClose();
     } catch (error) {
-      console.error("Error saving class:", error);
+      console.error("Erro ao salvar aula:", error);
       toast.error("Erro ao salvar a aula");
     } finally {
       setLoading(false);
@@ -375,11 +427,17 @@ const ClassEditDialog: React.FC<ClassEditDialogProps> = ({
                 <SelectValue placeholder="Selecione um coach" />
               </SelectTrigger>
               <SelectContent>
-                {coaches.map(coach => (
-                  <SelectItem key={coach.id} value={coach.id}>
-                    {coach.name}
+                {coaches.length > 0 ? (
+                  coaches.map(coach => (
+                    <SelectItem key={coach.id} value={coach.id}>
+                      {coach.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-coach" disabled>
+                    Nenhum coach disponível
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>
