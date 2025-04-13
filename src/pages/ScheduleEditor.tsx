@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { format, parseISO, startOfWeek, addDays } from "date-fns";
+import { format, parseISO, startOfWeek, addDays, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Calendar as CalendarIcon, Plus, Edit2, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -80,16 +79,60 @@ const ScheduleEditor = () => {
       if (error) throw error;
       
       // Transform the data to match our needs
-      const transformedClasses = (data || []).map(cls => ({
-        id: cls.id,
-        startTime: cls.start_time,
-        endTime: cls.end_time,
-        date: cls.date,
-        maxCapacity: cls.max_capacity,
-        program: cls.programs,
-        coach: cls.profiles,
-        attendeeCount: cls.checkins ? cls.checkins.length : 0
-      }));
+      const transformedClasses = (data || []).map(cls => {
+        try {
+          // Create proper date objects from date strings and time
+          const dateStr = cls.date;
+          const startTimeStr = cls.start_time;
+          const endTimeStr = cls.end_time;
+          
+          // Create valid date objects
+          const startTimeDate = new Date(`${dateStr}T${startTimeStr}`);
+          const endTimeDate = new Date(`${dateStr}T${endTimeStr}`);
+          
+          // Verify the dates are valid before returning
+          if (!isValid(startTimeDate) || !isValid(endTimeDate)) {
+            console.warn(`Invalid date for class ${cls.id}: ${dateStr}, ${startTimeStr}-${endTimeStr}`);
+            // Use current time as fallback if date is invalid
+            const now = new Date();
+            return {
+              id: cls.id,
+              startTime: now,
+              endTime: new Date(now.getTime() + 3600000),
+              date: dateStr,
+              maxCapacity: cls.max_capacity,
+              program: cls.programs,
+              coach: cls.profiles,
+              attendeeCount: cls.checkins ? cls.checkins.length : 0
+            };
+          }
+          
+          return {
+            id: cls.id,
+            startTime: startTimeDate,
+            endTime: endTimeDate,
+            date: dateStr,
+            maxCapacity: cls.max_capacity,
+            program: cls.programs,
+            coach: cls.profiles,
+            attendeeCount: cls.checkins ? cls.checkins.length : 0
+          };
+        } catch (error) {
+          console.error("Error processing class:", error);
+          // Provide a fallback if date parsing fails
+          const now = new Date();
+          return {
+            id: cls.id,
+            startTime: now,
+            endTime: new Date(now.getTime() + 3600000),
+            date: cls.date,
+            maxCapacity: cls.max_capacity,
+            program: cls.programs,
+            coach: cls.profiles,
+            attendeeCount: cls.checkins ? cls.checkins.length : 0
+          };
+        }
+      });
       
       setClasses(transformedClasses);
     } catch (error) {
@@ -184,7 +227,9 @@ const ScheduleEditor = () => {
     
     // Find classes that start at this time
     const classesAtTime = classes.filter(cls => {
-      const startTime = new Date(cls.startTime);
+      if (!cls.startTime || !isValid(cls.startTime)) return false;
+      
+      const startTime = cls.startTime;
       return startTime.getHours() === hour && startTime.getMinutes() === minute;
     });
     
@@ -262,7 +307,8 @@ const ScheduleEditor = () => {
     
     for (let i = 0; i < 7; i++) {
       const date = addDays(startDate, i);
-      const dayClasses = classes.filter(cls => cls.date === format(date, "yyyy-MM-dd"));
+      const formattedDate = format(date, "yyyy-MM-dd");
+      const dayClasses = classes.filter(cls => cls.date === formattedDate);
       
       days.push(
         <div key={i} className="min-w-[250px] max-w-[250px]">
@@ -271,26 +317,32 @@ const ScheduleEditor = () => {
           </div>
           <div className="space-y-2 p-2">
             {dayClasses.length > 0 ? (
-              dayClasses.map(cls => (
-                <div 
-                  key={cls.id} 
-                  className="p-2 bg-blue-50 border border-blue-200 rounded-md cursor-pointer hover:bg-blue-100 transition-colors"
-                  onClick={() => openEditDialog(cls)}
-                >
-                  <div className="font-medium">{cls.program?.name || "Sem programa"}</div>
-                  <div className="text-sm text-gray-600">
-                    {format(new Date(cls.startTime), "HH:mm")} - {format(new Date(cls.endTime), "HH:mm")}
+              dayClasses.map(cls => {
+                // Ensure we have valid dates
+                const startTime = isValid(cls.startTime) ? cls.startTime : new Date();
+                const endTime = isValid(cls.endTime) ? cls.endTime : new Date();
+                
+                return (
+                  <div 
+                    key={cls.id} 
+                    className="p-2 bg-blue-50 border border-blue-200 rounded-md cursor-pointer hover:bg-blue-100 transition-colors"
+                    onClick={() => openEditDialog(cls)}
+                  >
+                    <div className="font-medium">{cls.program?.name || "Sem programa"}</div>
+                    <div className="text-sm text-gray-600">
+                      {format(startTime, "HH:mm")} - {format(endTime, "HH:mm")}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Coach: {cls.coach?.name || "Não atribuído"}
+                    </div>
+                    <div className="text-sm">
+                      <span className={cls.attendeeCount >= cls.maxCapacity ? "text-red-600" : "text-green-600"}>
+                        {cls.attendeeCount} / {cls.maxCapacity}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    Coach: {cls.coach?.name || "Não atribuído"}
-                  </div>
-                  <div className="text-sm">
-                    <span className={cls.attendeeCount >= cls.maxCapacity ? "text-red-600" : "text-green-600"}>
-                      {cls.attendeeCount} / {cls.maxCapacity}
-                    </span>
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="p-2 border border-dashed border-gray-200 rounded-md text-sm text-gray-400 text-center">
                 Sem aulas
