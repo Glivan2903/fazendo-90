@@ -14,7 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Edit, Plus, Save, Trash, User } from "lucide-react";
+import { AlertCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, LayoutGrid, List, Loader2, RotateCcw, 
+  Edit, Plus, Save, Trash, User } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -26,11 +27,12 @@ interface ScheduleTabProps {
 const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) => {
   const isMobile = useIsMobile();
   const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
-  const hours = ["06:00", "07:00", "08:00", "09:00", "17:00", "18:00", "19:00"];
+  const weekdays = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+  const hours = ["05:00", "06:00", "07:00", "08:00", "09:00", "10:00", "17:00", "18:00", "19:00"];
   
   const [classes, setClasses] = useState<Class[]>(initialClasses);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<"day" | "week">("week");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
@@ -38,6 +40,10 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [programs, setPrograms] = useState<any[]>([]);
   const [coaches, setCoaches] = useState<any[]>([]);
+  const [dateRange, setDateRange] = useState<{start: Date, end: Date}>({
+    start: startOfWeek(new Date(), { weekStartsOn: 0 }),
+    end: addDays(startOfWeek(new Date(), { weekStartsOn: 0 }), 6)
+  });
 
   // Form data state
   const [formData, setFormData] = useState({
@@ -57,31 +63,96 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
     fetchWeeklySchedule();
     fetchPrograms();
     fetchCoaches();
-  }, [selectedDate, viewMode]);
+  }, [selectedDate, viewMode, dateRange]);
 
   const fetchWeeklySchedule = async () => {
     try {
       setLoading(true);
       
       let allClasses: Class[] = [];
-      const startDate = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Start on Monday
       
-      for (let i = 0; i < 7; i++) {
-        const date = addDays(startDate, i);
-        const fetchedClasses = await fetchClassesForDay(date);
-        allClasses = [...allClasses, ...fetchedClasses];
+      if (viewMode === "grid") {
+        const startDate = dateRange.start;
+        
+        for (let i = 0; i < 7; i++) {
+          const date = addDays(startDate, i);
+          const fetchedClasses = await fetchClassesForDay(date);
+          allClasses = [...allClasses, ...fetchedClasses];
+        }
+      } else {
+        // For list view, fetch all recurring classes
+        const { data, error } = await supabase
+          .from("classes")
+          .select(`
+            id,
+            date,
+            start_time,
+            end_time,
+            max_capacity,
+            programs (id, name),
+            profiles!coach_id (id, name, avatar_url),
+            checkins (id)
+          `)
+          .order('start_time', { ascending: true });
+          
+        if (error) throw error;
+        
+        // Transform to Class objects
+        allClasses = (data || []).map(cls => {
+          try {
+            const dateStr = cls.date;
+            const startTimeStr = cls.start_time;
+            const endTimeStr = cls.end_time;
+            
+            // Create valid date objects
+            const startTimeDate = new Date(`${dateStr}T${startTimeStr}`);
+            const endTimeDate = new Date(`${dateStr}T${endTimeStr}`);
+            
+            return {
+              id: cls.id,
+              programName: cls.programs?.name || "CrossFit",
+              coachName: cls.profiles?.name || "Coach",
+              startTime: startTimeDate,
+              endTime: endTimeDate,
+              maxCapacity: cls.max_capacity,
+              attendeeCount: cls.checkins ? cls.checkins.length : 0,
+              spotsLeft: cls.max_capacity - (cls.checkins ? cls.checkins.length : 0),
+              isCheckedIn: false,
+              program: cls.programs,
+              coach: cls.profiles,
+              date: dateStr
+            };
+          } catch (error) {
+            console.error("Error processing class:", error);
+            const now = new Date();
+            return {
+              id: cls.id,
+              programName: cls.programs?.name || "CrossFit",
+              coachName: cls.profiles?.name || "Coach",
+              startTime: now,
+              endTime: new Date(now.getTime() + 3600000),
+              maxCapacity: cls.max_capacity || 15,
+              attendeeCount: cls.checkins ? cls.checkins.length : 0,
+              spotsLeft: (cls.max_capacity || 15) - (cls.checkins ? cls.checkins.length : 0),
+              isCheckedIn: false,
+              program: cls.programs,
+              coach: cls.profiles,
+              date: cls.date
+            };
+          }
+        });
       }
       
       setClasses(allClasses);
     } catch (error) {
-      console.error("Error fetching weekly schedule:", error);
+      console.error("Error fetching schedule:", error);
       toast.error("Erro ao carregar grade horária");
     } finally {
       setLoading(false);
     }
   };
   
-  const fetchClassesForDay = async (date: Date) => {
+  const fetchClassesForDay = async (date: Date): Promise<Class[]> => {
     try {
       const formattedDate = format(date, 'yyyy-MM-dd');
       
@@ -95,7 +166,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
           max_capacity,
           programs (id, name),
           profiles!coach_id (id, name, avatar_url),
-          checkins (id)
+          checkins (id, user_id)
         `)
         .eq("date", formattedDate);
       
@@ -115,6 +186,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
           const endTimeDate = new Date(`${dateStr}T${endTimeStr}`);
           
           if (!isValid(startTimeDate) || !isValid(endTimeDate)) {
+            console.error("Invalid date detected:", { dateStr, startTimeStr, endTimeStr });
             const now = new Date();
             return {
               id: cls.id,
@@ -124,11 +196,15 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               endTime: new Date(now.getTime() + 3600000),
               maxCapacity: cls.max_capacity,
               attendeeCount: cls.checkins ? cls.checkins.length : 0,
+              spotsLeft: cls.max_capacity - (cls.checkins ? cls.checkins.length : 0),
+              isCheckedIn: false,
               program: cls.programs,
               coach: cls.profiles,
               date: dateStr
             };
           }
+          
+          const attendeeCount = cls.checkins ? cls.checkins.length : 0;
           
           return {
             id: cls.id,
@@ -137,7 +213,9 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
             startTime: startTimeDate,
             endTime: endTimeDate,
             maxCapacity: cls.max_capacity,
-            attendeeCount: cls.checkins ? cls.checkins.length : 0,
+            attendeeCount: attendeeCount,
+            spotsLeft: cls.max_capacity - attendeeCount,
+            isCheckedIn: false,
             program: cls.programs,
             coach: cls.profiles,
             date: dateStr
@@ -153,6 +231,8 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
             endTime: new Date(now.getTime() + 3600000),
             maxCapacity: cls.max_capacity,
             attendeeCount: cls.checkins ? cls.checkins.length : 0,
+            spotsLeft: cls.max_capacity - (cls.checkins ? cls.checkins.length : 0),
+            isCheckedIn: false,
             program: cls.programs,
             coach: cls.profiles,
             date: cls.date
@@ -369,7 +449,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
   };
   
   const openEditDialog = (classData: any) => {
-    if (!classData || !classData.startTime || !classData.endTime) {
+    if (!classData || !classData.startTime) {
       console.error("Invalid class data", classData);
       toast.error("Dados inválidos da aula");
       return;
@@ -377,11 +457,11 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
     
     try {
       const startTime = new Date(classData.startTime);
-      const endTime = new Date(classData.endTime);
+      const endTime = new Date(classData.endTime || startTime.getTime() + 3600000);
       
-      if (!isValid(startTime) || !isValid(endTime)) {
-        console.error("Invalid dates", { startTime, endTime });
-        toast.error("Datas inválidas");
+      if (!isValid(startTime)) {
+        console.error("Invalid date", { startTime });
+        toast.error("Data inválida");
         return;
       }
       
@@ -393,7 +473,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         startMinute: format(startTime, "mm"),
         endHour: format(endTime, "HH"),
         endMinute: format(endTime, "mm"),
-        maxCapacity: classData.maxCapacity,
+        maxCapacity: classData.maxCapacity || 15,
         coachId: classData.coach?.id || "",
         coachName: classData.coach?.name || classData.coachName || ""
       });
@@ -415,13 +495,26 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         
         const classDate = new Date(cls.startTime);
         const classHour = format(classDate, "HH:mm");
-        const dayOfWeek = (classDate.getDay() + 6) % 7;
+        const dayOfWeek = classDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+        
         return dayOfWeek === day && classHour === hour;
       } catch (error) {
         console.error("Error filtering class", error);
         return false;
       }
     });
+  };
+  
+  const handlePrevWeek = () => {
+    const newStart = addDays(dateRange.start, -7);
+    const newEnd = addDays(dateRange.end, -7);
+    setDateRange({ start: newStart, end: newEnd });
+  };
+  
+  const handleNextWeek = () => {
+    const newStart = addDays(dateRange.start, 7);
+    const newEnd = addDays(dateRange.end, 7);
+    setDateRange({ start: newStart, end: newEnd });
   };
   
   const renderClassCard = (cls: any) => {
@@ -444,101 +537,189 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
     );
   };
   
-  const renderMobileView = () => {
+  const renderGridView = () => {
     return (
-      <div className="space-y-4">
-        {days.map((day, dayIndex) => (
-          <Card key={dayIndex} className="mb-4">
-            <CardHeader className="py-2">
-              <CardTitle className="text-base">{day}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y">
-                {hours.map((hour) => {
-                  const classesForCell = getClassDataForDayAndHour(dayIndex, hour);
-                  if (classesForCell.length === 0) return null;
-                  
-                  return (
-                    <div key={hour} className="p-3">
-                      <h3 className="text-sm font-medium text-gray-500">{hour}</h3>
-                      {classesForCell.map((cls, idx) => (
-                        <div key={idx} className="mt-1">
-                          {renderClassCard(cls)}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  };
-  
-  const renderDesktopView = () => {
-    return (
-      <div className="overflow-auto">
-        <div className="min-w-[800px]">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">Horário</TableHead>
-                {days.slice(0, 5).map((day, index) => (
-                  <TableHead key={index}>{day}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {hours.map((hour) => (
-                <TableRow key={hour}>
-                  <TableCell className="font-medium">{hour}</TableCell>
-                  {days.slice(0, 5).map((_, dayIndex) => {
-                    const classesForCell = getClassDataForDayAndHour(dayIndex, hour);
+      <>
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-2">
+            <Button variant="outline" size="icon" onClick={handlePrevWeek}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <span className="font-medium">
+                {format(dateRange.start, "dd MMM. yyyy", { locale: ptBR })} - {format(dateRange.end, "dd MMM. yyyy", { locale: ptBR })}
+              </span>
+            </div>
+            <Button variant="outline" size="icon" onClick={handleNextWeek}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => {
+              setDateRange({
+                start: startOfWeek(new Date(), { weekStartsOn: 0 }),
+                end: addDays(startOfWeek(new Date(), { weekStartsOn: 0 }), 6)
+              });
+            }}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="text-sm text-gray-500">
+            Total de {classes.length} classes
+          </div>
+        </div>
+      
+        <div className="overflow-x-auto">
+          <div className="min-w-[800px]">
+            <Table className="border rounded">
+              <TableHeader>
+                <TableRow className="bg-gray-50">
+                  <TableHead className="w-[80px]">Horário</TableHead>
+                  {[0, 1, 2, 3, 4, 5, 6].map((dayOffset) => {
+                    const date = addDays(dateRange.start, dayOffset);
                     return (
-                      <TableCell key={dayIndex} className="p-2">
-                        {classesForCell.length > 0 ? (
-                          classesForCell.map((cls, idx) => (
-                            <div key={idx} className="mb-2 last:mb-0">
-                              {renderClassCard(cls)}
-                            </div>
-                          ))
-                        ) : (
-                          <div 
-                            className="h-16 border border-dashed border-gray-200 rounded-md flex items-center justify-center text-sm text-gray-400 cursor-pointer hover:bg-gray-50"
-                            onClick={() => {
-                              // Pre-fill the form with the selected day and time
-                              const today = new Date();
-                              const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
-                              const dayDate = addDays(weekStart, dayIndex);
-                              const [hourVal, minuteVal] = hour.split(":");
-                              
-                              setFormData(prev => ({
-                                ...prev,
-                                date: dayDate,
-                                startHour: hourVal,
-                                startMinute: minuteVal,
-                                endHour: (parseInt(hourVal) + 1).toString().padStart(2, "0"),
-                                endMinute: minuteVal
-                              }));
-                              
-                              setSelectedClass(null);
-                              setShowNewDialog(true);
-                            }}
-                          >
-                            <Plus className="h-4 w-4 mr-1" />
-                            <span>Adicionar aula</span>
-                          </div>
-                        )}
-                      </TableCell>
+                      <TableHead key={dayOffset} className="text-center">
+                        <div className="text-blue-600 font-bold">
+                          {format(date, "dd/MM", { locale: ptBR })}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {format(date, "EEEE", { locale: ptBR }).toUpperCase()}
+                        </div>
+                      </TableHead>
                     );
                   })}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {hours.map((hour) => (
+                  <TableRow key={hour}>
+                    <TableCell className="font-medium text-gray-700">{hour}</TableCell>
+                    {[0, 1, 2, 3, 4, 5, 6].map((day) => {
+                      const classesForCell = getClassDataForDayAndHour(day, hour);
+                      return (
+                        <TableCell key={day} className="p-1">
+                          {classesForCell.length > 0 ? (
+                            classesForCell.map((cls, idx) => (
+                              <div key={idx} className="mb-1">
+                                {renderClassCard(cls)}
+                              </div>
+                            ))
+                          ) : (
+                            <div 
+                              className="h-16 border border-dashed border-gray-200 rounded-md flex items-center justify-center text-xs text-gray-400 cursor-pointer hover:bg-gray-50"
+                              onClick={() => {
+                                const dayDate = addDays(dateRange.start, day);
+                                const [hourVal, minuteVal] = hour.split(":");
+                                
+                                setFormData(prev => ({
+                                  ...prev,
+                                  date: dayDate,
+                                  startHour: hourVal,
+                                  startMinute: minuteVal,
+                                  endHour: (parseInt(hourVal) + 1).toString().padStart(2, "0"),
+                                  endMinute: minuteVal
+                                }));
+                                
+                                setSelectedClass(null);
+                                setShowNewDialog(true);
+                              }}
+                            >
+                              <Plus className="h-3 w-3 mr-1" />
+                              <span>Adicionar aula</span>
+                            </div>
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </div>
+      </>
+    );
+  };
+  
+  const renderListView = () => {
+    // Group classes by time slot
+    const groupedClasses = classes.reduce((acc: Record<string, Class[]>, cls) => {
+      try {
+        if (!cls.startTime || !isValid(new Date(cls.startTime))) {
+          return acc;
+        }
+        
+        const startTime = new Date(cls.startTime);
+        const endTime = new Date(cls.endTime);
+        
+        const timeSlot = `${format(startTime, "HH:mm")} - ${format(endTime, "HH:mm")}`;
+        
+        if (!acc[timeSlot]) {
+          acc[timeSlot] = [];
+        }
+        
+        acc[timeSlot].push(cls);
+        return acc;
+      } catch (error) {
+        console.error("Error grouping class:", error);
+        return acc;
+      }
+    }, {});
+    
+    // Sort time slots
+    const sortedTimeSlots = Object.keys(groupedClasses).sort();
+    
+    return (
+      <div className="space-y-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Horário</TableHead>
+              <TableHead>Programa</TableHead>
+              <TableHead>Data de início</TableHead>
+              <TableHead>Data de término</TableHead>
+              <TableHead>Dias da semana</TableHead>
+              <TableHead className="w-[70px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedTimeSlots.map(timeSlot => (
+              <TableRow key={timeSlot}>
+                <TableCell className="font-medium">{timeSlot}</TableCell>
+                <TableCell>{groupedClasses[timeSlot][0].programName}</TableCell>
+                <TableCell>{format(new Date(groupedClasses[timeSlot][0].startTime), "dd/MM/yyyy")}</TableCell>
+                <TableCell>Não definido</TableCell>
+                <TableCell>
+                  <div className="flex space-x-1">
+                    {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
+                      <div 
+                        key={index}
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs
+                        ${index % 2 === 0 ? 'bg-gray-200 text-gray-600' : 'bg-blue-100 text-blue-600'}`}
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => openEditDialog(groupedClasses[timeSlot][0])}
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {sortedTimeSlots.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  Nenhuma aula encontrada
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     );
   };
@@ -560,7 +741,14 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               <Label htmlFor="program">Programa *</Label>
               <Select
                 value={formData.programId}
-                onValueChange={handleProgramChange}
+                onValueChange={(value) => {
+                  const selected = programs.find(p => p.id === value);
+                  setFormData(prev => ({
+                    ...prev,
+                    programId: value,
+                    programName: selected ? selected.name : prev.programName
+                  }));
+                }}
               >
                 <SelectTrigger id="program">
                   <SelectValue placeholder="Selecione um programa" />
@@ -594,9 +782,8 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                   <Calendar
                     mode="single"
                     selected={formData.date}
-                    onSelect={handleDateChange}
+                    onSelect={(date) => date && setFormData(prev => ({ ...prev, date }))}
                     initialFocus
-                    className={cn("p-3 pointer-events-auto")}
                   />
                 </PopoverContent>
               </Popover>
@@ -608,7 +795,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                 <div className="flex space-x-2">
                   <Select
                     value={formData.startHour}
-                    onValueChange={(value) => handleTimeChange("startHour", value)}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, startHour: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="HH" />
@@ -622,7 +809,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                   <span className="flex items-center">:</span>
                   <Select
                     value={formData.startMinute}
-                    onValueChange={(value) => handleTimeChange("startMinute", value)}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, startMinute: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="MM" />
@@ -641,7 +828,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                 <div className="flex space-x-2">
                   <Select
                     value={formData.endHour}
-                    onValueChange={(value) => handleTimeChange("endHour", value)}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, endHour: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="HH" />
@@ -655,7 +842,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                   <span className="flex items-center">:</span>
                   <Select
                     value={formData.endMinute}
-                    onValueChange={(value) => handleTimeChange("endMinute", value)}
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, endMinute: value }))}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="MM" />
@@ -677,7 +864,12 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                 type="number"
                 min="1"
                 value={formData.maxCapacity}
-                onChange={(e) => handleCapacityChange(e.target.value)}
+                onChange={(e) => {
+                  const capacity = parseInt(e.target.value);
+                  if (!isNaN(capacity) && capacity > 0) {
+                    setFormData(prev => ({ ...prev, maxCapacity: capacity }));
+                  }
+                }}
               />
             </div>
             
@@ -685,7 +877,14 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               <Label htmlFor="coach">Coach</Label>
               <Select
                 value={formData.coachId}
-                onValueChange={handleCoachChange}
+                onValueChange={(value) => {
+                  const selected = coaches.find(c => c.id === value);
+                  setFormData(prev => ({
+                    ...prev,
+                    coachId: value,
+                    coachName: selected ? selected.name : prev.coachName
+                  }));
+                }}
               >
                 <SelectTrigger id="coach">
                   <SelectValue placeholder="Selecione um coach" />
@@ -731,7 +930,14 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               onClick={handleSaveClass}
               disabled={loading}
             >
-              {loading ? "Salvando..." : "Salvar"}
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -740,12 +946,33 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
   };
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Grade Horária Semanal</CardTitle>
+          <CardTitle>Grade Horária</CardTitle>
           <div className="flex space-x-2">
-            <Button variant="outline" onClick={openNewDialog}>
+            <div className="border rounded-md flex overflow-hidden">
+              <Button 
+                variant={viewMode === "grid" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-none"
+                onClick={() => setViewMode("grid")}
+              >
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                Grade
+              </Button>
+              <Button 
+                variant={viewMode === "list" ? "secondary" : "ghost"}
+                size="sm"
+                className="rounded-none"
+                onClick={() => setViewMode("list")}
+              >
+                <List className="h-4 w-4 mr-2" />
+                Lista
+              </Button>
+            </div>
+            
+            <Button variant="default" onClick={openNewDialog}>
               <Plus className="h-4 w-4 mr-2" />
               Nova Aula
             </Button>
@@ -754,10 +981,10 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         <CardContent>
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
           ) : (
-            isMobile ? renderMobileView() : renderDesktopView()
+            viewMode === "grid" ? renderGridView() : renderListView()
           )}
         </CardContent>
       </Card>

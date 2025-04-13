@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import React from "react";
+import UserProfile from "./pages/UserProfile";
 
 // Create a new QueryClient instance outside of component to ensure it's only created once
 const queryClient = new QueryClient({
@@ -66,6 +67,14 @@ const App = () => (
                     <TeacherDashboard />
                   </ProtectedRoute>
                 } 
+              />
+              <Route
+                path="/profile/:userId"
+                element={
+                  <ProtectedRoute>
+                    <UserProfile />
+                  </ProtectedRoute>
+                }
               />
               <Route path="*" element={<NotFound />} />
             </Routes>

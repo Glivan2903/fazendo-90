@@ -1,73 +1,76 @@
 
 import React from "react";
-import { format, isValid } from "date-fns";
+import { format } from "date-fns";
+import { CheckCircle, User } from "lucide-react";
 import { Class } from "../types";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import Avatar from "./Avatar";
-import { CheckCircle } from "lucide-react";
 
-interface ClassItemProps {
+type ClassItemProps = {
   classData: Class;
   onClick: () => void;
-}
+};
 
 const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
-  const {
-    startTime,
-    endTime,
-    programName,
-    coachName,
-    coachAvatar,
-    attendeeCount,
-    maxCapacity,
-    isCheckedIn,
-  } = classData;
-
-  // Garantir que as datas são objetos Date válidos antes de formatar
-  const startTimeFormatted = startTime instanceof Date && isValid(startTime) 
-    ? format(startTime, "HH:mm") 
-    : "00:00";
+  const formatTime = (date: Date) => {
+    return format(date, "HH:mm");
+  };
+  
+  const timeSlot = `${formatTime(classData.startTime)} - ${formatTime(classData.endTime)}`;
+  const isFull = classData.attendeeCount >= classData.maxCapacity;
+  const isCheckedIn = classData.isCheckedIn;
+  
+  const getCoachInitials = () => {
+    if (!classData.coachName) return "C";
     
-  const endTimeFormatted = endTime instanceof Date && isValid(endTime)
-    ? format(endTime, "HH:mm") 
-    : "00:00";
-    
-  const isFull = attendeeCount >= maxCapacity;
-
+    const nameParts = classData.coachName.split(" ");
+    if (nameParts.length === 1) return nameParts[0].charAt(0);
+    return `${nameParts[0].charAt(0)}${nameParts[nameParts.length - 1].charAt(0)}`;
+  };
+  
   return (
-    <div
+    <div 
       className={cn(
-        "class-item p-4 border rounded-lg shadow-sm mb-4 flex justify-between items-start cursor-pointer hover:shadow-md transition-shadow",
-        isFull ? "bg-red-50" : "bg-white",
-        isCheckedIn ? "border-blue-500 bg-blue-50" : ""
+        "border rounded-lg p-4 cursor-pointer transition-all",
+        isCheckedIn ? "bg-blue-50 border-blue-200" : "bg-white hover:shadow-md",
+        isFull && !isCheckedIn ? "bg-gray-50 border-gray-200" : ""
       )}
       onClick={onClick}
     >
-      <div className="flex flex-col justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="font-semibold text-lg">
-            {startTimeFormatted} - {endTimeFormatted}
+          <div className="text-lg font-bold">{timeSlot}</div>
+          <div className="text-gray-700">{classData.programName}</div>
+          
+          <div className="flex items-center mt-1">
+            <Avatar className="h-6 w-6 mr-2">
+              <AvatarImage src={classData.coachAvatar} />
+              <AvatarFallback>{getCoachInitials()}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-gray-600">{classData.coachName}</span>
           </div>
-          <div className="text-sm text-gray-600">{programName}</div>
         </div>
         
-        <div className="mt-2 flex items-center gap-2">
-          <Avatar url={coachAvatar} name={coachName} size={24} />
-          <span className="text-sm">{coachName}</span>
-        </div>
-      </div>
-
-      <div className="flex flex-col items-end justify-between">
-        {isCheckedIn && (
-          <div className="check-in-indicator text-blue-500">
-            <CheckCircle size={20} className="fill-blue-500 text-white" />
+        <div className="text-right">
+          <div className={cn(
+            "text-sm font-medium",
+            isFull ? "text-red-500" : "text-gray-500"
+          )}>
+            {classData.attendeeCount}/{classData.maxCapacity} vagas
           </div>
-        )}
-        
-        <div className="text-sm mt-auto">
-          <span className={`${isFull ? "text-red-500" : "text-gray-600"}`}>
-            {isFull ? "Lotado" : `${attendeeCount}/${maxCapacity} vagas`}
-          </span>
+          
+          {isCheckedIn && (
+            <div className="flex items-center justify-end text-green-600 mt-2">
+              <CheckCircle className="h-5 w-5 mr-1" />
+              <span className="text-sm">Check-in feito</span>
+            </div>
+          )}
+          
+          {isFull && !isCheckedIn && (
+            <div className="text-red-500 text-sm font-medium mt-2">
+              Lotado
+            </div>
+          )}
         </div>
       </div>
     </div>
