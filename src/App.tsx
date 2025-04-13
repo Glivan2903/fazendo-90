@@ -9,7 +9,6 @@ import ClassDetail from "./pages/ClassDetail";
 import ClassDetailRedirect from "./pages/ClassDetailRedirect";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/TeacherDashboard";
-import ScheduleEditor from "./pages/ScheduleEditor";
 import Auth from "./pages/Auth";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -65,14 +64,6 @@ const App = () => (
                 element={
                   <ProtectedRoute allowedRoles={["admin", "coach"]}>
                     <TeacherDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/schedule-editor" 
-                element={
-                  <ProtectedRoute allowedRoles={["admin", "coach"]}>
-                    <ScheduleEditor />
                   </ProtectedRoute>
                 } 
               />
