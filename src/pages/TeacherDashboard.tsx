@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
@@ -14,7 +13,7 @@ import { addDays } from "date-fns";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-// Import the new component files
+// Import the component files
 import OverviewTab from "@/components/dashboard/OverviewTab";
 import ScheduleTab from "@/components/dashboard/ScheduleTab";
 import UsersTab from "@/components/dashboard/UsersTab";
@@ -182,61 +181,63 @@ const TeacherDashboard = () => {
   );
   
   return (
-    <div className="flex min-h-screen w-full bg-gray-50">
-      {!isMobile && (
-        <Sidebar className="hidden md:block">
-          <DashboardSidebar 
-            activeTab={activeTab} 
-            setActiveTab={setActiveTab}
-            signOut={signOut}
-          />
-        </Sidebar>
-      )}
-      
-      <main className="flex-1 overflow-auto">
-        <div className="flex items-center p-4 border-b bg-white">
-          {isMobile && <MobileMenu />}
-          <h1 className="text-xl font-bold ml-2">
-            {activeTab === "overview" && "Visão Geral"}
-            {activeTab === "schedule" && "Grade Horária"}
-            {activeTab === "users" && "Usuários"}
-            {activeTab === "attendance" && "Controle de Presença"}
-          </h1>
-        </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-gray-50">
+        {!isMobile && (
+          <Sidebar className="hidden md:block">
+            <DashboardSidebar 
+              activeTab={activeTab} 
+              setActiveTab={setActiveTab}
+              signOut={signOut}
+            />
+          </Sidebar>
+        )}
         
-        <div className="p-4">
-          {loading && activeTab !== "overview" && (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-          )}
+        <main className="flex-1 overflow-auto">
+          <div className="flex items-center p-4 border-b bg-white">
+            {isMobile && <MobileMenu />}
+            <h1 className="text-xl font-bold ml-2">
+              {activeTab === "overview" && "Visão Geral"}
+              {activeTab === "schedule" && "Grade Horária"}
+              {activeTab === "users" && "Usuários"}
+              {activeTab === "attendance" && "Controle de Presença"}
+            </h1>
+          </div>
           
-          {activeTab === "overview" && (
-            <OverviewTab classes={todayClasses} loading={loading} />
-          )}
-          
-          {activeTab === "schedule" && !loading && (
-            <ScheduleTab classes={scheduleClasses} />
-          )}
-          
-          {activeTab === "users" && !loading && (
-            <UsersTab users={users} onEditUser={handleEditUser} />
-          )}
-          
-          {activeTab === "attendance" && !loading && (
-            <AttendanceTab attendanceData={attendance} />
-          )}
-        </div>
-      </main>
-      
-      <EditUserDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        user={selectedUser}
-        onSave={handleSaveUser}
-        isLoading={userEditLoading}
-      />
-    </div>
+          <div className="p-4">
+            {loading && activeTab !== "overview" && (
+              <div className="flex justify-center items-center h-64">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              </div>
+            )}
+            
+            {activeTab === "overview" && (
+              <OverviewTab classes={todayClasses} loading={loading} />
+            )}
+            
+            {activeTab === "schedule" && !loading && (
+              <ScheduleTab classes={scheduleClasses} />
+            )}
+            
+            {activeTab === "users" && !loading && (
+              <UsersTab users={users} onEditUser={handleEditUser} />
+            )}
+            
+            {activeTab === "attendance" && !loading && (
+              <AttendanceTab attendanceData={attendance} />
+            )}
+          </div>
+        </main>
+        
+        <EditUserDialog
+          isOpen={isDialogOpen}
+          onClose={() => setIsDialogOpen(false)}
+          user={selectedUser}
+          onSave={handleSaveUser}
+          isLoading={userEditLoading}
+        />
+      </div>
+    </SidebarProvider>
   );
 };
 
