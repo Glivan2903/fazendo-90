@@ -1,4 +1,3 @@
-
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -49,7 +48,7 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
         const startTime = cls.start_time ? new Date(cls.start_time) : new Date();
         const endTime = cls.end_time ? new Date(cls.end_time) : new Date(Date.now() + 3600000);
         
-        // Validar as datas
+        // Validar as datas usando a função importada do date-fns
         if (!isValid(startTime)) {
           console.error("Data de início inválida:", cls.start_time);
           throw new Error("Data de início inválida");
@@ -390,9 +389,4 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
     // Fall back to mock success
     return true;
   }
-};
-
-// Helper function to check if a Date object is valid
-const isValid = (date: Date): boolean => {
-  return !isNaN(date.getTime());
 };

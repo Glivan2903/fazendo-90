@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
@@ -10,6 +9,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import EditUserDialog from "@/components/EditUserDialog";
 import { Class, User } from "../types";
+import { addDays } from "date-fns";
 
 // Import the new component files
 import OverviewTab from "@/components/dashboard/OverviewTab";
