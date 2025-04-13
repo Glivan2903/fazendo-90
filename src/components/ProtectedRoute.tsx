@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,13 +15,19 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   const location = useLocation();
   
   useEffect(() => {
-    console.log("ProtectedRoute: ", {
+    console.log("ProtectedRoute: Verificando acesso", {
       user: !!user,
+      userId: user?.id,
       userRole,
       isLoading,
-      allowedRoles
+      allowedRoles,
+      path: location.pathname
     });
-  }, [user, userRole, isLoading, allowedRoles]);
+    
+    if (user && !userRole && !isLoading) {
+      console.warn("Usuário autenticado mas sem papel definido!");
+    }
+  }, [user, userRole, isLoading, allowedRoles, location]);
 
   if (isLoading) {
     return (
@@ -31,15 +38,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   if (!user) {
+    console.log("Usuário não autenticado, redirecionando para /auth");
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   if (allowedRoles && userRole && !allowedRoles.includes(userRole)) {
-    console.log(`Acesso negado: usuário com papel ${userRole} tentando acessar rota que requer ${allowedRoles.join(', ')}`);
+    console.log(`Acesso negado: usuário com papel '${userRole}' tentando acessar rota que requer ${allowedRoles.join(', ')}`);
     toast.error("Você não tem permissão para acessar esta página");
     return <Navigate to="/check-in" replace />;
   }
 
+  console.log("Acesso permitido para a rota:", location.pathname);
   return <>{children}</>;
 };
 

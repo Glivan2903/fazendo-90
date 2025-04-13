@@ -24,9 +24,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("AuthProvider: Setting up auth listener");
+    
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
+        console.log("Auth state changed:", event, !!currentSession);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
@@ -37,12 +40,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 0);
         } else {
           setUserRole(null);
+          setIsLoading(false);
         }
       }
     );
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      console.log("Initial session check:", !!currentSession);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
@@ -58,50 +63,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Primeiro, tentamos buscar com .single(), mas com tratamento de erro
+      console.log("Fetching user role for:", userId);
+      
+      // Consulta direta para evitar problemas com RLS
       const { data, error } = await supabase
         .from("profiles")
-        .select("role, name, email")
+        .select("role")
         .eq("id", userId)
-        .maybeSingle();  // Usamos maybeSingle ao invés de single para não lançar erro se não encontrar
-        
+        .single();
+      
       if (error) {
         console.error("Erro ao buscar perfil do usuário:", error);
         
-        // Se o perfil do usuário não existir, tentamos criá-lo
-        if (error.code === "PGRST116") {  // "JSON object requested, multiple (or no) rows returned"
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData?.user) {
-            const { error: insertError } = await supabase
-              .from("profiles")
-              .insert([
-                {
-                  id: userId,
-                  name: userData.user.user_metadata?.name || 'Usuário',
-                  email: userData.user.email,
-                  role: 'member' // Papel padrão
-                }
-              ]);
-              
-            if (insertError) {
-              console.error("Erro ao criar perfil do usuário:", insertError);
-            } else {
-              setUserRole('member');
-            }
+        // Verificar se usuário existe mas não tem perfil
+        const { data: authUser } = await supabase.auth.getUser();
+        if (authUser?.user) {
+          console.log("Usuário existe na auth, mas sem perfil. Criando perfil.");
+          
+          // Criar perfil para o usuário
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert([
+              {
+                id: userId,
+                name: authUser.user.user_metadata?.name || 'Usuário',
+                email: authUser.user.email,
+                role: 'student' // Papel padrão
+              }
+            ]);
+            
+          if (insertError) {
+            console.error("Erro ao criar perfil do usuário:", insertError);
+          } else {
+            console.log("Perfil criado com sucesso como 'student'");
+            setUserRole('student');
           }
         }
       } else if (data) {
         // Define a função do usuário se o perfil for encontrado
-        setUserRole(data.role || null);
-        console.log("Perfil do usuário carregado:", data);
-      } else {
-        // Se não houver erro, mas também não houver dados, o perfil não existe
-        console.log("Perfil do usuário não encontrado, definindo papel como 'member'");
-        setUserRole('member');
+        console.log("Perfil encontrado, papel:", data.role);
+        setUserRole(data.role);
       }
     } catch (error) {
       console.error("Exceção ao buscar papel do usuário:", error);
-      setUserRole(null);
     } finally {
       setIsLoading(false);
     }

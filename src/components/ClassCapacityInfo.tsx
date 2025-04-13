@@ -1,32 +1,39 @@
 
 import React from "react";
-import { Users } from "lucide-react";
-import CapacityBar from "./CapacityBar";
-import { ClassDetail } from "../types";
+import { ClassDetail } from "@/types";
+import CapacityBar from "@/components/CapacityBar";
 
 interface ClassCapacityInfoProps {
   classData: ClassDetail;
   className?: string;
 }
 
-const ClassCapacityInfo: React.FC<ClassCapacityInfoProps> = ({ classData, className }) => {
-  // Determinar a cor baseada na capacidade
-  const getCapacityColor = () => {
-    const percentage = (classData.attendeeCount / classData.maxCapacity) * 100;
-    if (percentage >= 90) return "text-red-500";
-    if (percentage >= 70) return "text-yellow-500";
-    return "text-gray-700";
-  };
+const ClassCapacityInfo: React.FC<ClassCapacityInfoProps> = ({
+  classData,
+  className = "",
+}) => {
+  const attendeeText = `${classData.attendeeCount}/${classData.maxCapacity}`;
 
   return (
-    <div className={className}>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-medium text-gray-500">Capacidade</h2>
+    <div className={`space-y-2 ${className}`}>
+      <div className="flex justify-between items-center">
+        <h3 className="text-gray-600">Capacidade</h3>
         <div className="flex items-center">
-          <Users size={16} className={`mr-1 ${getCapacityColor()}`} />
-          <span className={`text-sm ${getCapacityColor()}`}>
-            {classData.attendeeCount}/{classData.maxCapacity}
-          </span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="h-4 w-4 text-gray-500 mr-1"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+            />
+          </svg>
+          <span className="text-gray-700">{attendeeText}</span>
         </div>
       </div>
       <CapacityBar

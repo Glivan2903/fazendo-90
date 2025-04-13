@@ -1,3 +1,4 @@
+
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -9,6 +10,7 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
   try {
     // Formatar data para consulta no banco de dados
     const formattedDate = format(date, 'yyyy-MM-dd');
+    console.log("Buscando aulas para a data:", formattedDate);
 
     // Tentar buscar do Supabase
     const { data: classesData, error } = await supabase
@@ -34,29 +36,32 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
     // Get current user ID to check if user is checked in
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id;
+    console.log("Current user ID:", userId);
 
     // Processar dados do Supabase
     return classesData.map(cls => {
       try {
-        // Contar check-ins
-        const attendeeCount = cls.checkins ? cls.checkins.length : 0;
+        // Contar check-ins - certifique-se de que checkins existe e é um array
+        const checkins = Array.isArray(cls.checkins) ? cls.checkins : [];
+        const attendeeCount = checkins.length;
+        console.log(`Classe ${cls.id}: ${attendeeCount} check-ins`);
         
         // Verificar se o usuário atual está inscrito
-        const isCheckedIn = userId ? cls.checkins?.some(checkin => checkin.user_id === userId) || false : false;
+        const isCheckedIn = userId ? checkins.some(checkin => checkin.user_id === userId) || false : false;
         
-        // Criar objetos Date a partir dos valores de string e validar
-        const startTime = cls.start_time ? new Date(cls.start_time) : new Date();
-        const endTime = cls.end_time ? new Date(cls.end_time) : new Date(Date.now() + 3600000);
+        // Calcular vagas restantes
+        const spotsLeft = cls.max_capacity - attendeeCount;
         
-        // Validar as datas usando a função importada do date-fns
-        if (!isValid(startTime)) {
-          console.error("Data de início inválida:", cls.start_time);
-          throw new Error("Data de início inválida");
-        }
+        // Criar objetos Date a partir dos valores de string
+        const startTimeStr = `${formattedDate}T${cls.start_time}`;
+        const endTimeStr = `${formattedDate}T${cls.end_time}`;
+        const startTime = new Date(startTimeStr);
+        const endTime = new Date(endTimeStr);
         
-        if (!isValid(endTime)) {
-          console.error("Data de término inválida:", cls.end_time);
-          throw new Error("Data de término inválida");
+        // Validar as datas
+        if (!isValid(startTime) || !isValid(endTime)) {
+          console.error("Data inválida:", { startTime, endTime, cls });
+          throw new Error("Data inválida");
         }
         
         return {
@@ -68,16 +73,16 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
           coachAvatar: cls.profiles?.avatar_url,
           maxCapacity: cls.max_capacity,
           attendeeCount,
-          spotsLeft: cls.max_capacity - attendeeCount,
+          spotsLeft,
           isCheckedIn
         };
       } catch (error) {
         console.error("Erro ao processar classe:", error);
         
-        // Se houver erro ao processar uma classe, retornamos uma classe com valores padrão seguros
+        // Valores padrão seguros em caso de erro
         const now = new Date();
-        const attendeeCount = cls.checkins ? cls.checkins.length : 0;
-        const isCheckedIn = userId ? cls.checkins?.some(checkin => checkin.user_id === userId) || false : false;
+        const attendeeCount = Array.isArray(cls.checkins) ? cls.checkins.length : 0;
+        const isCheckedIn = userId ? (Array.isArray(cls.checkins) ? cls.checkins.some(checkin => checkin.user_id === userId) : false) : false;
         
         return {
           id: cls.id || crypto.randomUUID(),
@@ -136,6 +141,8 @@ const fetchMockClasses = async (date: Date): Promise<Class[]> => {
 // API para buscar detalhes de uma aula específica
 export const fetchClassDetails = async (classId: string): Promise<{classDetail: ClassDetail, attendees: Attendee[]}> => {
   try {
+    console.log("Buscando detalhes da aula:", classId);
+    
     // First try to get data from Supabase
     const { data: classData, error: classError } = await supabase
       .from('classes')
@@ -143,6 +150,7 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
         id,
         start_time,
         end_time,
+        date,
         max_capacity,
         programs (id, name),
         profiles!coach_id (id, name, avatar_url),
@@ -159,28 +167,43 @@ export const fetchClassDetails = async (classId: string): Promise<{classDetail: 
       return fetchMockClassDetails(classId);
     }
     
+    console.log("Dados da aula:", classData);
+    
     // Process attendees from Supabase data
-    const attendees: Attendee[] = classData.checkins
-      ? classData.checkins.map(checkin => ({
-          id: checkin.profiles.id,
-          name: checkin.profiles.name,
-          avatarUrl: checkin.profiles.avatar_url
-        }))
-      : [];
+    const attendees: Attendee[] = [];
+    if (classData.checkins && Array.isArray(classData.checkins)) {
+      for (const checkin of classData.checkins) {
+        if (checkin.profiles) {
+          attendees.push({
+            id: checkin.profiles.id,
+            name: checkin.profiles.name,
+            avatarUrl: checkin.profiles.avatar_url
+          });
+        }
+      }
+    }
+    
+    console.log(`Processados ${attendees.length} participantes`);
+    
+    // Combinar data e hora para criar objetos Date completos
+    const startTimeStr = `${classData.date}T${classData.start_time}`;
+    const endTimeStr = `${classData.date}T${classData.end_time}`;
+    const startTime = new Date(startTimeStr);
+    const endTime = new Date(endTimeStr);
     
     // Format class details
     const classDetail: ClassDetail = {
       id: classData.id,
-      startTime: new Date(classData.start_time),
-      endTime: new Date(classData.end_time),
+      startTime,
+      endTime,
       program: {
-        id: classData.programs.id,
-        name: classData.programs.name
+        id: classData.programs?.id || "default",
+        name: classData.programs?.name || "CrossFit"
       },
       coach: {
-        id: classData.profiles.id,
-        name: classData.profiles.name,
-        avatarUrl: classData.profiles.avatar_url
+        id: classData.profiles?.id || "default",
+        name: classData.profiles?.name || "Coach",
+        avatarUrl: classData.profiles?.avatar_url
       },
       maxCapacity: classData.max_capacity,
       attendeeCount: attendees.length
@@ -287,6 +310,8 @@ const fetchMockClassDetails = async (classId: string): Promise<{classDetail: Cla
 // API para fazer check-in em uma aula
 export const checkInToClass = async (classId: string): Promise<boolean> => {
   try {
+    console.log("Realizando check-in para a aula:", classId);
+    
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -315,8 +340,10 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       return true;
     }
     
+    const checkins = Array.isArray(classData.checkins) ? classData.checkins : [];
+    
     // Check if class has available spots
-    if (classData.checkins && classData.checkins.length >= classData.max_capacity) {
+    if (checkins.length >= classData.max_capacity) {
       toast.error("Esta aula está lotada");
       return false;
     }
@@ -346,6 +373,7 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       return false;
     }
     
+    console.log("Check-in realizado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in:", error);
@@ -359,6 +387,8 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
 // API para cancelar check-in
 export const cancelCheckIn = async (classId: string): Promise<boolean> => {
   try {
+    console.log("Cancelando check-in para a aula:", classId);
+    
     // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -381,6 +411,7 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
       return false;
     }
     
+    console.log("Check-in cancelado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in cancellation:", error);
