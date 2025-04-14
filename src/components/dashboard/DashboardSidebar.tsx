@@ -1,33 +1,20 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  Calendar, 
-  Users, 
-  LayoutDashboard,
-  Clock,
-  UserCheck,
-  LogOut,
-  CalendarDays
-} from "lucide-react";
+import { Calendar, Users, LayoutDashboard, Clock, UserCheck, LogOut, CalendarDays } from "lucide-react";
 import { SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-
 interface DashboardSidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   signOut: () => void;
 }
-
-const DashboardSidebar: React.FC<DashboardSidebarProps> = ({ 
-  activeTab, 
+const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
+  activeTab,
   setActiveTab,
-  signOut 
+  signOut
 }) => {
   const navigate = useNavigate();
-  
-  return (
-    <>
+  return <>
       <SidebarHeader className="p-4">
         <h2 className="text-xl font-bold">CrossBox Fênix</h2>
       </SidebarHeader>
@@ -58,10 +45,7 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton onClick={() => navigate("/schedule-editor")}>
-              <CalendarDays size={20} />
-              <span>Editor de Grade</span>
-            </SidebarMenuButton>
+            
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton onClick={() => navigate("/check-in")}>
@@ -77,8 +61,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           Sair
         </Button>
       </SidebarFooter>
-    </>
-  );
+    </>;
 };
-
 export default DashboardSidebar;
