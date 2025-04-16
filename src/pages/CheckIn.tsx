@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -15,15 +14,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 const CheckIn = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("aulas");
   const navigate = useNavigate();
-  const { user, userRole, signOut } = useAuth();
-
+  const {
+    user,
+    userRole,
+    signOut
+  } = useAuth();
   useEffect(() => {
     const getClasses = async () => {
       setLoading(true);
@@ -36,26 +37,21 @@ const CheckIn = () => {
         setLoading(false);
       }
     };
-
     getClasses();
   }, [selectedDate]);
-
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
   };
-
   const handleClassClick = (classId: string) => {
     navigate(`/class/${classId}`);
   };
-
-  const dayLabel = format(selectedDate, "d 'de' MMMM", { locale: ptBR });
-  
+  const dayLabel = format(selectedDate, "d 'de' MMMM", {
+    locale: ptBR
+  });
   const renderProfile = () => {
     const initials = user?.email ? user.email.substring(0, 2).toUpperCase() : "U";
     const name = user?.email ? user.email.split("@")[0] : "Usuário";
-    
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-sm">
           <Avatar className="w-24 h-24 mb-4">
             <AvatarImage src="https://api.dicebear.com/6.x/avataaars/svg" />
@@ -108,15 +104,11 @@ const CheckIn = () => {
           <LogOut className="mr-2 h-4 w-4" />
           Sair
         </Button>
-      </div>
-    );
+      </div>;
   };
-
   const renderDashboard = () => {
     const initials = user?.email ? user.email.substring(0, 2).toUpperCase() : "U";
-    
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         {/* Welcome Card */}
         <Card>
           <CardHeader>
@@ -173,13 +165,10 @@ const CheckIn = () => {
             <p>Comece a fazer check-in nas aulas!</p>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   };
-  
   const renderTrainings = () => {
-    return (
-      <div className="space-y-6">
+    return <div className="space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Histórico de Treinos</CardTitle>
@@ -189,48 +178,27 @@ const CheckIn = () => {
             <p>Comece a fazer check-in nas aulas!</p>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   };
-
   const renderClasses = () => {
-    return (
-      <>
+    return <>
         <h1 className="text-2xl font-bold text-center">Check-in</h1>
         <p className="text-center text-gray-600 mt-1 mb-4">{dayLabel}</p>
         
-        <CalendarSelector
-          selectedDate={selectedDate}
-          onDateChange={handleDateChange}
-        />
+        <CalendarSelector selectedDate={selectedDate} onDateChange={handleDateChange} />
 
         <div className="space-y-4">
-          {loading ? (
-            <LoadingSpinner />
-          ) : classes.length > 0 ? (
-            classes.map((cls) => (
-              <ClassItem
-                key={cls.id}
-                classData={cls}
-                onClick={() => handleClassClick(cls.id)}
-              />
-            ))
-          ) : (
-            <div className="text-center py-12 bg-gray-50 rounded-lg">
+          {loading ? <LoadingSpinner /> : classes.length > 0 ? classes.map(cls => <ClassItem key={cls.id} classData={cls} onClick={() => handleClassClick(cls.id)} />) : <div className="text-center py-12 bg-gray-50 rounded-lg">
               <p className="text-gray-500">Não há aulas disponíveis neste dia.</p>
-            </div>
-          )}
+            </div>}
         </div>
-      </>
-    );
+      </>;
   };
-
-  return (
-    <div className="max-w-md mx-auto px-4 pb-20">
+  return <div className="max-w-md mx-auto px-4 pb-20">
       <header className="py-6 flex justify-between items-center">
         <div className="flex-1"></div>
         <div className="text-center flex-1">
-          <h1 className="text-xl font-bold">Cross Box Fênix</h1>
+          <h1 className="font-bold text-lg text-center">Cross Box Fênix</h1>
         </div>
         
         <DropdownMenu>
@@ -240,26 +208,15 @@ const CheckIn = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() => setActiveTab("aulas")}
-            >
+            <DropdownMenuItem className="cursor-pointer" onClick={() => setActiveTab("aulas")}>
               Check-in
             </DropdownMenuItem>
             
-            {(userRole === "admin" || userRole === "coach") && (
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={() => navigate("/teacher-dashboard")}
-              >
+            {(userRole === "admin" || userRole === "coach") && <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/teacher-dashboard")}>
                 Dashboard
-              </DropdownMenuItem>
-            )}
+              </DropdownMenuItem>}
             
-            <DropdownMenuItem
-              className="cursor-pointer text-red-500"
-              onClick={signOut}
-            >
+            <DropdownMenuItem className="cursor-pointer text-red-500" onClick={signOut}>
               <LogOut className="mr-2 h-4 w-4" />
               Sair
             </DropdownMenuItem>
@@ -285,41 +242,23 @@ const CheckIn = () => {
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 z-10">
-        <Button 
-          variant="ghost" 
-          className="flex flex-col items-center text-xs" 
-          onClick={() => setActiveTab("inicio")}
-        >
+        <Button variant="ghost" className="flex flex-col items-center text-xs" onClick={() => setActiveTab("inicio")}>
           <Home className={`h-5 w-5 ${activeTab === "inicio" ? "text-blue-600" : "text-gray-500"}`} />
           <span className={activeTab === "inicio" ? "text-blue-600" : "text-gray-500"}>Início</span>
         </Button>
-        <Button 
-          variant="ghost" 
-          className="flex flex-col items-center text-xs" 
-          onClick={() => setActiveTab("aulas")}
-        >
+        <Button variant="ghost" className="flex flex-col items-center text-xs" onClick={() => setActiveTab("aulas")}>
           <Calendar className={`h-5 w-5 ${activeTab === "aulas" ? "text-blue-600" : "text-gray-500"}`} />
           <span className={activeTab === "aulas" ? "text-blue-600" : "text-gray-500"}>Aulas</span>
         </Button>
-        <Button 
-          variant="ghost" 
-          className="flex flex-col items-center text-xs" 
-          onClick={() => setActiveTab("treinos")}
-        >
+        <Button variant="ghost" className="flex flex-col items-center text-xs" onClick={() => setActiveTab("treinos")}>
           <BarChart2 className={`h-5 w-5 ${activeTab === "treinos" ? "text-blue-600" : "text-gray-500"}`} />
           <span className={activeTab === "treinos" ? "text-blue-600" : "text-gray-500"}>Treinos</span>
         </Button>
-        <Button 
-          variant="ghost" 
-          className="flex flex-col items-center text-xs" 
-          onClick={() => setActiveTab("perfil")}
-        >
+        <Button variant="ghost" className="flex flex-col items-center text-xs" onClick={() => setActiveTab("perfil")}>
           <UserCircle className={`h-5 w-5 ${activeTab === "perfil" ? "text-blue-600" : "text-gray-500"}`} />
           <span className={activeTab === "perfil" ? "text-blue-600" : "text-gray-500"}>Perfil</span>
         </Button>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default CheckIn;
