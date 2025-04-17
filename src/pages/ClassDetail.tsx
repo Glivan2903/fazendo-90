@@ -11,7 +11,8 @@ import {
   cancelCheckIn, 
   fetchClassDetails, 
   checkConflictingCheckins, 
-  changeCheckIn
+  changeCheckIn,
+  CheckInResult
 } from "../api/classApi";
 import ClassHeader from "../components/ClassHeader";
 import ClassCoachInfo from "../components/ClassCoachInfo";
