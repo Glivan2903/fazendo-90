@@ -1,343 +1,172 @@
-
-import React, { createContext, useState, useEffect, useContext } from "react";
-import { useNavigate } from "react-router-dom";
-import { Session, User } from "@supabase/supabase-js";
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from "react";
+import {
+  Session,
+  User as SupabaseUser,
+} from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 interface AuthContextType {
+  user: SupabaseUser | null;
   session: Session | null;
-  user: User | null;
   userRole: string | null;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, plan: string) => Promise<void>;
-  signOut: () => Promise<void>;
   hasActiveSubscription: boolean;
-  checkSubscriptionStatus: () => Promise<boolean>;
+  signIn: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const navigate = useNavigate();
 
-  // Check if the user has an active subscription
-  const checkSubscriptionStatus = async (userId?: string) => {
-    try {
-      const id = userId || user?.id;
-      if (!id) return false;
-      
-      // Special case for admin email
-      if (user?.email === "matheusprograming@gmail.com") {
-        console.log("Admin email detected, bypassing role and subscription check");
-        setHasActiveSubscription(true);
-        return true;
-      }
-
-      // Check for active subscription with valid payment
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          id,
-          end_date,
-          payments (
-            status
-          )
-        `)
-        .eq('user_id', id)
-        .gte('end_date', today)
-        .order('end_date', { ascending: false })
-        .limit(1)
-        .maybeSingle();  // Changed from .single() to .maybeSingle()
-
-      if (error && error.message !== 'JSON object requested, multiple (or no) rows returned') {
-        console.error("Error checking subscription:", error);
-        return false;
-      }
-
-      if (!data) {
-        console.log("No active subscription found");
-        setHasActiveSubscription(false);
-        return false;
-      }
-
-      // Check if the subscription has at least one payment with status 'paid'
-      const hasPaidPayment = data.payments && 
-        Array.isArray(data.payments) && 
-        data.payments.some(p => p.status === 'paid');
-
-      console.log("Subscription check result:", { 
-        subscriptionId: data.id, 
-        endDate: data.end_date, 
-        hasPaidPayment 
-      });
-
-      setHasActiveSubscription(hasPaidPayment);
-      return hasPaidPayment;
-    } catch (error) {
-      console.error("Exception checking subscription:", error);
-      setHasActiveSubscription(false);
-      return false;
-    }
-  };
-
   useEffect(() => {
-    console.log("AuthProvider: Setting up auth listener");
-    
-    // Set up auth state listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, currentSession) => {
-        console.log("Auth state changed:", event, !!currentSession);
-        setSession(currentSession);
-        setUser(currentSession?.user ?? null);
-        
-        // Fetch user role after auth state changes, but defer it
-        if (currentSession?.user) {
-          setTimeout(async () => {
-            await fetchUserRole(currentSession.user.id);
-            // Check subscription status after fetching role
-            await checkSubscriptionStatus(currentSession.user.id);
-          }, 0);
-        } else {
-          setUserRole(null);
-          setHasActiveSubscription(false);
-          setIsLoading(false);
-        }
-      }
-    );
+    const loadSession = async () => {
+      setIsLoading(true);
+      try {
+        const {
+          data: { session: initialSession },
+        } = await supabase.auth.getSession();
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
-      console.log("Initial session check:", !!currentSession);
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      
-      if (currentSession?.user) {
-        await fetchUserRole(currentSession.user.id);
-        // Check subscription status after initial session check
-        await checkSubscriptionStatus(currentSession.user.id);
-      } else {
+        setSession(initialSession);
+        setUser(initialSession?.user || null);
+
+        if (initialSession?.user) {
+          await fetchUserRole(initialSession.user.id);
+          await checkSubscription(initialSession.user.id);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar sessão:", error);
+        toast.error("Erro ao carregar sessão");
+      } finally {
         setIsLoading(false);
       }
-    });
+    };
 
-    return () => subscription.unsubscribe();
+    loadSession();
+
+    supabase.auth.onAuthStateChange((event, currentSession) => {
+      setSession(currentSession);
+      setUser(currentSession?.user || null);
+
+      if (currentSession?.user) {
+        fetchUserRole(currentSession.user.id);
+        checkSubscription(currentSession.user.id);
+      } else {
+        setUserRole(null);
+        setHasActiveSubscription(false);
+      }
+    });
   }, []);
 
   const fetchUserRole = async (userId: string) => {
     try {
-      console.log("Fetching user role for:", userId);
-      
-      // Special case for admin email
-      const { data: userEmail } = await supabase.auth.getUser();
-      if (userEmail?.user?.email === "matheusprograming@gmail.com") {
-        console.log("Admin email detected, setting role as admin");
-        setUserRole("admin");
-        setIsLoading(false);
-        return;
-      }
-      
-      // Query the profiles table
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role, status")
-        .eq("id", userId)
-        .single();
-      
+      const { data, error } = await supabase.functions.invoke("get_user_role", {
+        body: { user_id: userId },
+      });
+
       if (error) {
-        console.error("Error fetching user role:", error);
-        
-        // Verify if the user exists but doesn't have a profile
-        const { data: authUser } = await supabase.auth.getUser();
-        if (authUser?.user) {
-          console.log("User exists in auth, but no profile. Creating profile.");
-          
-          // Create profile for user with default role
-          const defaultRole = 'student'; // Using student as default role
-          
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert([
-              {
-                id: userId,
-                name: authUser.user.user_metadata?.name || 'User',
-                email: authUser.user.email,
-                role: defaultRole,
-                status: 'Inativo', // Default to inactive until subscription is verified
-                plan: 'Mensal' // Default plan
-              }
-            ]);
-            
-          if (insertError) {
-            console.error("Error creating user profile:", insertError);
-          } else {
-            console.log(`Profile created successfully with role '${defaultRole}'`);
-            setUserRole(defaultRole);
-          }
-        }
-      } else if (data) {
-        console.log("Profile found, role:", data.role, "status:", data.status);
-        setUserRole(data.role);
-        
-        // If user status is Inativo, force check subscription
-        if (data.status === 'Inativo') {
-          const isActive = await checkSubscriptionStatus(userId);
-          
-          // Update user status if subscription is active
-          if (isActive) {
-            await supabase
-              .from("profiles")
-              .update({ status: 'Ativo' })
-              .eq('id', userId);
-          }
-        }
+        console.error("Erro ao obter role do usuário:", error);
+        setUserRole("student");
+      } else {
+        setUserRole(data as string);
       }
     } catch (error) {
-      console.error("Exception when fetching user role:", error);
-    } finally {
-      setIsLoading(false);
+      console.error("Erro ao invocar função para obter role:", error);
+      setUserRole("student");
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const checkActiveSubscription = useCallback(async (userId: string) => {
+    const { data: payments, error } = await supabase
+      .from('pagamentos')
+      .select('*')
+      .eq('aluno_id', userId)
+      .eq('status', 'pago')
+      .order('data_vencimento', { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error('Error checking subscription:', error);
+      return false;
+    }
+
+    if (!payments || payments.length === 0) {
+      return false;
+    }
+
+    const lastPayment = payments[0];
+    const today = new Date();
+    const dueDate = new Date(lastPayment.data_vencimento);
+    
+    return dueDate >= today;
+  }, []);
+
+  const checkSubscription = async (userId: string) => {
     try {
-      setIsLoading(true);
-      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
-      
-      if (error) throw error;
-      
-      // Special case for admin email
-      if (email === "matheusprograming@gmail.com") {
-        toast.success("Login realizado com sucesso!");
-        navigate("/check-in");
-        return;
-      }
-      
-      // Check if user has active subscription
-      const isActive = await checkSubscriptionStatus(data.user.id);
-      
-      if (!isActive) {
-        // Automatically log out if subscription is not active
-        await supabase.auth.signOut();
-        toast.error("Sua assinatura não está ativa. Entre em contato com o administrador.");
-        setUser(null);
-        setSession(null);
-        return;
-      }
-      
-      toast.success("Login realizado com sucesso!");
-      navigate("/check-in");
-    } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer login");
-    } finally {
-      setIsLoading(false);
+      const isActive = await checkActiveSubscription(userId);
+      setHasActiveSubscription(isActive);
+    } catch (error) {
+      console.error("Erro ao verificar assinatura:", error);
+      setHasActiveSubscription(false);
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, plan: string = 'Mensal') => {
+  const signIn = async (email: string) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const { error, data } = await supabase.auth.signUp({ 
-        email, 
-        password,
-        options: {
-          data: {
-            name,
-          }
-        }
-      });
-      
+      const { error } = await supabase.auth.signInWithOtp({ email });
       if (error) throw error;
-      
-      // Create profile entry with selected plan
-      if (data.user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert([
-            {
-              id: data.user.id,
-              name,
-              email,
-              role: "student",
-              plan,
-              status: 'Ativo' // Initially active when subscription is created
-            }
-          ]);
-          
-        if (profileError) throw profileError;
-
-        // Create initial subscription
-        const start = new Date();
-        const end = new Date();
-        
-        // Set end date based on plan
-        switch (plan) {
-          case 'Trimestral':
-            end.setMonth(end.getMonth() + 3);
-            break;
-          case 'Anual':
-            end.setMonth(end.getMonth() + 12);
-            break;
-          default: // Mensal
-            end.setMonth(end.getMonth() + 1);
-        }
-
-        const { error: subscriptionError } = await supabase
-          .from('subscriptions')
-          .insert([
-            {
-              user_id: data.user.id,
-              start_date: start.toISOString().split('T')[0],
-              end_date: end.toISOString().split('T')[0]
-            }
-          ]);
-
-        if (subscriptionError) throw subscriptionError;
-      }
-      
-      toast.success("Conta criada com sucesso! Faça login para continuar.");
-      navigate("/auth");
+      toast.success("Verifique seu email para confirmar o login!");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar conta");
+      console.error("Erro ao fazer login:", error.message);
+      toast.error("Erro ao fazer login: " + error.message);
     } finally {
       setIsLoading(false);
     }
   };
 
   const signOut = async () => {
+    setIsLoading(true);
     try {
       await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
       navigate("/auth");
       toast.success("Logout realizado com sucesso!");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer logout");
+      console.error("Erro ao fazer logout:", error.message);
+      toast.error("Erro ao fazer logout: " + error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        userRole,
-        isLoading,
-        signIn,
-        signUp,
-        signOut,
-        hasActiveSubscription,
-        checkSubscriptionStatus
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  const value: AuthContextType = {
+    user,
+    session,
+    userRole,
+    isLoading,
+    hasActiveSubscription,
+    signIn,
+    signOut,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {

@@ -1,52 +1,20 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { toast } from "sonner";
 
-// Função para buscar todos os usuários do Supabase
 export const fetchUsers = async (): Promise<User[]> => {
   try {
     console.log("Buscando usuários do Supabase...");
     
-    // Buscar diretamente da tabela profiles sem joins complexos
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('*')
+      .select('*, planos_financeiros(nome)')
       .order('name');
     
     if (error) {
       console.error("Erro ao buscar usuários:", error);
       toast.error("Erro ao carregar usuários");
-      
-      // Utilizar dados mockados em caso de erro
-      console.log("Usando dados mockados para usuários devido a erro");
-      
-      return [
-        {
-          id: "1",
-          name: "Admin Exemplo",
-          email: "matheusprograming@gmail.com",
-          role: "admin",
-          status: "Ativo",
-          plan: "Anual"
-        },
-        {
-          id: "2",
-          name: "Professor Exemplo",
-          email: "professor@exemplo.com",
-          role: "coach",
-          status: "Ativo",
-          plan: "N/A"
-        },
-        {
-          id: "3",
-          name: "Aluno Exemplo",
-          email: "aluno@exemplo.com",
-          role: "student",
-          status: "Ativo",
-          plan: "Mensal"
-        }
-      ];
+      return [];
     }
 
     if (!profiles || profiles.length === 0) {
@@ -56,51 +24,22 @@ export const fetchUsers = async (): Promise<User[]> => {
     
     console.log("Usuários encontrados:", profiles.length);
     
-    // Transformar os perfis em objetos User
     return profiles.map(profile => ({
       id: profile.id,
       name: profile.name || "",
       email: profile.email || "",
       avatarUrl: profile.avatar_url,
       role: profile.role || "student",
-      plan: profile.plan || "Mensal",
-      status: profile.status || "Ativo"
+      status: profile.status || "Ativo",
+      plano_id: profile.plano_id
     }));
   } catch (error) {
     console.error("Erro ao buscar usuários:", error);
     toast.error("Erro ao carregar usuários");
-    
-    // Retornar dados mockados em caso de erro
-    return [
-      {
-        id: "1",
-        name: "Admin Exemplo",
-        email: "matheusprograming@gmail.com",
-        role: "admin",
-        status: "Ativo",
-        plan: "Anual"
-      },
-      {
-        id: "2",
-        name: "Professor Exemplo",
-        email: "professor@exemplo.com",
-        role: "coach",
-        status: "Ativo",
-        plan: "N/A"
-      },
-      {
-        id: "3",
-        name: "Aluno Exemplo",
-        email: "aluno@exemplo.com",
-        role: "student",
-        status: "Ativo",
-        plan: "Mensal"
-      }
-    ];
+    return [];
   }
 };
 
-// Função para atualizar um usuário
 export const updateUser = async (user: User): Promise<User> => {
   try {
     console.log("Atualizando usuário:", user);
@@ -144,12 +83,10 @@ export const updateUser = async (user: User): Promise<User> => {
   }
 };
 
-// Função para criar um usuário
 export const createUser = async (user: Partial<User>): Promise<User> => {
   try {
     console.log("Criando usuário:", user);
     
-    // Verificar se já existe um usuário com o mesmo email
     const { data: existingUser, error: checkError } = await supabase
       .from('profiles')
       .select('id')
@@ -169,7 +106,6 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
       throw new Error(errorMessage);
     }
     
-    // Gerar um ID aleatório se não for fornecido
     const userId = user.id || crypto.randomUUID();
     
     const { data, error } = await supabase
@@ -210,7 +146,6 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
   }
 };
 
-// Função para excluir um usuário
 export const deleteUser = async (userId: string): Promise<void> => {
   try {
     console.log("Excluindo usuário:", userId);

@@ -1,39 +1,65 @@
-
-export interface Class {
-  id: string;
-  startTime: Date;
-  endTime: Date;
-  programName: string;
-  coachName: string;
-  coachAvatar?: string;
-  maxCapacity: number;
-  attendeeCount: number;
-  spotsLeft: number;
-  isCheckedIn: boolean;
-}
-
-export interface Attendee {
+export type User = {
   id: string;
   name: string;
+  email: string;
   avatarUrl?: string;
-}
+  role: string;
+  status: string;
+  plan?: string;
+};
 
-export interface ClassDetail {
+export type Class = {
   id: string;
-  startTime: Date;
-  endTime: Date;
-  program: {
-    id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  max_capacity: number;
+  program_id: string;
+  coach_id: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type FinancialPlan = {
+  id: string;
+  nome: string;
+  valor: number;
+  duracao_dias: number;
+  descricao?: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type Payment = {
+  id: string;
+  aluno_id: string;
+  plano_id?: string;
+  valor: number;
+  data_vencimento: string;
+  data_pagamento?: string;
+  status: 'pendente' | 'pago' | 'atrasado';
+  metodo_pagamento?: 'dinheiro' | 'cartao' | 'pix' | 'transferencia';
+  comprovante_url?: string;
+  created_at?: string;
+  updated_at?: string;
+  profiles?: {
     name: string;
+    email: string;
+    avatar_url?: string;
   };
-  coach: {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-  };
-  maxCapacity: number;
-  attendeeCount: number;
-}
+};
+
+export type CashFlowEntry = {
+  id: string;
+  tipo: 'entrada' | 'saida';
+  descricao: string;
+  valor: number;
+  data_movimento: string;
+  categoria?: string;
+  pagamento_id?: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
 export interface User {
   id: string;
@@ -41,10 +67,6 @@ export interface User {
   email: string;
   avatarUrl?: string;
   role: string;
-  plan?: string;
   status: string;
-  phone?: string;
-  birth_date?: string;
-  lastCheckInDate?: string; // Add this property
-  registrationDate?: string; // Add this property
+  plano_id?: string;
 }
