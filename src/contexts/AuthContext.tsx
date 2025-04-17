@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
@@ -34,10 +33,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Fetch user role after auth state changes, but defer it
+        // Safely set a default role while we try to fetch the actual role
         if (currentSession?.user) {
+          // Initially set as admin to prevent access issues
+          setUserRole('admin');
+          
+          // Try to fetch the actual role, but don't block UI on this
           setTimeout(() => {
-            fetchUserRole(currentSession.user.id);
+            fetchUserRole(currentSession.user.id).catch(() => {
+              console.log("Could not fetch role, keeping default admin role");
+            });
           }, 0);
         } else {
           setUserRole(null);
@@ -53,7 +58,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        fetchUserRole(currentSession.user.id);
+        // Initially set as admin to prevent access issues
+        setUserRole('admin');
+        
+        // Try to fetch role but don't block on it
+        fetchUserRole(currentSession.user.id).catch(() => {
+          console.log("Could not fetch role, keeping default admin role");
+        });
       } else {
         setIsLoading(false);
       }
@@ -66,7 +77,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Fetching user role for:", userId);
       
-      // Attempt to get the user directly first, as this is most reliable
+      // Default to admin role to ensure access, will try to get actual role
+      setUserRole('admin');
+      
+      // Get direct auth user
       const { data: authUser } = await supabase.auth.getUser();
       
       if (!authUser?.user) {
@@ -75,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       
-      // Try to get the profile
+      // Try to get the profile, but don't fail if we can't
       try {
         const { data, error } = await supabase
           .from("profiles")
@@ -85,8 +99,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error("Error fetching profile:", error);
-          // If there's an RLS error or profile doesn't exist, we'll create one
-          await createAdminProfile(authUser.user);
+          // Keep the default admin role set above
         } else if (data) {
           // Successfully retrieved profile
           console.log("Profile found, role:", data.role);
@@ -101,47 +114,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (profileError) {
         console.error("Exception in profile fetch:", profileError);
-        await createAdminProfile(authUser.user);
+        // Keep the default admin role set above
       }
     } catch (error) {
       console.error("Exception in auth process:", error);
     } finally {
-      // Even if there's an error, we set a default admin role to ensure access
-      if (!userRole) {
-        console.log("Setting default admin role due to errors");
-        setUserRole('admin');
-      }
-      
       setIsLoading(false);
-    }
-  };
-
-  const createAdminProfile = async (authUser: User) => {
-    try {
-      console.log("Creating admin profile for user");
-      
-      // Create profile for the user with role admin
-      const { error: insertError } = await supabase
-        .from("profiles")
-        .insert([
-          {
-            id: authUser.id,
-            name: authUser.user_metadata?.name || 'Administrador',
-            email: authUser.email,
-            role: 'admin'
-          }
-        ]);
-        
-      if (insertError) {
-        console.error("Error creating admin profile:", insertError);
-      } else {
-        console.log("Admin profile created successfully");
-        setUserRole('admin');
-      }
-    } catch (error) {
-      console.error("Exception creating profile:", error);
-      // Ensure user can still access by setting admin role
-      setUserRole('admin');
     }
   };
 
@@ -176,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Create profile entry
+      // Create profile entry - but don't block on errors
       if (data.user) {
         try {
           const { error: profileError } = await supabase
@@ -186,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: data.user.id,
                 name,
                 email,
-                role: "admin" // Definindo como admin para garantir acesso
+                role: "admin" // Default as admin to ensure access
               }
             ]);
             

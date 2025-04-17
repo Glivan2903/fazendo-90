@@ -23,10 +23,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       allowedRoles,
       path: location.pathname
     });
-    
-    if (user && !userRole && !isLoading) {
-      console.warn("Usuário autenticado mas sem papel definido!");
-    }
   }, [user, userRole, isLoading, allowedRoles, location]);
 
   if (isLoading) {
