@@ -19,7 +19,8 @@ interface AuthContextType {
   userRole: string | null;
   isLoading: boolean;
   hasActiveSubscription: boolean;
-  signIn: (email: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, plan: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -125,15 +126,60 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signIn = async (email: string) => {
+  const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOtp({ email });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
       if (error) throw error;
-      toast.success("Verifique seu email para confirmar o login!");
+      
+      navigate("/check-in");
+      toast.success("Login realizado com sucesso!");
     } catch (error: any) {
       console.error("Erro ao fazer login:", error.message);
       toast.error("Erro ao fazer login: " + error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string, plan: string) => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name,
+            plan
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: data.user?.id,
+          name,
+          email,
+          role: 'student',
+          status: 'Ativo',
+          plano_id: plan
+        });
+
+      if (profileError) throw profileError;
+
+      navigate("/check-in");
+      toast.success("Conta criada com sucesso!");
+    } catch (error: any) {
+      console.error("Erro ao criar conta:", error.message);
+      toast.error("Erro ao criar conta: " + error.message);
     } finally {
       setIsLoading(false);
     }
@@ -163,6 +209,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading,
     hasActiveSubscription,
     signIn,
+    signUp,
     signOut,
   };
 
