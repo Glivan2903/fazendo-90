@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { toast } from "sonner";
@@ -31,7 +32,8 @@ export const fetchUsers = async (): Promise<User[]> => {
       avatarUrl: profile.avatar_url,
       role: profile.role || "student",
       status: profile.status || "Ativo",
-      plano_id: profile.plano_id
+      plano_id: profile.plano_id,
+      plan: profile.planos_financeiros?.nome || ""
     }));
   } catch (error) {
     console.error("Erro ao buscar usuários:", error);
@@ -52,7 +54,7 @@ export const updateUser = async (user: User): Promise<User> => {
         avatar_url: user.avatarUrl,
         role: user.role,
         status: user.status,
-        plan: user.plan
+        plano_id: user.plano_id
       })
       .eq('id', user.id)
       .select('*')
@@ -73,8 +75,8 @@ export const updateUser = async (user: User): Promise<User> => {
       email: data.email || "",
       avatarUrl: data.avatar_url,
       role: data.role,
-      plan: data.plan || "Mensal",
-      status: data.status
+      status: data.status,
+      plan: data.planos_financeiros?.nome || ""
     };
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);

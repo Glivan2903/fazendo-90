@@ -1,3 +1,4 @@
+
 export type User = {
   id: string;
   name: string;
@@ -6,6 +7,11 @@ export type User = {
   role: string;
   status: string;
   plan?: string;
+  phone?: string;
+  birth_date?: string;
+  plano_id?: string;
+  lastCheckInDate?: string; // Added for OverviewTab
+  registrationDate?: string; // Added for OverviewTab
 };
 
 export type Class = {
@@ -18,6 +24,39 @@ export type Class = {
   coach_id: string;
   created_at?: string;
   updated_at?: string;
+  
+  // Additional properties used in frontend components
+  startTime: Date;
+  endTime: Date;
+  programName: string;
+  coachName: string;
+  coachAvatar?: string;
+  attendeeCount: number;
+  spotsLeft: number;
+  isCheckedIn: boolean;
+};
+
+export type ClassDetail = {
+  id: string;
+  startTime: Date;
+  endTime: Date;
+  program: {
+    id: string;
+    name: string;
+  };
+  coach: {
+    id: string;
+    name: string;
+    avatarUrl?: string;
+  };
+  maxCapacity: number;
+  attendeeCount: number;
+};
+
+export type Attendee = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
 };
 
 export type FinancialPlan = {
@@ -60,13 +99,3 @@ export type CashFlowEntry = {
   created_at?: string;
   updated_at?: string;
 };
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatarUrl?: string;
-  role: string;
-  status: string;
-  plano_id?: string;
-}
