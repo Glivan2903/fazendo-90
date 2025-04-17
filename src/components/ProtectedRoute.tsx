@@ -37,38 +37,41 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     );
   }
 
+  // If no user is authenticated, redirect to login
   if (!user) {
     console.log("Usuário não autenticado, redirecionando para /auth");
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Verificamos se o usuário tem papel admin para permitir acesso direto
-  // Isso evitará problemas enquanto estamos corrigindo o sistema
+  // Force admin access - always grant access to all routes for admin
+  // This ensures admin can always access everything even if role mappings have issues
   if (userRole === 'admin') {
     console.log("Acesso permitido para admin em qualquer rota");
     return <>{children}</>;
   }
 
+  // If specific roles are required, check permissions
   if (allowedRoles && allowedRoles.length > 0 && userRole) {
-    // Lógica de mapeamento para compatibilidade entre formatos de papel antigos e novos
+    // Normalize roles for case-insensitive comparison
     const normalizedUserRole = userRole.toLowerCase();
     const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase());
     
-    // Mapeamento de equivalências
+    // Role equivalence mapping for backward compatibility
     const roleEquivalents: Record<string, string[]> = {
       'admin': ['admin', 'administrador'],
       'coach': ['coach', 'professor'],
       'student': ['student', 'aluno'],
     };
     
-    // Verificar se o papel normalizado do usuário está nas funções permitidas
+    // Check if user's role is directly allowed
     const hasDirectAccess = normalizedAllowedRoles.includes(normalizedUserRole);
     
-    // Verificar se há uma equivalência do papel do usuário que corresponde às funções permitidas
+    // Check if user's role has an equivalent that is allowed
     const hasEquivalentAccess = Object.entries(roleEquivalents).some(([role, equivalents]) => {
       return equivalents.includes(normalizedUserRole) && normalizedAllowedRoles.includes(role);
     });
     
+    // Deny access if neither direct nor equivalent access is granted
     if (!hasDirectAccess && !hasEquivalentAccess) {
       console.log(`Acesso negado: usuário com papel '${userRole}' tentando acessar rota que requer ${allowedRoles.join(', ')}`);
       toast.error("Você não tem permissão para acessar esta página");

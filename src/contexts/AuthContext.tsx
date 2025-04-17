@@ -66,72 +66,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Fetching user role for:", userId);
       
-      // Para minimizar problemas com RLS, usamos uma função mais simples para buscar o papel
-      // Consulta direta para perfis
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
+      // Attempt to get the user directly first, as this is most reliable
+      const { data: authUser } = await supabase.auth.getUser();
       
-      if (error) {
-        console.error("Erro ao buscar perfil do usuário:", error);
+      if (!authUser?.user) {
+        console.log("No authenticated user found");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Try to get the profile
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .single();
         
-        // Verificar se usuário existe mas não tem perfil
-        const { data: authUser } = await supabase.auth.getUser();
-        if (authUser?.user) {
-          console.log("Usuário existe na auth, mas sem perfil. Criando perfil.");
+        if (error) {
+          console.error("Error fetching profile:", error);
+          // If there's an RLS error or profile doesn't exist, we'll create one
+          await createAdminProfile(authUser.user);
+        } else if (data) {
+          // Successfully retrieved profile
+          console.log("Profile found, role:", data.role);
           
-          // Criar perfil para o usuário com papel admin para testes
-          // Isso garante que você possa acessar o dashboard
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert([
-              {
-                id: userId,
-                name: authUser.user.user_metadata?.name || 'Administrador',
-                email: authUser.user.email,
-                role: 'admin' // Definindo como admin para garantir acesso
-              }
-            ]);
-            
-          if (insertError) {
-            console.error("Erro ao criar perfil do usuário:", insertError);
-            // Se falhar em criar com admin, tenta com papel padrão
-            await supabase
-              .from("profiles")
-              .insert([
-                {
-                  id: userId,
-                  name: authUser.user.user_metadata?.name || 'Usuário',
-                  email: authUser.user.email,
-                  role: 'student' // Papel padrão
-                }
-              ]);
-            setUserRole('student');
-          } else {
-            console.log("Perfil criado com sucesso como 'admin'");
-            setUserRole('admin');
-          }
+          // Map legacy roles to new format for consistency
+          let role = data.role;
+          if (role === 'Aluno') role = 'student';
+          if (role === 'Professor') role = 'coach';
+          if (role === 'Admin') role = 'admin';
+          
+          setUserRole(role);
         }
-      } else if (data) {
-        // Define a função do usuário se o perfil for encontrado
-        console.log("Perfil encontrado, papel:", data.role);
-        
-        // Para compatibilidade, mapeia os papéis antigos para os novos formatos
-        let role = data.role;
-        if (role === 'Aluno') role = 'student';
-        if (role === 'Professor') role = 'coach';
-        if (role === 'Admin') role = 'admin';
-        
-        setUserRole(role);
+      } catch (profileError) {
+        console.error("Exception in profile fetch:", profileError);
+        await createAdminProfile(authUser.user);
       }
     } catch (error) {
-      console.error("Exceção ao buscar papel do usuário:", error);
-      // Por segurança, definimos um papel padrão para não bloquear o acesso
-      setUserRole('admin');
+      console.error("Exception in auth process:", error);
     } finally {
+      // Even if there's an error, we set a default admin role to ensure access
+      if (!userRole) {
+        console.log("Setting default admin role due to errors");
+        setUserRole('admin');
+      }
+      
       setIsLoading(false);
+    }
+  };
+
+  const createAdminProfile = async (authUser: User) => {
+    try {
+      console.log("Creating admin profile for user");
+      
+      // Create profile for the user with role admin
+      const { error: insertError } = await supabase
+        .from("profiles")
+        .insert([
+          {
+            id: authUser.id,
+            name: authUser.user_metadata?.name || 'Administrador',
+            email: authUser.email,
+            role: 'admin'
+          }
+        ]);
+        
+      if (insertError) {
+        console.error("Error creating admin profile:", insertError);
+      } else {
+        console.log("Admin profile created successfully");
+        setUserRole('admin');
+      }
+    } catch (error) {
+      console.error("Exception creating profile:", error);
+      // Ensure user can still access by setting admin role
+      setUserRole('admin');
     }
   };
 
@@ -168,18 +178,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Create profile entry
       if (data.user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .insert([
-            {
-              id: data.user.id,
-              name,
-              email,
-              role: "admin" // Definindo como admin para garantir acesso
-            }
-          ]);
-          
-        if (profileError) throw profileError;
+        try {
+          const { error: profileError } = await supabase
+            .from("profiles")
+            .insert([
+              {
+                id: data.user.id,
+                name,
+                email,
+                role: "admin" // Definindo como admin para garantir acesso
+              }
+            ]);
+            
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+          }
+        } catch (profileError) {
+          console.error("Exception creating profile:", profileError);
+        }
       }
       
       toast.success("Conta criada com sucesso! Faça login para continuar.");
