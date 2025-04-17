@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,7 +17,7 @@ import UserProfile from "./pages/UserProfile";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60000, // 1 minute
+      staleTime: 60000,
       refetchOnWindowFocus: false,
     },
   },
