@@ -1,4 +1,3 @@
-
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -275,7 +274,7 @@ const fetchMockClassDetails = async (classId: string): Promise<{classDetail: Cla
   }
 };
 
-export const checkInToClass = async (classId: string): Promise<boolean> => {
+export const checkInToClass = async (classId: string): Promise<boolean | { hasConflict: boolean; conflictClass?: { id: string; name: string; time: string } }> => {
   try {
     console.log("Realizando check-in para a aula:", classId);
     

@@ -90,7 +90,7 @@ const ClassDetail = () => {
       const result = await checkInToClass(classId);
       
       // If we got a conflict result
-      if (result && typeof result === 'object' && result.hasConflict) {
+      if (result && typeof result === 'object' && 'hasConflict' in result) {
         setHasConflict(true);
         if (result.conflictClass) {
           setConflictClassDetails(result.conflictClass);

@@ -61,6 +61,7 @@ export interface User {
   email: string;
   role: string;
   avatar_url?: string;
+  avatarUrl?: string; // Alternative property name used in some files
   created_at: string;
   box_id?: string;
   plan?: string;
@@ -68,5 +69,3 @@ export interface User {
   phone?: string;
   birth_date?: string;
 }
-
-// Add any other existing types here

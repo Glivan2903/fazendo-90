@@ -22,7 +22,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, user, 
     name: "",
     email: "",
     role: "student",
-    status: "Ativo"
+    status: "Ativo",
+    created_at: new Date().toISOString()
   });
   
   useEffect(() => {

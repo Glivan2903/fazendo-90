@@ -48,7 +48,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
       name: newUser.name,
       email: newUser.email,
       role: newUser.role || "student",
-      status: newUser.status || "Ativo"
+      status: newUser.status || "Ativo",
+      created_at: new Date().toISOString()
     };
     
     // Call the onEditUser function which will handle the API calls
