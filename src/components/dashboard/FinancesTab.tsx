@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -43,6 +42,7 @@ interface Payment {
   payment_method: string | null;
   subscription_id: string;
   user_id: string;
+  notes: string | null;
   profiles: {
     name: string;
     email: string;
