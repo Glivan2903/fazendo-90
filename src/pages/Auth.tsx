@@ -1,155 +1,124 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
+  const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [plan, setPlan] = useState("Mensal");
+  const { signIn, signUp, isLoading } = useAuth();
   const navigate = useNavigate();
-  
-  const { signIn, signUp, isLoading, user, userRole } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      if (userRole === "admin" || userRole === "coach") {
-        navigate("/teacher-dashboard");
-      } else {
-        navigate("/check-in");
-      }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isLogin) {
+      await signIn(email, password);
+    } else {
+      await signUp(email, password, name, plan);
     }
-  }, [user, userRole, navigate]);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await signIn(loginEmail, loginPassword);
   };
-
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await signUp(registerEmail, registerPassword, registerName);
-  };
-
-  if (isLoading && user) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
-  }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">CrossBox Fênix</CardTitle>
-          <CardDescription>
-            Faça login para acessar a plataforma
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as "login" | "register")}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Cadastro</TabsTrigger>
-            </TabsList>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <Card className="w-full max-w-md p-6 space-y-6 bg-white">
+        <div className="space-y-2 text-center">
+          <h1 className="text-3xl font-bold">
+            {isLogin ? "Login" : "Criar Conta"}
+          </h1>
+          <p className="text-gray-500">
+            {isLogin
+              ? "Entre com seu email e senha"
+              : "Preencha os dados para criar sua conta"}
+          </p>
+        </div>
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Entrando...
-                    </>
-                  ) : (
-                    "Entrar"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input
+                id="name"
+                placeholder="Seu nome completo"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+          )}
 
-            <TabsContent value="register">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Seu nome"
-                    value={registerName}
-                    onChange={(e) => setRegisterName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registerEmail">Email</Label>
-                  <Input
-                    id="registerEmail"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={registerEmail}
-                    onChange={(e) => setRegisterEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="registerPassword">Senha</Label>
-                  <Input
-                    id="registerPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    value={registerPassword}
-                    onChange={(e) => setRegisterPassword(e.target.value)}
-                    required
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Cadastrando...
-                    </>
-                  ) : (
-                    "Cadastrar"
-                  )}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="seu@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
+
+          {!isLogin && (
+            <div className="space-y-2">
+              <Label htmlFor="plan">Plano</Label>
+              <Select value={plan} onValueChange={setPlan}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o plano" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mensal">Mensal</SelectItem>
+                  <SelectItem value="Trimestral">Trimestral</SelectItem>
+                  <SelectItem value="Anual">Anual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading}
+          >
+            {isLoading
+              ? "Carregando..."
+              : isLogin
+              ? "Entrar"
+              : "Criar Conta"}
+          </Button>
+        </form>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setIsLogin(!isLogin)}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            {isLogin
+              ? "Não tem uma conta? Cadastre-se"
+              : "Já tem uma conta? Faça login"}
+          </button>
+        </div>
       </Card>
     </div>
   );

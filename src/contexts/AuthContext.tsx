@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
@@ -11,7 +10,7 @@ interface AuthContextType {
   userRole: string | null;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string, plan: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -138,7 +137,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, plan: string = 'Mensal') => {
     try {
       setIsLoading(true);
       const { error, data } = await supabase.auth.signUp({ 
@@ -153,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Create profile entry with admin role for testing
+      // Create profile entry with selected plan
       if (data.user) {
         const { error: profileError } = await supabase
           .from("profiles")
@@ -162,11 +161,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: data.user.id,
               name,
               email,
-              role: "admin" // Temporarily setting all new users as admin
+              role: "student",
+              plan
             }
           ]);
           
         if (profileError) throw profileError;
+
+        // Create initial subscription
+        const start = new Date();
+        const end = new Date();
+        
+        // Set end date based on plan
+        switch (plan) {
+          case 'Trimestral':
+            end.setMonth(end.getMonth() + 3);
+            break;
+          case 'Anual':
+            end.setMonth(end.getMonth() + 12);
+            break;
+          default: // Mensal
+            end.setMonth(end.getMonth() + 1);
+        }
+
+        const { error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .insert([
+            {
+              user_id: data.user.id,
+              start_date: start.toISOString().split('T')[0],
+              end_date: end.toISOString().split('T')[0]
+            }
+          ]);
+
+        if (subscriptionError) throw subscriptionError;
       }
       
       toast.success("Conta criada com sucesso! Faça login para continuar.");
