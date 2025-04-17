@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { format, subDays } from 'date-fns';
 import { toast } from "sonner";
+import { Tables } from "@/types/database.types";
 
 // Função para buscar dados de presença
 export const fetchAttendance = async (date?: Date) => {
@@ -15,7 +16,9 @@ export const fetchAttendance = async (date?: Date) => {
     // Buscar classes diretamente
     const { data: classes, error } = await supabase
       .from('classes')
-      .select('id, date, start_time, end_time, max_capacity, program_id, coach_id')
+      .select(`
+        id, date, start_time, end_time, max_capacity, program_id, coach_id
+      `)
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: false });

@@ -3,6 +3,7 @@ import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Tables } from "@/types/database.types";
 
 // API para buscar aulas para uma data específica
 export const fetchClasses = async (date: Date): Promise<Class[]> => {
