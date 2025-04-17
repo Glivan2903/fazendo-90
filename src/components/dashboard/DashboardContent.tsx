@@ -28,7 +28,9 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   attendance,
   onEditUser,
 }) => {
-  if (loading && activeTab !== "overview") {
+  // Only show loader for tabs other than overview and subscriptions
+  // since those have their own loading states
+  if (loading && activeTab !== "overview" && activeTab !== "subscriptions") {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />

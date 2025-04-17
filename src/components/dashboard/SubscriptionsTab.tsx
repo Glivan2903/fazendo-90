@@ -34,10 +34,13 @@ const SubscriptionsTab = () => {
 
   const loadSubscriptions = async () => {
     try {
+      setLoading(true);
       const data = await fetchSubscriptions();
       setSubscriptions(data);
     } catch (error) {
+      console.error("Error fetching subscriptions:", error);
       toast.error("Erro ao carregar adesões");
+      setSubscriptions([]);
     } finally {
       setLoading(false);
     }
@@ -53,6 +56,7 @@ const SubscriptionsTab = () => {
       toast.success("Adesão renovada com sucesso");
       loadSubscriptions();
     } catch (error) {
+      console.error("Error renewing subscription:", error);
       toast.error("Erro ao renovar adesão");
     }
   };
@@ -80,7 +84,10 @@ const SubscriptionsTab = () => {
   };
 
   const filteredSubscriptions = subscriptions.filter(sub => {
-    const matchesSearch = sub.profiles?.name.toLowerCase().includes(searchTerm.toLowerCase());
+    // Make sure we have a valid subscription with profiles data
+    if (!sub || !sub.profiles) return false;
+    
+    const matchesSearch = sub.profiles.name?.toLowerCase().includes(searchTerm.toLowerCase()) || false;
     const today = new Date();
     const endDate = new Date(sub.end_date);
     const isActive = endDate >= today;
@@ -94,6 +101,15 @@ const SubscriptionsTab = () => {
         return matchesSearch;
     }
   });
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <AlertCircle className="h-8 w-8 mb-2 animate-pulse text-blue-500" />
+        <p className="text-muted-foreground ml-2">Carregando adesões...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -137,31 +153,32 @@ const SubscriptionsTab = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredSubscriptions.map((sub) => (
-              <TableRow key={sub.id}>
-                <TableCell>{sub.profiles?.name}</TableCell>
-                <TableCell>
-                  {format(new Date(sub.start_date), "dd/MM/yyyy", { locale: ptBR })}
-                </TableCell>
-                <TableCell>
-                  {format(new Date(sub.end_date), "dd/MM/yyyy", { locale: ptBR })}
-                </TableCell>
-                <TableCell>
-                  {getStatusBadge(sub.end_date)}
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRenewSubscription(sub.user_id)}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Renovar
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {filteredSubscriptions.length === 0 && (
+            {filteredSubscriptions.length > 0 ? (
+              filteredSubscriptions.map((sub) => (
+                <TableRow key={sub.id}>
+                  <TableCell>{sub.profiles?.name || "N/A"}</TableCell>
+                  <TableCell>
+                    {format(new Date(sub.start_date), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(sub.end_date), "dd/MM/yyyy", { locale: ptBR })}
+                  </TableCell>
+                  <TableCell>
+                    {getStatusBadge(sub.end_date)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRenewSubscription(sub.user_id)}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Renovar
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
               <TableRow>
                 <TableCell colSpan={5} className="text-center py-8">
                   <div className="flex flex-col items-center text-muted-foreground">
