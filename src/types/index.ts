@@ -6,10 +6,8 @@ export type User = {
   avatarUrl?: string;
   role: string;
   status: string;
-  plan?: string;
   phone?: string;
   birth_date?: string;
-  plano_id?: string;
   lastCheckInDate?: string;
   registrationDate?: string;
 };
@@ -63,45 +61,4 @@ export type Attendee = {
   id: string;
   name: string;
   avatarUrl?: string;
-};
-
-export type FinancialPlan = {
-  id: string;
-  nome: string;
-  valor: number;
-  duracao_dias: number;
-  descricao?: string;
-  created_at?: string;
-  updated_at?: string;
-};
-
-export type Payment = {
-  id: string;
-  aluno_id: string;
-  plano_id?: string;
-  valor: number;
-  data_vencimento: string;
-  data_pagamento?: string;
-  status: 'pendente' | 'pago' | 'atrasado';
-  metodo_pagamento?: 'dinheiro' | 'cartao' | 'pix' | 'transferencia';
-  comprovante_url?: string;
-  created_at?: string;
-  updated_at?: string;
-  profiles?: {
-    name: string;
-    email: string;
-    avatar_url?: string;
-  };
-};
-
-export type CashFlowEntry = {
-  id: string;
-  tipo: 'entrada' | 'saida';
-  descricao: string;
-  valor: number;
-  data_movimento: string;
-  categoria?: string;
-  pagamento_id?: string;
-  created_at?: string;
-  updated_at?: string;
 };

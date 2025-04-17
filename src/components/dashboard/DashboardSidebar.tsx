@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar, BarChart2, Users, CreditCard, LogOut } from "lucide-react";
+import { Calendar, BarChart2, Users, LogOut } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import { useNavigate } from "react-router-dom";
 
@@ -46,14 +46,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           >
             <Users className="mr-2 h-4 w-4" />
             Usuários
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => navigate("/financial")}
-          >
-            <CreditCard className="mr-2 h-4 w-4" />
-            Financeiro
           </Button>
           <Button
             variant="ghost"

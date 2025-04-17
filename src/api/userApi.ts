@@ -9,7 +9,7 @@ export const fetchUsers = async (): Promise<User[]> => {
     
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('*, planos_financeiros(nome)')
+      .select('*')
       .order('name');
     
     if (error) {
@@ -31,9 +31,7 @@ export const fetchUsers = async (): Promise<User[]> => {
       email: profile.email || "",
       avatarUrl: profile.avatar_url,
       role: profile.role || "student",
-      status: profile.status || "Ativo",
-      plano_id: profile.plano_id,
-      plan: profile.planos_financeiros?.nome || ""
+      status: profile.status || "Ativo"
     }));
   } catch (error) {
     console.error("Erro ao buscar usuários:", error);
@@ -53,8 +51,7 @@ export const updateUser = async (user: User): Promise<User> => {
         email: user.email,
         avatar_url: user.avatarUrl,
         role: user.role,
-        status: user.status,
-        plano_id: user.plano_id
+        status: user.status
       })
       .eq('id', user.id)
       .select('*')
@@ -75,8 +72,7 @@ export const updateUser = async (user: User): Promise<User> => {
       email: data.email || "",
       avatarUrl: data.avatar_url,
       role: data.role,
-      status: data.status,
-      plano_id: data.plano_id
+      status: data.status
     };
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);
@@ -117,8 +113,7 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
         name: user.name,
         email: user.email,
         role: user.role || "student",
-        status: user.status || "Ativo",
-        plano_id: user.plano_id || null
+        status: user.status || "Ativo"
       }])
       .select('*')
       .single();
@@ -138,8 +133,7 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
       email: data.email || "",
       avatarUrl: data.avatar_url,
       role: data.role,
-      status: data.status,
-      plano_id: data.plano_id
+      status: data.status
     };
   } catch (error) {
     console.error("Erro ao criar usuário:", error);

@@ -99,141 +99,6 @@ export type Database = {
           },
         ]
       }
-      extrato_caixa: {
-        Row: {
-          categoria: string | null
-          created_at: string | null
-          data_movimento: string
-          descricao: string
-          id: string
-          pagamento_id: string | null
-          tipo: Database["public"]["Enums"]["transaction_type"]
-          updated_at: string | null
-          valor: number
-        }
-        Insert: {
-          categoria?: string | null
-          created_at?: string | null
-          data_movimento?: string
-          descricao: string
-          id?: string
-          pagamento_id?: string | null
-          tipo: Database["public"]["Enums"]["transaction_type"]
-          updated_at?: string | null
-          valor: number
-        }
-        Update: {
-          categoria?: string | null
-          created_at?: string | null
-          data_movimento?: string
-          descricao?: string
-          id?: string
-          pagamento_id?: string | null
-          tipo?: Database["public"]["Enums"]["transaction_type"]
-          updated_at?: string | null
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "extrato_caixa_pagamento_id_fkey"
-            columns: ["pagamento_id"]
-            isOneToOne: false
-            referencedRelation: "pagamentos"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      pagamentos: {
-        Row: {
-          aluno_id: string
-          comprovante_url: string | null
-          created_at: string | null
-          data_pagamento: string | null
-          data_vencimento: string
-          id: string
-          metodo_pagamento: Database["public"]["Enums"]["payment_method"] | null
-          plano_id: string | null
-          status: Database["public"]["Enums"]["payment_status"]
-          updated_at: string | null
-          valor: number
-        }
-        Insert: {
-          aluno_id: string
-          comprovante_url?: string | null
-          created_at?: string | null
-          data_pagamento?: string | null
-          data_vencimento: string
-          id?: string
-          metodo_pagamento?:
-            | Database["public"]["Enums"]["payment_method"]
-            | null
-          plano_id?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          updated_at?: string | null
-          valor: number
-        }
-        Update: {
-          aluno_id?: string
-          comprovante_url?: string | null
-          created_at?: string | null
-          data_pagamento?: string | null
-          data_vencimento?: string
-          id?: string
-          metodo_pagamento?:
-            | Database["public"]["Enums"]["payment_method"]
-            | null
-          plano_id?: string | null
-          status?: Database["public"]["Enums"]["payment_status"]
-          updated_at?: string | null
-          valor?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pagamentos_aluno_id_fkey"
-            columns: ["aluno_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pagamentos_plano_id_fkey"
-            columns: ["plano_id"]
-            isOneToOne: false
-            referencedRelation: "planos_financeiros"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      planos_financeiros: {
-        Row: {
-          created_at: string | null
-          descricao: string | null
-          duracao_dias: number
-          id: string
-          nome: string
-          updated_at: string | null
-          valor: number
-        }
-        Insert: {
-          created_at?: string | null
-          descricao?: string | null
-          duracao_dias: number
-          id?: string
-          nome: string
-          updated_at?: string | null
-          valor: number
-        }
-        Update: {
-          created_at?: string | null
-          descricao?: string | null
-          duracao_dias?: number
-          id?: string
-          nome?: string
-          updated_at?: string | null
-          valor?: number
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -243,7 +108,6 @@ export type Database = {
           id: string
           name: string
           phone: string | null
-          plano_id: string | null
           role: string
           status: string
         }
@@ -255,7 +119,6 @@ export type Database = {
           id: string
           name: string
           phone?: string | null
-          plano_id?: string | null
           role?: string
           status?: string
         }
@@ -267,19 +130,10 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
-          plano_id?: string | null
           role?: string
           status?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_plano_id_fkey"
-            columns: ["plano_id"]
-            isOneToOne: false
-            referencedRelation: "planos_financeiros"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       programs: {
         Row: {
@@ -316,9 +170,7 @@ export type Database = {
       }
     }
     Enums: {
-      payment_method: "dinheiro" | "cartao" | "pix" | "transferencia"
-      payment_status: "pendente" | "pago" | "atrasado"
-      transaction_type: "entrada" | "saida"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -433,10 +285,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      payment_method: ["dinheiro", "cartao", "pix", "transferencia"],
-      payment_status: ["pendente", "pago", "atrasado"],
-      transaction_type: ["entrada", "saida"],
-    },
+    Enums: {},
   },
 } as const
