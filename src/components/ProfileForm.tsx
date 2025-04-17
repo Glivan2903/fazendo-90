@@ -6,12 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { updateUser } from "@/api/userApi";
-import { format } from "date-fns";
 
 interface ProfileFormProps {
   user: User;
@@ -28,13 +26,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user: initialUser, readOnly =
     setUser(prev => ({
       ...prev,
       [name]: value
-    }));
-  };
-
-  const handleSelectChange = (field: string, value: string) => {
-    setUser(prev => ({
-      ...prev,
-      [field]: value
     }));
   };
   
@@ -67,10 +58,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user: initialUser, readOnly =
           </Avatar>
           <div>
             <h2 className="text-2xl font-bold">{user.name}</h2>
-            <p className="text-gray-500">
-              {user.role === "admin" ? "Administrador" : 
-               user.role === "coach" ? "Professor" : "Aluno"}
-            </p>
+            <p className="text-gray-500">{user.role === "admin" ? "Administrador" : user.role === "coach" ? "Professor" : "Aluno"}</p>
           </div>
         </CardTitle>
       </CardHeader>
@@ -116,24 +104,6 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user: initialUser, readOnly =
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="gender">Gênero</Label>
-              <Select
-                value={user.gender || ""}
-                onValueChange={(value) => handleSelectChange("gender", value)}
-                disabled={readOnly || isLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="masculino">Masculino</SelectItem>
-                  <SelectItem value="feminino">Feminino</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
               <Label htmlFor="birth_date">Data de Nascimento</Label>
               <Input
                 id="birth_date"
@@ -142,40 +112,40 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ user: initialUser, readOnly =
                 value={user.birth_date || ""}
                 onChange={handleChange}
                 disabled={readOnly || isLoading}
+                placeholder={readOnly && !user.birth_date ? "Não informada" : ""}
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="weight">Peso (kg)</Label>
-              <Input
-                id="weight"
-                name="weight"
-                type="number"
-                step="0.1"
-                value={user.weight || ""}
-                onChange={handleChange}
-                disabled={readOnly || isLoading}
-              />
-            </div>
+            {user.plan && (
+              <div className="space-y-2">
+                <Label htmlFor="plan">Plano</Label>
+                <Input
+                  id="plan"
+                  value={user.plan}
+                  disabled={true}
+                  readOnly
+                />
+              </div>
+            )}
+            
+            {user.status && (
+              <div className="space-y-2">
+                <Label htmlFor="status">Status</Label>
+                <Input
+                  id="status"
+                  value={user.status}
+                  disabled={true}
+                  readOnly
+                  className={user.status === "Ativo" ? "text-green-600" : "text-red-600"}
+                />
+              </div>
+            )}
             
             <div className="space-y-2">
-              <Label htmlFor="address">Endereço</Label>
+              <Label htmlFor="created_at">Membro desde</Label>
               <Input
-                id="address"
-                name="address"
-                value={user.address || ""}
-                onChange={handleChange}
-                disabled={readOnly || isLoading}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="membership_date">Membro desde</Label>
-              <Input
-                id="membership_date"
-                value={user.membership_date ? 
-                  format(new Date(user.membership_date), 'dd/MM/yyyy') : 
-                  format(new Date(user.created_at), 'dd/MM/yyyy')}
+                id="created_at"
+                value={new Date(user.created_at).toLocaleDateString("pt-BR")}
                 disabled={true}
                 readOnly
               />
