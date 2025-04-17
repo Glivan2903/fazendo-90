@@ -1,7 +1,9 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar, BarChart2, Users, CreditCard, LogOut } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
 
 interface DashboardSidebarProps {
   activeTab: string;
@@ -14,6 +16,8 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   setActiveTab,
   signOut,
 }) => {
+  const navigate = useNavigate();
+  
   return (
     <div className="space-y-4 py-4">
       <div className="px-3 py-2">
@@ -44,9 +48,9 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             Usuários
           </Button>
           <Button
-            variant={activeTab === "financial" ? "secondary" : "ghost"}
+            variant="ghost"
             className="w-full justify-start"
-            onClick={() => setActiveTab("financial")}
+            onClick={() => navigate("/financial")}
           >
             <CreditCard className="mr-2 h-4 w-4" />
             Financeiro

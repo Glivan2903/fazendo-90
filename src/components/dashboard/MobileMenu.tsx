@@ -1,9 +1,10 @@
 
 import React from "react";
-import { Menu, X, LayoutDashboard, Calendar, Users, UserCheck, Clock, LogOut } from "lucide-react";
+import { Menu, X, LayoutDashboard, Calendar, Users, UserCheck, Clock, LogOut, CreditCard } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface MobileMenuProps {
   menuOpen: boolean;
@@ -20,6 +21,8 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   setActiveTab,
   signOut
 }) => {
+  const navigate = useNavigate();
+  
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setMenuOpen(false);
@@ -99,7 +102,23 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 <Button
                   variant="ghost"
                   className="w-full justify-start"
-                  onClick={() => window.location.href = '/check-in'}
+                  onClick={() => {
+                    navigate("/financial");
+                    setMenuOpen(false);
+                  }}
+                >
+                  <CreditCard className="mr-2 h-5 w-5" />
+                  Financeiro
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => {
+                    navigate("/check-in");
+                    setMenuOpen(false);
+                  }}
                 >
                   <Clock className="mr-2 h-5 w-5" />
                   Check-in
