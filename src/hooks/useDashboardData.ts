@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
-import { fetchClasses, fetchAttendance } from "@/api/classApi";
+import { fetchClasses } from "@/api/classApi";
+import { fetchAttendance } from "@/api/attendanceApi";
 import { fetchUsers } from "@/api/userApi";
 import { toast } from "sonner";
 import { Class, User } from "@/types";
