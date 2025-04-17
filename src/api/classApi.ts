@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Tables } from "@/types/database.types";
 
-// API para buscar aulas para uma data específica
 export const fetchClasses = async (date: Date): Promise<Class[]> => {
   try {
     const formattedDate = format(date, 'yyyy-MM-dd');
@@ -397,5 +396,57 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
     console.error("Exception during check-in cancellation:", error);
     toast.error("Erro ao cancelar check-in");
     return false;
+  }
+};
+
+export const fetchAttendance = async (date: Date): Promise<any[]> => {
+  try {
+    const formattedDate = format(date, 'yyyy-MM-dd');
+    const { data: classesData, error: classError } = await supabase
+      .from('classes')
+      .select(`
+        id,
+        date,
+        start_time,
+        end_time,
+        max_capacity,
+        programs (name),
+        profiles!coach_id (name),
+        checkins (id)
+      `)
+      .eq('date', formattedDate);
+
+    if (classError) throw classError;
+
+    return classesData.map(cls => ({
+      id: cls.id,
+      date: cls.date,
+      class: cls.programs?.name || 'CrossFit',
+      coach: cls.profiles?.name || 'Coach',
+      present: cls.checkins?.length || 0,
+      absent: cls.max_capacity - (cls.checkins?.length || 0),
+      rate: Math.round((cls.checkins?.length || 0) / cls.max_capacity * 100),
+      total: cls.max_capacity
+    }));
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    toast.error("Erro ao carregar dados de presença");
+    return [];
+  }
+};
+
+export const fetchUsers = async (): Promise<any[]> => {
+  try {
+    const { data: users, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('name');
+      
+    if (error) throw error;
+    return users;
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    toast.error("Erro ao carregar usuários");
+    return [];
   }
 };

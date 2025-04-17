@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { fetchClasses, fetchUsers, fetchAttendance } from "@/api/classApi";
 import { User } from "@/types";
@@ -16,17 +17,16 @@ export const useDashboardData = (activeTab: string) => {
       try {
         if (activeTab === "overview") {
           const today = new Date();
-          const todayString = today.toISOString().split('T')[0];
-          const classesData = await fetchClasses(todayString);
+          const classesData = await fetchClasses(today);
           setTodayClasses(classesData);
         } else if (activeTab === "schedule") {
-          const scheduleData = await fetchClasses();
+          const scheduleData = await fetchClasses(new Date());
           setScheduleClasses(scheduleData);
         } else if (activeTab === "users") {
           const usersData = await fetchUsers();
           setUsers(usersData);
         } else if (activeTab === "attendance") {
-          const attendanceData = await fetchAttendance();
+          const attendanceData = await fetchAttendance(new Date());
           setAttendance(attendanceData);
         }
       } catch (error) {
