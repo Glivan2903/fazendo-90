@@ -8,17 +8,17 @@ export const fetchUsers = async (): Promise<User[]> => {
   try {
     console.log("Buscando usuários do Supabase...");
     
-    // Usando um método mais direto para buscar perfis
+    // Buscar diretamente da tabela profiles sem joins complexos
     const { data: profiles, error } = await supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, role, status, plan')
+      .select('*')
       .order('name');
     
     if (error) {
       console.error("Erro ao buscar usuários:", error);
       toast.error("Erro ao carregar usuários");
       
-      // Utilize dados mockados em caso de erro para demonstração
+      // Utilizar dados mockados em caso de erro
       console.log("Usando dados mockados para usuários devido a erro");
       
       return [
@@ -70,8 +70,33 @@ export const fetchUsers = async (): Promise<User[]> => {
     console.error("Erro ao buscar usuários:", error);
     toast.error("Erro ao carregar usuários");
     
-    // Retornar um array vazio em caso de erro
-    return [];
+    // Retornar dados mockados em caso de erro
+    return [
+      {
+        id: "1",
+        name: "Admin Exemplo",
+        email: "matheusprograming@gmail.com",
+        role: "admin",
+        status: "Ativo",
+        plan: "Anual"
+      },
+      {
+        id: "2",
+        name: "Professor Exemplo",
+        email: "professor@exemplo.com",
+        role: "coach",
+        status: "Ativo",
+        plan: "N/A"
+      },
+      {
+        id: "3",
+        name: "Aluno Exemplo",
+        email: "aluno@exemplo.com",
+        role: "student",
+        status: "Ativo",
+        plan: "Mensal"
+      }
+    ];
   }
 };
 
@@ -91,7 +116,7 @@ export const updateUser = async (user: User): Promise<User> => {
         plan: user.plan
       })
       .eq('id', user.id)
-      .select('id, name, email, avatar_url, role, status, plan')
+      .select('*')
       .single();
     
     if (error) {
@@ -144,17 +169,20 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
       throw new Error(errorMessage);
     }
     
+    // Gerar um ID aleatório se não for fornecido
+    const userId = user.id || crypto.randomUUID();
+    
     const { data, error } = await supabase
       .from('profiles')
       .insert([{
-        id: user.id,
+        id: userId,
         name: user.name,
         email: user.email,
         role: user.role || "student",
         status: user.status || "Ativo",
         plan: user.plan || "Mensal"
       }])
-      .select('id, name, email, avatar_url, role, status, plan')
+      .select('*')
       .single();
     
     if (error) {

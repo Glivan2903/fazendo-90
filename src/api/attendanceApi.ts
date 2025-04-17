@@ -12,18 +12,10 @@ export const fetchAttendance = async (date?: Date) => {
     
     console.log(`Buscando dados de presença de ${startDate} até ${endDate}`);
     
-    // Usar uma query mais simples para evitar recursão nas políticas
+    // Buscar classes diretamente
     const { data: classes, error } = await supabase
       .from('classes')
-      .select(`
-        id,
-        date,
-        start_time,
-        end_time,
-        max_capacity,
-        program_id,
-        coach_id
-      `)
+      .select('id, date, start_time, end_time, max_capacity, program_id, coach_id')
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: false });
@@ -89,9 +81,8 @@ export const fetchAttendance = async (date?: Date) => {
   } catch (error) {
     console.error("Erro ao buscar dados de presença:", error);
     toast.error("Erro ao carregar dados de presença");
-    
     // Retornar array vazio em caso de erro
-    return [];
+    return []; 
   }
 };
 
@@ -100,13 +91,10 @@ export const fetchClassAttendees = async (classId: string) => {
   try {
     console.log("Buscando alunos da aula:", classId);
     
+    // Buscar check-ins da aula específica
     const { data, error } = await supabase
       .from('checkins')
-      .select(`
-        id,
-        status,
-        user_id
-      `)
+      .select('id, status, user_id')
       .eq('class_id', classId);
       
     if (error) {
@@ -127,6 +115,7 @@ export const fetchClassAttendees = async (classId: string) => {
       return [];
     }
     
+    // Buscar perfis dos usuários que fizeram check-in
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, name, avatar_url')

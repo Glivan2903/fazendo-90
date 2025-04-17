@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, Eye, User as UserIcon } from "lucide-react";
+import { Loader2, Eye, User as UserIcon, RefreshCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog";
 import { fetchAttendance, fetchClassAttendees } from "@/api/attendanceApi";
+import ErrorDisplay from "./ErrorDisplay";
 
 interface AttendanceTabProps {
   attendanceData: any[];
@@ -37,6 +38,7 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [attendees, setAttendees] = useState<any[]>([]);
   const [attendeesLoading, setAttendeesLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     fetchPrograms();
@@ -60,11 +62,18 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
   
   const loadAttendanceData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await fetchAttendance(selectedDate);
-      setAttendanceData(data);
+      if (data && data.length > 0) {
+        setAttendanceData(data);
+      } else {
+        setAttendanceData([]);
+      }
     } catch (error) {
       console.error("Erro ao carregar dados de presença:", error);
+      setError("Não foi possível carregar os dados de presença. Verifique sua conexão ou tente novamente mais tarde.");
+      setAttendanceData([]);
     } finally {
       setLoading(false);
     }
@@ -74,8 +83,12 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
     if (date) {
       setSelectedDate(date);
       setLoading(true);
+      setError(null);
       fetchAttendance(date).then(data => {
         setAttendanceData(data);
+        setLoading(false);
+      }).catch(err => {
+        setError("Não foi possível carregar os dados para esta data.");
         setLoading(false);
       });
     }
@@ -84,11 +97,15 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
   const handleProgramChange = (value: string) => {
     setSelectedProgram(value);
     setLoading(true);
+    setError(null);
     
     // Filtrar os dados localmente se já tivermos os dados
-    if (selectedProgram === "all") {
+    if (value === "all") {
       fetchAttendance(selectedDate).then(data => {
         setAttendanceData(data);
+        setLoading(false);
+      }).catch(err => {
+        setError("Erro ao filtrar dados por programa.");
         setLoading(false);
       });
     } else {
@@ -98,6 +115,9 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
         );
         setAttendanceData(filtered);
         setLoading(false);
+      }).catch(err => {
+        setError("Erro ao filtrar dados por programa.");
+        setLoading(false);
       });
     }
   };
@@ -106,12 +126,14 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
     setSelectedClass(classItem);
     setIsDialogOpen(true);
     setAttendeesLoading(true);
+    setError(null);
     
     try {
       const attendeesData = await fetchClassAttendees(classItem.id);
       setAttendees(attendeesData);
     } catch (error) {
       console.error("Erro ao buscar alunos:", error);
+      toast.error("Não foi possível carregar os dados dos alunos.");
     } finally {
       setAttendeesLoading(false);
     }
@@ -175,70 +197,91 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
         </div>
       </div>
       
-      <Card>
-        <CardContent className="p-0 overflow-auto">
-          {loading ? (
-            <div className="flex justify-center items-center py-10">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Aula</TableHead>
-                  <TableHead>Professor</TableHead>
-                  <TableHead>Presentes</TableHead>
-                  <TableHead>Ausentes</TableHead>
-                  <TableHead>Taxa</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {attendanceData.length > 0 ? (
-                  attendanceData.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
-                      <TableCell>{item.class}</TableCell>
-                      <TableCell>{item.coach}</TableCell>
-                      <TableCell>{item.present}</TableCell>
-                      <TableCell>{item.absent}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <div className="w-12 bg-gray-200 rounded-full h-2 mr-2">
-                            <div 
-                              className={`h-2 rounded-full ${item.rate > 70 ? 'bg-green-500' : item.rate > 30 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                              style={{ width: `${item.rate}%` }}
-                            />
+      {error && (
+        <ErrorDisplay 
+          title="Erro ao carregar dados" 
+          message={error} 
+          onRetry={loadAttendanceData} 
+        />
+      )}
+      
+      {!error && (
+        <Card>
+          <CardContent className="p-0 overflow-auto">
+            {loading ? (
+              <div className="flex justify-center items-center py-10">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Aula</TableHead>
+                    <TableHead>Professor</TableHead>
+                    <TableHead>Presentes</TableHead>
+                    <TableHead>Ausentes</TableHead>
+                    <TableHead>Taxa</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {attendanceData.length > 0 ? (
+                    attendanceData.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>{item.class}</TableCell>
+                        <TableCell>{item.coach}</TableCell>
+                        <TableCell>{item.present}</TableCell>
+                        <TableCell>{item.absent}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <div className="w-12 bg-gray-200 rounded-full h-2 mr-2">
+                              <div 
+                                className={`h-2 rounded-full ${item.rate > 70 ? 'bg-green-500' : item.rate > 30 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                style={{ width: `${item.rate}%` }}
+                              />
+                            </div>
+                            <span>{item.rate}%</span>
                           </div>
-                          <span>{item.rate}%</span>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            onClick={() => handleViewDetails(item)}
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Detalhes
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-6">
+                        <div className="flex flex-col items-center py-8">
+                          <CalendarIcon className="h-10 w-10 text-gray-400 mb-2" />
+                          <p>Nenhum registro de presença encontrado para esta data</p>
+                          <Button 
+                            variant="outline" 
+                            onClick={loadAttendanceData} 
+                            className="mt-4"
+                          >
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            Tentar novamente
+                          </Button>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => handleViewDetails(item)}
-                          className="text-blue-600 hover:text-blue-800"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Detalhes
-                        </Button>
-                      </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-4">
-                      Nenhum registro de presença encontrado para esta data
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">

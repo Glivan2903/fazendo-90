@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
 import { Loader2, Menu } from "lucide-react";
 import { fetchClasses } from "../api/classApi";
-import { fetchUsers, updateUser } from "@/api/userApi";
+import { fetchUsers } from "@/api/userApi";
 import { fetchAttendance } from "@/api/attendanceApi";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,9 +34,15 @@ const TeacherDashboard = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userEditLoading, setUserEditLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loadingRetries, setLoadingRetries] = useState(0);
   const navigate = useNavigate();
   const { signOut, userRole, user } = useAuth();
   const isMobile = useIsMobile();
+  
+  // Log Supabase connection details for debugging
+  useEffect(() => {
+    console.log("Tentando conectar ao Supabase...");
+  }, []);
   
   useEffect(() => {
     // Redirect if not admin or coach
@@ -55,12 +61,40 @@ const TeacherDashboard = () => {
     }
   }, [userRole, navigate, user]);
   
+  const fetchDataWithRetry = async (fetchFunction: Function, errorMessage: string, retryCount: number = 3) => {
+    let retries = 0;
+    
+    while (retries < retryCount) {
+      try {
+        const data = await fetchFunction();
+        return data;
+      } catch (error) {
+        console.error(`Error fetching data (attempt ${retries + 1}/${retryCount}):`, error);
+        retries++;
+        
+        // Last attempt
+        if (retries === retryCount) {
+          toast.error(errorMessage);
+          return [];
+        }
+        
+        // Wait before retry (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+      }
+    }
+    
+    return [];
+  };
+  
   useEffect(() => {
     const fetchTodayClasses = async () => {
       setLoading(true);
       try {
         const today = new Date();
-        const classes = await fetchClasses(today);
+        const classes = await fetchDataWithRetry(
+          () => fetchClasses(today), 
+          "Erro ao carregar aulas de hoje"
+        );
         setTodayClasses(classes);
       } catch (error) {
         console.error("Error fetching classes:", error);
@@ -111,6 +145,14 @@ const TeacherDashboard = () => {
           const userData = await fetchUsers();
           console.log("Usuários carregados:", userData);
           setUsers(userData);
+          if (userData.length > 0) {
+            // Reset retries on successful load
+            setLoadingRetries(0);
+          } else if (loadingRetries < 3) {
+            // Retry if no users found
+            setLoadingRetries(prev => prev + 1);
+            setTimeout(() => loadUsers(), 1000);
+          }
         } catch (error) {
           console.error("Error fetching users:", error);
           toast.error("Erro ao carregar usuários");
@@ -122,7 +164,7 @@ const TeacherDashboard = () => {
       
       loadUsers();
     }
-  }, [activeTab]);
+  }, [activeTab, loadingRetries]);
   
   useEffect(() => {
     if (activeTab === "attendance") {
@@ -130,6 +172,7 @@ const TeacherDashboard = () => {
         setLoading(true);
         try {
           const attendanceData = await fetchAttendance();
+          console.log("Dados de presença carregados:", attendanceData);
           setAttendance(attendanceData);
         } catch (error) {
           console.error("Error fetching attendance:", error);
