@@ -12,6 +12,7 @@ export const fetchAttendance = async (date?: Date) => {
     
     console.log(`Buscando dados de presença de ${startDate} até ${endDate}`);
     
+    // Usar uma query mais simples para evitar recursão nas políticas
     const { data: classes, error } = await supabase
       .from('classes')
       .select(`
@@ -20,9 +21,8 @@ export const fetchAttendance = async (date?: Date) => {
         start_time,
         end_time,
         max_capacity,
-        programs (id, name),
-        profiles!coach_id (id, name),
-        checkins (id, status)
+        program_id,
+        coach_id
       `)
       .gte('date', startDate)
       .lte('date', endDate)
@@ -39,15 +39,35 @@ export const fetchAttendance = async (date?: Date) => {
       return [];
     }
     
-    console.log("Dados de presença encontrados:", classes.length);
+    console.log("Classes encontradas:", classes.length);
+    
+    // Buscar programas para obter os nomes
+    const { data: programs } = await supabase
+      .from('programs')
+      .select('id, name');
+    
+    // Buscar perfis para obter nomes dos coaches
+    const { data: coaches } = await supabase
+      .from('profiles')
+      .select('id, name')
+      .in('role', ['coach', 'admin']);
+    
+    // Buscar check-ins para contagem
+    const { data: checkinsData } = await supabase
+      .from('checkins')
+      .select('id, class_id, status')
+      .in('class_id', classes.map(c => c.id));
     
     // Processar dados para o formato esperado
     return classes.map(cls => {
-      const confirmedCheckIns = Array.isArray(cls.checkins) 
-        ? cls.checkins.filter(ci => ci.status === 'confirmed')
+      const confirmedCheckIns = Array.isArray(checkinsData) 
+        ? checkinsData.filter(ci => ci.class_id === cls.id && ci.status === 'confirmed')
         : [];
       
-      const total = cls.max_capacity;
+      const program = programs?.find(p => p.id === cls.program_id);
+      const coach = coaches?.find(c => c.id === cls.coach_id);
+      
+      const total = cls.max_capacity || 0;
       const present = confirmedCheckIns.length;
       const absent = total - present;
       const rate = total > 0 ? Math.round((present / total) * 100) : 0;
@@ -57,9 +77,9 @@ export const fetchAttendance = async (date?: Date) => {
         date: cls.date,
         startTime: cls.start_time,
         endTime: cls.end_time,
-        class: `${cls.start_time.substring(0, 5)} - ${cls.programs?.name || 'CrossFit'}`,
-        coach: cls.profiles?.name || 'Coach',
-        programName: cls.programs?.name || 'CrossFit',
+        class: `${cls.start_time?.substring(0, 5) || ""} - ${program?.name || 'CrossFit'}`,
+        coach: coach?.name || 'Coach',
+        programName: program?.name || 'CrossFit',
         present,
         absent,
         total,
@@ -85,11 +105,7 @@ export const fetchClassAttendees = async (classId: string) => {
       .select(`
         id,
         status,
-        profiles!user_id (
-          id,
-          name,
-          avatar_url
-        )
+        user_id
       `)
       .eq('class_id', classId);
       
@@ -104,15 +120,40 @@ export const fetchClassAttendees = async (classId: string) => {
       return [];
     }
     
+    // Buscar informações dos usuários
+    const userIds = data.map(checkin => checkin.user_id).filter(Boolean);
+    
+    if (userIds.length === 0) {
+      return [];
+    }
+    
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, name, avatar_url')
+      .in('id', userIds);
+      
+    if (profilesError) {
+      console.error("Erro ao buscar perfis dos alunos:", profilesError);
+      return data.map(checkin => ({
+        id: checkin.user_id || "",
+        name: "Usuário",
+        avatarUrl: null,
+        status: checkin.status
+      }));
+    }
+    
     console.log("Alunos encontrados:", data.length);
     
     // Transformar os dados para o formato esperado
-    return data.map(checkin => ({
-      id: checkin.profiles.id,
-      name: checkin.profiles.name,
-      avatarUrl: checkin.profiles.avatar_url,
-      status: checkin.status
-    }));
+    return data.map(checkin => {
+      const profile = profiles?.find(p => p.id === checkin.user_id);
+      return {
+        id: checkin.user_id || "",
+        name: profile?.name || "Usuário",
+        avatarUrl: profile?.avatar_url,
+        status: checkin.status
+      };
+    });
   } catch (error) {
     console.error("Erro ao buscar alunos:", error);
     toast.error("Erro ao carregar lista de alunos");

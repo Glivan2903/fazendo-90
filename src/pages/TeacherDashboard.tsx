@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
@@ -64,6 +65,7 @@ const TeacherDashboard = () => {
       } catch (error) {
         console.error("Error fetching classes:", error);
         toast.error("Erro ao carregar aulas de hoje");
+        setTodayClasses([]);
       } finally {
         setLoading(false);
       }
@@ -90,6 +92,7 @@ const TeacherDashboard = () => {
         } catch (error) {
           console.error("Error fetching weekly schedule:", error);
           toast.error("Erro ao carregar grade horária");
+          setScheduleClasses([]);
         } finally {
           setLoading(false);
         }
@@ -111,6 +114,7 @@ const TeacherDashboard = () => {
         } catch (error) {
           console.error("Error fetching users:", error);
           toast.error("Erro ao carregar usuários");
+          setUsers([]);
         } finally {
           setLoading(false);
         }
@@ -130,6 +134,7 @@ const TeacherDashboard = () => {
         } catch (error) {
           console.error("Error fetching attendance:", error);
           toast.error("Erro ao carregar dados de presença");
+          setAttendance([]);
         } finally {
           setLoading(false);
         }
@@ -149,13 +154,11 @@ const TeacherDashboard = () => {
     
     setUserEditLoading(true);
     try {
-      await updateUser(userData);
-      setUsers(users.map(u => u.id === userData.id ? userData : u));
-      toast.success("Usuário atualizado com sucesso!");
+      const updatedUser = await updateUser(userData);
+      setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error updating user:", error);
-      toast.error("Erro ao atualizar usuário");
     } finally {
       setUserEditLoading(false);
     }
