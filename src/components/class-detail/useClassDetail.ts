@@ -52,6 +52,7 @@ export const useClassDetail = (classId: string | undefined) => {
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
         setClassDetail(details);
         setAttendees(attendeesList);
+        toast.success("Check-in realizado com sucesso!");
       } else {
         setShowChangeDialog(true);
       }
@@ -65,7 +66,7 @@ export const useClassDetail = (classId: string | undefined) => {
 
   const handleCancelCheckIn = async () => {
     if (!classId) return;
-
+    
     setProcessing(true);
     try {
       const success = await cancelCheckIn(classId);
@@ -97,6 +98,7 @@ export const useClassDetail = (classId: string | undefined) => {
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
         setClassDetail(details);
         setAttendees(attendeesList);
+        toast.success("Check-in alterado com sucesso!");
       }
     } catch (error) {
       console.error("Error changing check-in:", error);

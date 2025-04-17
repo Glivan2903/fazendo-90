@@ -11,6 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AlertTriangle } from "lucide-react";
 
 interface ClassCheckInButtonProps {
   isCheckedIn: boolean;
@@ -40,10 +41,10 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
           <Button 
             variant="outline" 
             className="w-full py-6 text-base border-gray-300"
-            onClick={onCancelCheckIn}
+            onClick={onCheckIn}
             disabled={processing}
           >
-            {processing ? "Cancelando..." : "Cancelar Check-in"}
+            Alterar Check-in
           </Button>
         ) : (
           <Button
@@ -59,14 +60,21 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
       <AlertDialog open={showChangeDialog} onOpenChange={onCloseDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Alterar check-in</AlertDialogTitle>
-            <AlertDialogDescription>
+            <div className="flex justify-center mb-4">
+              <AlertTriangle className="h-12 w-12 text-yellow-500" />
+            </div>
+            <AlertDialogTitle className="text-center">Alterar check-in</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
               Você tem certeza que deseja alterar o check-in?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={onCloseDialog}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onConfirmChange}>Confirmar</AlertDialogAction>
+          <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <AlertDialogCancel onClick={onCloseDialog} className="sm:w-32">
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={onConfirmChange} className="sm:w-32 bg-blue-600 hover:bg-blue-700">
+              Confirmar
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
