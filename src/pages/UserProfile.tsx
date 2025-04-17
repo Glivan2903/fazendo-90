@@ -1,15 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ArrowLeft, Mail, Phone, Calendar, Edit2, Save, X } from 'lucide-react';
-import LoadingSpinner from '@/components/LoadingSpinner';
 import { supabase } from '@/integrations/supabase/client';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import ProfileHeader from '@/components/profile/ProfileHeader';
+import ProfileForm from '@/components/profile/ProfileForm';
+import UserInfo from '@/components/profile/UserInfo';
+import UserStats from '@/components/profile/UserStats';
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -49,7 +47,6 @@ const UserProfile = () => {
         if (error) throw error;
         
         if (data) {
-          // Ensure all fields exist on the user object
           const userWithDefaults = {
             ...data,
             phone: data.phone || '',
@@ -64,7 +61,6 @@ const UserProfile = () => {
             birth_date: userWithDefaults.birth_date || ''
           });
         } else {
-          // If user not found in database, simulate a user for demo
           const mockUser = {
             id: userId,
             name: "João Silva",
@@ -84,13 +80,10 @@ const UserProfile = () => {
           });
         }
         
-        // Fetch user stats
         await fetchUserStats(userId);
-        
       } catch (error) {
         console.error("Error fetching user profile:", error);
         toast.error("Erro ao carregar perfil do usuário");
-        // Create a mock user for demo purposes
         const mockUser = {
           id: userId,
           name: "João Silva",
@@ -118,14 +111,12 @@ const UserProfile = () => {
 
   const fetchUserStats = async (userId: string) => {
     try {
-      // Get current date info for filtering
       const now = new Date();
-      const currentMonth = now.getMonth() + 1; // JavaScript months are 0-based
+      const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
       const firstDayOfMonth = new Date(currentYear, now.getMonth(), 1).toISOString().split('T')[0];
       const lastDayOfMonth = new Date(currentYear, now.getMonth() + 1, 0).toISOString().split('T')[0];
       
-      // Fetch total check-ins
       const { data: totalCheckins, error: totalError } = await supabase
         .from('checkins')
         .select('id')
@@ -133,7 +124,6 @@ const UserProfile = () => {
         
       if (totalError) throw totalError;
       
-      // Fetch check-ins for current month
       const { data: monthlyCheckins, error: monthlyError } = await supabase
         .from('checkins')
         .select('id, classes(date)')
@@ -143,25 +133,21 @@ const UserProfile = () => {
         
       if (monthlyError) throw monthlyError;
       
-      // Calculate stats
       const total = totalCheckins?.length || 0;
       const monthly = monthlyCheckins?.length || 0;
-      const weeksInMonth = 4; // Approximation
+      const weeksInMonth = 4;
       const workoutsPerWeek = monthly / weeksInMonth;
       
-      // Calculate attendance rate (simplified)
-      // Assuming 12 possible classes per week (2 per day, 6 days)
       const attendanceRate = Math.min(100, Math.round((workoutsPerWeek / 3) * 100));
       
       setStats({
         totalCheckins: total,
         checkinsThisMonth: monthly,
-        workoutsPerWeek: Math.round(workoutsPerWeek * 10) / 10, // Round to 1 decimal
+        workoutsPerWeek: Math.round(workoutsPerWeek * 10) / 10,
         attendanceRate
       });
     } catch (error) {
       console.error("Error fetching user stats:", error);
-      // Use demo stats
       setStats({
         checkinsThisMonth: 12,
         attendanceRate: 75,
@@ -173,7 +159,6 @@ const UserProfile = () => {
 
   const handleEditToggle = () => {
     if (isEditing) {
-      // Cancel editing, reset form
       setEditForm({
         name: user.name || '',
         email: user.email || '',
@@ -201,7 +186,6 @@ const UserProfile = () => {
         .update({
           name: editForm.name,
           email: editForm.email,
-          // Only include phone and birth_date if they're valid fields in the database
           ...(editForm.phone && { phone: editForm.phone }),
           ...(editForm.birth_date && { birth_date: editForm.birth_date })
         })
@@ -209,7 +193,6 @@ const UserProfile = () => {
         
       if (error) throw error;
       
-      // Update local state with all fields
       setUser(prev => ({
         ...prev,
         ...editForm
@@ -222,14 +205,6 @@ const UserProfile = () => {
       toast.error("Erro ao atualizar perfil");
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <LoadingSpinner />
-      </div>
-    );
-  }
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -250,146 +225,44 @@ const UserProfile = () => {
     ? user.name.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase()
     : 'JS';
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-md mx-auto px-4 py-6">
-      <div className="flex justify-between items-center mb-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-6 w-6" />
-        </Button>
-        
-        {isOwnProfile && (
-          <Button 
-            variant={isEditing ? "outline" : "ghost"} 
-            size="sm" 
-            onClick={handleEditToggle}
-          >
-            {isEditing ? (
-              <>
-                <X className="h-4 w-4 mr-1" />
-                Cancelar
-              </>
-            ) : (
-              <>
-                <Edit2 className="h-4 w-4 mr-1" />
-                Editar Perfil
-              </>
-            )}
-          </Button>
-        )}
-      </div>
-      
-      <div className="flex flex-col items-center mb-6">
-        <Avatar className="w-24 h-24 mb-4">
-          <AvatarImage src={user?.avatar_url || "https://api.dicebear.com/6.x/avataaars/svg"} />
-          <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
-        </Avatar>
-        <h1 className="text-2xl font-bold">{user?.name || 'Usuário'}</h1>
-        <p className="text-gray-500">Membro desde {memberSince}</p>
-      </div>
+      <ProfileHeader
+        name={user?.name || 'Usuário'}
+        memberSince={memberSince}
+        avatarUrl={user?.avatar_url}
+        initials={initials}
+        isEditing={isEditing}
+        isOwnProfile={isOwnProfile}
+        onBackClick={() => navigate(-1)}
+        onEditToggle={handleEditToggle}
+      />
       
       <div className="space-y-6">
         {isEditing ? (
-          <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-lg shadow-sm p-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="name">Nome</label>
-              <Input 
-                id="name"
-                name="name"
-                value={editForm.name}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="email">Email</label>
-              <Input 
-                id="email"
-                name="email"
-                type="email"
-                value={editForm.email}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="phone">Telefone</label>
-              <Input 
-                id="phone"
-                name="phone"
-                value={editForm.phone}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700" htmlFor="birth_date">Data de Nascimento</label>
-              <Input 
-                id="birth_date"
-                name="birth_date"
-                type="date"
-                value={editForm.birth_date}
-                onChange={handleInputChange}
-              />
-            </div>
-            
-            <Button type="submit" className="w-full">
-              <Save className="h-4 w-4 mr-1" />
-              Salvar Alterações
-            </Button>
-          </form>
+          <ProfileForm
+            editForm={editForm}
+            handleInputChange={handleInputChange}
+            handleSubmit={handleSubmit}
+          />
         ) : (
-          <div className="bg-white rounded-lg shadow-sm p-4 space-y-4">
-            <div className="flex items-center">
-              <Mail className="h-5 w-5 text-gray-500 mr-4" />
-              <div>
-                <div className="text-sm text-gray-500">Email</div>
-                <div>{user?.email || 'joao.silva@exemplo.com'}</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <Phone className="h-5 w-5 text-gray-500 mr-4" />
-              <div>
-                <div className="text-sm text-gray-500">Telefone</div>
-                <div>{user?.phone || '(11) 98765-4321'}</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              <Calendar className="h-5 w-5 text-gray-500 mr-4" />
-              <div>
-                <div className="text-sm text-gray-500">Data de Nascimento</div>
-                <div>{user?.birth_date ? formatDate(user.birth_date) : '15/05/1990'}</div>
-              </div>
-            </div>
-          </div>
+          <UserInfo
+            email={user?.email || 'joao.silva@exemplo.com'}
+            phone={user?.phone || '(11) 98765-4321'}
+            birthDate={user?.birth_date ? formatDate(user.birth_date) : '15/05/1990'}
+            formatDate={formatDate}
+          />
         )}
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Estatísticas</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <div className="text-blue-600 text-2xl font-bold">{stats.checkinsThisMonth}</div>
-              <div className="text-gray-600 text-sm">Check-ins este mês</div>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <div className="text-blue-600 text-2xl font-bold">{stats.attendanceRate}%</div>
-              <div className="text-gray-600 text-sm">Taxa de Frequência</div>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <div className="text-blue-600 text-2xl font-bold">{stats.workoutsPerWeek}</div>
-              <div className="text-gray-600 text-sm">Treinos por semana</div>
-            </div>
-            <div className="bg-blue-50 p-4 rounded-lg text-center">
-              <div className="text-blue-600 text-2xl font-bold">{stats.totalCheckins}</div>
-              <div className="text-gray-600 text-sm">Total de check-ins</div>
-            </div>
-          </CardContent>
-        </Card>
+        <UserStats stats={stats} />
       </div>
     </div>
   );
