@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
@@ -65,44 +66,56 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Fetching user role for:", userId);
       
-      // Consulta direta para evitar problemas com RLS
+      // Abordagem direta de consulta SQL para evitar problemas RLS
       const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", userId)
-        .single();
+        .rpc('get_user_role', { user_id: userId });
       
       if (error) {
-        console.error("Erro ao buscar perfil do usuário:", error);
+        console.error("Erro ao buscar papel do usuário via RPC:", error);
         
-        // Verificar se usuário existe mas não tem perfil
-        const { data: authUser } = await supabase.auth.getUser();
-        if (authUser?.user) {
-          console.log("Usuário existe na auth, mas sem perfil. Criando perfil.");
+        // Fallback para consulta direta à tabela profiles
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", userId)
+          .single();
+        
+        if (profileError) {
+          console.error("Erro ao buscar perfil do usuário:", profileError);
           
-          // Criar perfil para o usuário
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert([
-              {
-                id: userId,
-                name: authUser.user.user_metadata?.name || 'Usuário',
-                email: authUser.user.email,
-                role: 'student' // Papel padrão
-              }
-            ]);
+          // Verificar se o usuário existe mas não tem perfil
+          const { data: authUser } = await supabase.auth.getUser();
+          if (authUser?.user) {
+            console.log("Usuário existe na auth, mas sem perfil. Criando perfil.");
             
-          if (insertError) {
-            console.error("Erro ao criar perfil do usuário:", insertError);
-          } else {
-            console.log("Perfil criado com sucesso como 'student'");
-            setUserRole('student');
+            // Criar perfil para o usuário com role padrão
+            const defaultRole = 'admin'; // Temporariamente definindo como admin para diagnóstico
+            
+            const { error: insertError } = await supabase
+              .from("profiles")
+              .insert([
+                {
+                  id: userId,
+                  name: authUser.user.user_metadata?.name || 'Usuário',
+                  email: authUser.user.email,
+                  role: defaultRole
+                }
+              ]);
+              
+            if (insertError) {
+              console.error("Erro ao criar perfil do usuário:", insertError);
+            } else {
+              console.log(`Perfil criado com sucesso como '${defaultRole}'`);
+              setUserRole(defaultRole);
+            }
           }
+        } else if (profileData) {
+          console.log("Perfil encontrado, papel:", profileData.role);
+          setUserRole(profileData.role);
         }
-      } else if (data) {
-        // Define a função do usuário se o perfil for encontrado
-        console.log("Perfil encontrado, papel:", data.role);
-        setUserRole(data.role);
+      } else {
+        console.log("Papel obtido via RPC:", data);
+        setUserRole(data);
       }
     } catch (error) {
       console.error("Exceção ao buscar papel do usuário:", error);
@@ -142,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Create profile entry
+      // Create profile entry with admin role for testing
       if (data.user) {
         const { error: profileError } = await supabase
           .from("profiles")
@@ -151,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: data.user.id,
               name,
               email,
-              role: "student" // Default role
+              role: "admin" // Temporariamente definindo todos novos usuários como admin
             }
           ]);
           

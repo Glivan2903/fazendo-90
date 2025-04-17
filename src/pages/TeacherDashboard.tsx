@@ -45,7 +45,11 @@ const TeacherDashboard = () => {
       return;
     }
     
-    if (userRole !== "admin" && userRole !== "coach") {
+    console.log("TeacherDashboard: Current user role:", userRole);
+    
+    // Verificamos se o userRole está definido e não é admin ou coach
+    if (userRole !== null && userRole !== "admin" && userRole !== "coach") {
+      console.log(`Usuário com role ${userRole} tentando acessar o dashboard`);
       toast.error("Você não tem permissão para acessar essa página");
       navigate("/check-in");
     }

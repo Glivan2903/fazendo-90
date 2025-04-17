@@ -42,10 +42,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles && allowedRoles.length > 0 && userRole) {
+  // Verificação de permissão com base no role do usuário
+  if (allowedRoles && allowedRoles.length > 0) {
     console.log(`Verificando se o papel '${userRole}' está entre os permitidos:`, allowedRoles);
-    if (!allowedRoles.includes(userRole)) {
-      console.log(`Acesso negado: usuário com papel '${userRole}' tentando acessar rota que requer ${allowedRoles.join(', ')}`);
+    
+    // Se userRole estiver definido como null mesmo depois do carregamento, 
+    // considerar como "student" para fins de compatibilidade
+    const effectiveRole = userRole || "student";
+    
+    if (!allowedRoles.includes(effectiveRole)) {
+      console.log(`Acesso negado: usuário com papel '${effectiveRole}' tentando acessar rota que requer ${allowedRoles.join(', ')}`);
       toast.error("Você não tem permissão para acessar esta página");
       return <Navigate to="/check-in" replace />;
     }
