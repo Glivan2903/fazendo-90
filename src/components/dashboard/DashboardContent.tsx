@@ -6,6 +6,7 @@ import ScheduleTab from "./ScheduleTab";
 import ProgramsTab from "./ProgramsTab";
 import UsersTab from "./UsersTab";
 import AttendanceTab from "./AttendanceTab";
+import SubscriptionsTab from "./SubscriptionsTab";
 import { User } from "@/types";
 
 interface DashboardContentProps {
@@ -46,6 +47,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       return <UsersTab users={users} onEditUser={onEditUser} />;
     case "attendance":
       return <AttendanceTab attendanceData={attendance} />;
+    case "subscriptions":
+      return <SubscriptionsTab />;
     default:
       return null;
   }
