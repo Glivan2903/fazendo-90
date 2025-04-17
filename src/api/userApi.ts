@@ -1,8 +1,11 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 
+// Função para buscar todos os usuários
 export const fetchUsers = async (): Promise<User[]> => {
   try {
+    // Tentar buscar do Supabase (em um app real, seria assim)
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
@@ -12,6 +15,7 @@ export const fetchUsers = async (): Promise<User[]> => {
       throw error;
     }
     
+    // Transformar os dados para o formato esperado
     return profiles.map(profile => ({
       id: profile.id,
       name: profile.name,
@@ -20,14 +24,15 @@ export const fetchUsers = async (): Promise<User[]> => {
       avatar_url: profile.avatar_url,
       role: profile.role,
       created_at: profile.created_at,
+      plan: 'Mensal', // Dados fictícios para planos
+      status: profile.role === 'admin' ? 'Ativo' : Math.random() > 0.2 ? 'Ativo' : 'Inativo',
       phone: profile.phone || undefined,
-      birth_date: profile.birth_date || undefined,
-      plan: 'Mensal',
-      status: profile.role === 'admin' ? 'Ativo' : Math.random() > 0.2 ? 'Ativo' : 'Inativo'
+      birth_date: profile.birth_date || undefined
     }));
   } catch (error) {
     console.error("Erro ao buscar usuários:", error);
     
+    // Dados fictícios para demonstração
     const now = new Date().toISOString();
     return [
       { id: '1', name: "Ana Silva", email: "ana.silva@email.com", role: "Aluno", plan: "Mensal", status: "Ativo", created_at: now, phone: "11 98765-4321", birth_date: "1990-01-15" },
@@ -44,6 +49,7 @@ export const fetchUsers = async (): Promise<User[]> => {
   }
 };
 
+// Função para atualizar um usuário
 export const updateUser = async (user: User): Promise<User> => {
   try {
     const { data, error } = await supabase
@@ -72,14 +78,15 @@ export const updateUser = async (user: User): Promise<User> => {
       avatar_url: data.avatar_url,
       role: data.role,
       created_at: data.created_at,
-      phone: data.phone,
-      birth_date: data.birth_date,
       plan: user.plan,
-      status: user.status
+      status: user.status,
+      phone: data.phone,
+      birth_date: data.birth_date
     };
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);
     
+    // Simulação de sucesso para demonstração
     return new Promise(resolve => {
       setTimeout(() => {
         resolve({...user, created_at: user.created_at || new Date().toISOString()});

@@ -1,50 +1,35 @@
 
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar_url?: string;
-  avatarUrl?: string; // Alternative property name used in some files
-  box_id?: string;
-  created_at: string;
-  phone?: string;  // Added optional phone property
-  birth_date?: string;  // Added optional birth_date property
-  plan?: string;
-  status?: string;
-}
-
 export interface Class {
   id: string;
-  programName: string;
+  name?: string;
+  description?: string;
+  coach_id?: string;
+  start_time?: string;
+  end_time?: string;
+  program_id?: string;
+  date?: string;
+  created_at?: string;
+  max_capacity?: number;
+  
+  // For frontend display
   startTime: Date;
   endTime: Date;
+  programName: string;
   coachName: string;
   coachAvatar?: string;
   maxCapacity: number;
   attendeeCount: number;
   spotsLeft: number;
   isCheckedIn: boolean;
-  program?: Program;
-  coach?: Coach;
-  date?: string;
-  created_at?: string;
-}
-
-export interface Program {
-  id: string;
-  name: string;
-  description?: string;
-  color?: string;
-}
-
-export interface Coach {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  email?: string;
-  role?: string;
-  created_at?: string;
+  program?: {
+    id: string;
+    name: string;
+  };
+  coach?: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+  };
 }
 
 export interface ClassDetail {
@@ -70,4 +55,17 @@ export interface Attendee {
   avatarUrl?: string;
 }
 
-export type { CheckInResult } from './api';
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar_url?: string;
+  avatarUrl?: string; // Alternative property name used in some files
+  created_at: string;
+  box_id?: string;
+  plan?: string;
+  status?: string;
+  phone?: string;
+  birth_date?: string;
+}
