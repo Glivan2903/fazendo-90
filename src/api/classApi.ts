@@ -1,4 +1,3 @@
-
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -287,53 +286,7 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       return false;
     }
     
-    // Verificar se o usuário já tem check-in em outra aula no mesmo dia
-    const classData = await fetchClassById(classId);
-    if (!classData) {
-      toast.error("Aula não encontrada");
-      return false;
-    }
-    
-    const classDate = format(new Date(classData.date), 'yyyy-MM-dd');
-    
-    // Buscar todos os check-ins do usuário para o mesmo dia
-    const { data: userCheckins, error: checkinsError } = await supabase
-      .from('checkins')
-      .select(`
-        id,
-        class_id,
-        classes (id, date, start_time, end_time, programs(name))
-      `)
-      .eq('user_id', user.id)
-      .neq('class_id', classId);
-    
-    if (checkinsError) {
-      console.error("Erro ao buscar check-ins do usuário:", checkinsError);
-    } else if (userCheckins && userCheckins.length > 0) {
-      // Filtrar check-ins do mesmo dia
-      const sameDayCheckins = userCheckins.filter(checkin => {
-        if (!checkin.classes || !checkin.classes.date) return false;
-        return checkin.classes.date === classDate;
-      });
-      
-      if (sameDayCheckins.length > 0) {
-        // O usuário já tem check-in em outra aula no mesmo dia
-        // Retornaremos true com um código especial para indicar conflito
-        console.log("Usuário já tem check-in em outra aula no mesmo dia:", sameDayCheckins);
-        
-        return {
-          hasConflict: true,
-          conflictClass: {
-            id: sameDayCheckins[0].class_id,
-            name: sameDayCheckins[0].classes?.programs?.name || "Aula",
-            time: sameDayCheckins[0].classes?.start_time || "00:00"
-          }
-        };
-      }
-    }
-    
-    // Verificar lotação da aula
-    const { data: classDetails, error: classError } = await supabase
+    const { data: classData, error: classError } = await supabase
       .from('classes')
       .select(`
         id,
@@ -343,16 +296,16 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       .eq('id', classId)
       .single();
       
-    if (classError || !classDetails) {
+    if (classError || !classData) {
       console.error("Class not found or error:", classError);
       toast.error("Aula não encontrada");
       return false;
     }
     
-    const checkins = Array.isArray(classDetails.checkins) ? classDetails.checkins : [];
-    console.log(`Aula tem ${checkins.length}/${classDetails.max_capacity} vagas ocupadas`);
+    const checkins = Array.isArray(classData.checkins) ? classData.checkins : [];
+    console.log(`Aula tem ${checkins.length}/${classData.max_capacity} vagas ocupadas`);
     
-    if (checkins.length >= classDetails.max_capacity) {
+    if (checkins.length >= classData.max_capacity) {
       toast.error("Esta aula está lotada");
       return false;
     }
@@ -363,7 +316,6 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       return false;
     }
     
-    // Inserir check-in
     const { data: insertData, error: insertError } = await supabase
       .from('checkins')
       .insert([
@@ -378,28 +330,13 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
     }
     
     console.log("Check-in realizado com sucesso:", insertData);
+    toast.success("Check-in realizado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in:", error);
     toast.error("Erro ao fazer check-in");
     return false;
   }
-};
-
-// Função auxiliar para buscar uma aula pelo ID
-const fetchClassById = async (classId: string) => {
-  const { data, error } = await supabase
-    .from('classes')
-    .select('id, date')
-    .eq('id', classId)
-    .single();
-  
-  if (error) {
-    console.error("Error fetching class:", error);
-    return null;
-  }
-  
-  return data;
 };
 
 export const cancelCheckIn = async (classId: string): Promise<boolean> => {
@@ -427,118 +364,11 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
     }
     
     console.log("Check-in cancelado com sucesso!");
+    toast.success("Check-in cancelado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in cancellation:", error);
     toast.error("Erro ao cancelar check-in");
-    return false;
-  }
-};
-
-// Nova função para verificar se há check-ins em outras aulas no mesmo dia
-export const checkConflictingCheckins = async (classId: string): Promise<{
-  hasConflict: boolean;
-  conflictClass?: {
-    id: string;
-    name: string;
-    time: string;
-  };
-}> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("No authenticated user");
-      return { hasConflict: false };
-    }
-    
-    // Primeiro, obter a data da aula atual
-    const classData = await fetchClassById(classId);
-    if (!classData) {
-      return { hasConflict: false };
-    }
-    
-    const classDate = format(new Date(classData.date), 'yyyy-MM-dd');
-    
-    // Buscar todos os check-ins do usuário para o mesmo dia
-    const { data: userCheckins, error: checkinsError } = await supabase
-      .from('checkins')
-      .select(`
-        id,
-        class_id,
-        classes (id, date, start_time, end_time, programs(name))
-      `)
-      .eq('user_id', user.id)
-      .neq('class_id', classId);
-    
-    if (checkinsError) {
-      console.error("Erro ao buscar check-ins do usuário:", checkinsError);
-      return { hasConflict: false };
-    }
-    
-    if (userCheckins && userCheckins.length > 0) {
-      // Filtrar check-ins do mesmo dia
-      const sameDayCheckins = userCheckins.filter(checkin => {
-        if (!checkin.classes || !checkin.classes.date) return false;
-        return checkin.classes.date === classDate;
-      });
-      
-      if (sameDayCheckins.length > 0) {
-        const conflictingClass = sameDayCheckins[0];
-        return {
-          hasConflict: true,
-          conflictClass: {
-            id: conflictingClass.class_id,
-            name: conflictingClass.classes?.programs?.name || "Aula",
-            time: conflictingClass.classes?.start_time || "00:00"
-          }
-        };
-      }
-    }
-    
-    return { hasConflict: false };
-  } catch (error) {
-    console.error("Error checking conflicting check-ins:", error);
-    return { hasConflict: false };
-  }
-};
-
-// Nova função para alterar check-in de uma aula para outra
-export const changeCheckIn = async (fromClassId: string, toClassId: string): Promise<boolean> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      console.error("No authenticated user");
-      toast.error("Você precisa estar logado para alterar o check-in");
-      return false;
-    }
-    
-    // Primeiro, cancelar o check-in atual
-    const cancelResult = await cancelCheckIn(fromClassId);
-    if (!cancelResult) {
-      toast.error("Erro ao cancelar o check-in atual");
-      return false;
-    }
-    
-    // Depois, fazer check-in na nova aula
-    const checkInResult = await checkInToClass(toClassId);
-    if (!checkInResult) {
-      // Tentar restaurar o check-in anterior
-      await supabase
-        .from('checkins')
-        .insert([
-          { class_id: fromClassId, user_id: user.id, status: 'confirmed' }
-        ]);
-      
-      toast.error("Erro ao fazer check-in na nova aula");
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Exception during check-in change:", error);
-    toast.error("Erro ao alterar check-in");
     return false;
   }
 };
