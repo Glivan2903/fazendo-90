@@ -32,6 +32,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const id = userId || user?.id;
       if (!id) return false;
+      
+      // Special case for admin email
+      if (user?.email === "matheusprograming@gmail.com") {
+        console.log("Admin email detected, bypassing role and subscription check");
+        setHasActiveSubscription(true);
+        return true;
+      }
 
       // Check for active subscription with valid payment
       const today = new Date().toISOString().split('T')[0];
@@ -48,15 +55,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .gte('end_date', today)
         .order('end_date', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();  // Changed from .single() to .maybeSingle()
 
-      if (error) {
+      if (error && error.message !== 'JSON object requested, multiple (or no) rows returned') {
         console.error("Error checking subscription:", error);
         return false;
       }
 
       if (!data) {
         console.log("No active subscription found");
+        setHasActiveSubscription(false);
         return false;
       }
 
@@ -162,7 +170,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 name: authUser.user.user_metadata?.name || 'User',
                 email: authUser.user.email,
                 role: defaultRole,
-                status: 'Inativo' // Default to inactive until subscription is verified
+                status: 'Inativo', // Default to inactive until subscription is verified
+                plan: 'Mensal' // Default plan
               }
             ]);
             
@@ -204,10 +213,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
+      // Special case for admin email
+      if (email === "matheusprograming@gmail.com") {
+        toast.success("Login realizado com sucesso!");
+        navigate("/check-in");
+        return;
+      }
+      
       // Check if user has active subscription
       const isActive = await checkSubscriptionStatus(data.user.id);
       
-      if (!isActive && data.user.email !== "matheusprograming@gmail.com") {
+      if (!isActive) {
         // Automatically log out if subscription is not active
         await supabase.auth.signOut();
         toast.error("Sua assinatura não está ativa. Entre em contato com o administrador.");

@@ -115,7 +115,6 @@ const SubscriptionsTab = () => {
           profiles: profile || sub.profiles 
         };
         
-        console.log("Enhanced subscription:", enhancedSub);
         return enhancedSub;
       }));
       
@@ -158,7 +157,8 @@ const SubscriptionsTab = () => {
             amount: getAmountByPlan(selectedSubscription.profiles?.plan || 'Mensal'),
             status: paymentStatus,
             payment_method: paymentMethod,
-            due_date: selectedSubscription.end_date
+            due_date: selectedSubscription.end_date,
+            payment_date: new Date().toISOString().split('T')[0]
           }
         ]);
         
