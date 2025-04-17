@@ -1,15 +1,18 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Payment } from "@/types";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { PaymentDialog } from "./PaymentDialog";
 
 interface PaymentsListProps {
   payments: Payment[];
   loading: boolean;
+  onUpdate: () => void;
 }
 
 const PaymentStatusBadge = ({ status }: { status: Payment["status"] }) => {
@@ -29,40 +32,65 @@ const PaymentStatusBadge = ({ status }: { status: Payment["status"] }) => {
   return <Badge className={getStatusColor()}>{status}</Badge>;
 };
 
-const PaymentsList: React.FC<PaymentsListProps> = ({ payments, loading }) => {
+const PaymentsList: React.FC<PaymentsListProps> = ({ payments, loading, onUpdate }) => {
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+
   if (loading) {
     return <div>Carregando...</div>;
   }
 
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+  };
+
   return (
-    <Card>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Aluno</TableHead>
-            <TableHead>Valor</TableHead>
-            <TableHead>Vencimento</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Método</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {payments.map((payment) => (
-            <TableRow key={payment.id}>
-              <TableCell>{payment.profiles?.name}</TableCell>
-              <TableCell>R$ {payment.valor.toFixed(2)}</TableCell>
-              <TableCell>
-                {format(new Date(payment.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
-              </TableCell>
-              <TableCell>
-                <PaymentStatusBadge status={payment.status} />
-              </TableCell>
-              <TableCell>{payment.metodo_pagamento || "-"}</TableCell>
+    <>
+      <Card>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Aluno</TableHead>
+              <TableHead>Valor</TableHead>
+              <TableHead>Vencimento</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Método</TableHead>
+              <TableHead>Ações</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </Card>
+          </TableHeader>
+          <TableBody>
+            {payments.map((payment) => (
+              <TableRow key={payment.id}>
+                <TableCell>{payment.profiles?.name}</TableCell>
+                <TableCell>R$ {payment.valor.toFixed(2)}</TableCell>
+                <TableCell>
+                  {format(new Date(payment.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                </TableCell>
+                <TableCell>
+                  <PaymentStatusBadge status={payment.status} />
+                </TableCell>
+                <TableCell>{payment.metodo_pagamento || "-"}</TableCell>
+                <TableCell>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditPayment(payment)}
+                  >
+                    Gerenciar
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+
+      <PaymentDialog
+        isOpen={!!selectedPayment}
+        onClose={() => setSelectedPayment(null)}
+        payment={selectedPayment}
+        onUpdate={onUpdate}
+      />
+    </>
   );
 };
 

@@ -13,29 +13,39 @@ export const useFinancialData = (activeTab: string) => {
   const [cashFlow, setCashFlow] = useState<CashFlowEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        if (activeTab === 'plans') {
-          const plansData = await fetchFinancialPlans();
-          setPlans(plansData);
-        } else if (activeTab === 'payments') {
-          const paymentsData = await fetchPayments();
-          setPayments(paymentsData);
-        } else if (activeTab === 'cash-flow') {
-          const cashFlowData = await fetchCashFlow();
-          setCashFlow(cashFlowData);
-        }
-      } catch (error) {
-        console.error(`Error loading ${activeTab} data:`, error);
-      } finally {
-        setLoading(false);
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      if (activeTab === 'plans') {
+        const plansData = await fetchFinancialPlans();
+        setPlans(plansData);
+      } else if (activeTab === 'payments') {
+        const paymentsData = await fetchPayments();
+        setPayments(paymentsData);
+      } else if (activeTab === 'cash-flow') {
+        const cashFlowData = await fetchCashFlow();
+        setCashFlow(cashFlowData);
       }
-    };
+    } catch (error) {
+      console.error(`Error loading ${activeTab} data:`, error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  const refetchPayments = async () => {
+    const paymentsData = await fetchPayments();
+    setPayments(paymentsData);
+  };
+
+  const refetchCashFlow = async () => {
+    const cashFlowData = await fetchCashFlow();
+    setCashFlow(cashFlowData);
+  };
 
   return {
     plans,
@@ -44,6 +54,8 @@ export const useFinancialData = (activeTab: string) => {
     loading,
     setPlans,
     setPayments,
-    setCashFlow
+    setCashFlow,
+    refetchPayments,
+    refetchCashFlow
   };
 };

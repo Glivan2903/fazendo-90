@@ -7,11 +7,25 @@ import PlansList from "@/components/financial/PlansList";
 import CashFlow from "@/components/financial/CashFlow";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 const Financial = () => {
   const [activeTab, setActiveTab] = useState("payments");
-  const { plans, payments, cashFlow, loading } = useFinancialData(activeTab);
+  const { 
+    plans, 
+    payments, 
+    cashFlow, 
+    loading,
+    refetchPayments, 
+    refetchCashFlow 
+  } = useFinancialData(activeTab);
   const { signOut } = useAuth();
+
+  const handleUpdatePayment = () => {
+    refetchPayments();
+    refetchCashFlow();
+  };
 
   return (
     <div className="container mx-auto p-6">
@@ -30,8 +44,12 @@ const Financial = () => {
           <TabsTrigger value="cash-flow">Fluxo de Caixa</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="payments">
-          <PaymentsList payments={payments} loading={loading} />
+        <TabsContent value="payments" className="space-y-4">
+          <PaymentsList 
+            payments={payments} 
+            loading={loading} 
+            onUpdate={handleUpdatePayment}
+          />
         </TabsContent>
         
         <TabsContent value="plans">
