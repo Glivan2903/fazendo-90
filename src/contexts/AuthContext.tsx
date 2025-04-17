@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -75,23 +76,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke("get_user_role", {
-        body: { user_id: userId },
-      });
+      // Check for admin email directly first
+      if (user?.email === "matheusprograming@gmail.com") {
+        console.log("Admin email detected, setting role to admin");
+        setUserRole("admin");
+        return;
+      }
+      
+      // Fall back to database query if not admin email
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
 
       if (error) {
         console.error("Erro ao obter role do usuário:", error);
         setUserRole("student");
+      } else if (data) {
+        console.log("Role encontrada:", data.role);
+        setUserRole(data.role);
       } else {
-        setUserRole(data as string);
+        console.log("Nenhum perfil encontrado, definindo como student");
+        setUserRole("student");
       }
     } catch (error) {
-      console.error("Erro ao invocar função para obter role:", error);
+      console.error("Erro ao obter role do usuário:", error);
       setUserRole("student");
     }
   };
 
   const checkActiveSubscription = useCallback(async (userId: string) => {
+    // Special case for admin email
+    if (user?.email === "matheusprograming@gmail.com") {
+      return true;
+    }
+    
     const { data: payments, error } = await supabase
       .from('pagamentos')
       .select('*')
@@ -114,10 +134,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const dueDate = new Date(lastPayment.data_vencimento);
     
     return dueDate >= today;
-  }, []);
+  }, [user?.email]);
 
   const checkSubscription = async (userId: string) => {
     try {
+      // Always consider admin email as having active subscription
+      if (user?.email === "matheusprograming@gmail.com") {
+        setHasActiveSubscription(true);
+        return;
+      }
+      
       const isActive = await checkActiveSubscription(userId);
       setHasActiveSubscription(isActive);
     } catch (error) {

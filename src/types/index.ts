@@ -10,8 +10,8 @@ export type User = {
   phone?: string;
   birth_date?: string;
   plano_id?: string;
-  lastCheckInDate?: string; // Added for OverviewTab
-  registrationDate?: string; // Added for OverviewTab
+  lastCheckInDate?: string;
+  registrationDate?: string;
 };
 
 export type Class = {
@@ -25,7 +25,7 @@ export type Class = {
   created_at?: string;
   updated_at?: string;
   
-  // Additional properties used in frontend components
+  // Frontend properties
   startTime: Date;
   endTime: Date;
   programName: string;

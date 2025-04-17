@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { toast } from "sonner";
@@ -76,7 +75,7 @@ export const updateUser = async (user: User): Promise<User> => {
       avatarUrl: data.avatar_url,
       role: data.role,
       status: data.status,
-      plan: data.planos_financeiros?.nome || ""
+      plano_id: data.plano_id
     };
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);

@@ -18,6 +18,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     console.log("ProtectedRoute: Verificando acesso", {
       user: !!user,
       userId: user?.id,
+      userEmail: user?.email,
       userRole,
       isLoading,
       allowedRoles,
@@ -44,8 +45,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   // Special case for admin email
-  const isAdminEmail = user.email === "matheusprograming@gmail.com";
-  if (isAdminEmail) {
+  if (user.email === "matheusprograming@gmail.com") {
     console.log("Admin email detected, bypassing role and subscription check");
     return <>{children}</>;
   }
