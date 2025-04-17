@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -25,6 +24,7 @@ const ClassDetail = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [showChangeDialog, setShowChangeDialog] = useState(false);
   const { user, userRole, signOut } = useAuth();
 
   useEffect(() => {
@@ -37,7 +37,6 @@ const ClassDetail = () => {
         setClassDetail(details);
         setAttendees(attendeesList);
         
-        // Check if current user is in attendees list
         if (user) {
           const isUserCheckedIn = attendeesList.some(
             (attendee) => attendee.id === user.id
@@ -66,15 +65,12 @@ const ClassDetail = () => {
     try {
       const success = await checkInToClass(classId);
       if (success) {
-        toast.success("Check-in realizado com sucesso!");
         setIsCheckedIn(true);
-        
-        // If successful, refresh attendee list and class details
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
         setClassDetail(details);
         setAttendees(attendeesList);
       } else {
-        toast.error("Erro ao realizar check-in");
+        setShowChangeDialog(true);
       }
     } catch (error) {
       console.error("Error checking in:", error);
@@ -84,26 +80,23 @@ const ClassDetail = () => {
     }
   };
 
-  const handleCancelCheckIn = async () => {
+  const handleConfirmChange = async () => {
     if (!classId) return;
 
     setProcessing(true);
     try {
-      const success = await cancelCheckIn(classId);
+      await cancelCheckIn(classId);
+      const success = await checkInToClass(classId);
       if (success) {
-        toast.success("Check-in cancelado com sucesso!");
-        setIsCheckedIn(false);
-        
-        // If successful, refresh attendee list and class details
+        setIsCheckedIn(true);
+        setShowChangeDialog(false);
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
         setClassDetail(details);
         setAttendees(attendeesList);
-      } else {
-        toast.error("Erro ao cancelar check-in");
       }
     } catch (error) {
-      console.error("Error cancelling check-in:", error);
-      toast.error("Erro ao cancelar check-in");
+      console.error("Error changing check-in:", error);
+      toast.error("Erro ao alterar check-in");
     } finally {
       setProcessing(false);
     }
@@ -131,7 +124,7 @@ const ClassDetail = () => {
   }
 
   return (
-    <div className="max-w-md mx-auto px-4 pb-8">
+    <div className="max-w-md mx-auto px-4 pb-20">
       <header className="py-6 flex items-center justify-between">
         <Button
           variant="ghost"
@@ -199,6 +192,9 @@ const ClassDetail = () => {
           processing={processing}
           onCheckIn={handleCheckIn}
           onCancelCheckIn={handleCancelCheckIn}
+          showChangeDialog={showChangeDialog}
+          onCloseDialog={() => setShowChangeDialog(false)}
+          onConfirmChange={handleConfirmChange}
         />
 
         <AttendeeList attendees={attendees} />

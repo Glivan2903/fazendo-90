@@ -286,51 +286,83 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       toast.error("Você precisa estar logado para fazer check-in");
       return false;
     }
-    
+
     const { data: classData, error: classError } = await supabase
       .from('classes')
-      .select(`
-        id,
-        max_capacity,
-        checkins (id, user_id)
-      `)
+      .select('date, start_time, end_time')
       .eq('id', classId)
       .single();
-      
+
     if (classError || !classData) {
-      console.error("Class not found or error:", classError);
       toast.error("Aula não encontrada");
       return false;
     }
-    
-    const checkins = Array.isArray(classData.checkins) ? classData.checkins : [];
-    console.log(`Aula tem ${checkins.length}/${classData.max_capacity} vagas ocupadas`);
-    
-    if (checkins.length >= classData.max_capacity) {
+
+    const classDate = classData.date;
+    const { data: existingCheckins, error: checkinsError } = await supabase
+      .from('checkins')
+      .select(`
+        id,
+        classes!inner (
+          id,
+          date,
+          start_time,
+          end_time
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('classes.date', classDate);
+
+    if (checkinsError) {
+      console.error("Error checking existing check-ins:", checkinsError);
+      toast.error("Erro ao verificar check-ins existentes");
+      return false;
+    }
+
+    const hasConflict = existingCheckins?.some(checkin => {
+      const existingClass = checkin.classes;
+      if (existingClass.id === classId) return false;
+      
+      const newStart = new Date(`${classData.date}T${classData.start_time}`);
+      const newEnd = new Date(`${classData.date}T${classData.end_time}`);
+      const existingStart = new Date(`${existingClass.date}T${existingClass.start_time}`);
+      const existingEnd = new Date(`${existingClass.date}T${existingClass.end_time}`);
+
+      return (newStart < existingEnd && newEnd > existingStart);
+    });
+
+    if (hasConflict) {
+      return false;
+    }
+
+    const { data: checkins } = await supabase
+      .from('checkins')
+      .select('id')
+      .eq('class_id', classId);
+
+    const { data: classCapacity } = await supabase
+      .from('classes')
+      .select('max_capacity')
+      .eq('id', classId)
+      .single();
+
+    if (classCapacity && checkins && checkins.length >= classCapacity.max_capacity) {
       toast.error("Esta aula está lotada");
       return false;
     }
-    
-    const userCheckin = checkins.find(checkin => checkin.user_id === user.id);
-    if (userCheckin) {
-      toast.error("Você já está inscrito nesta aula");
-      return false;
-    }
-    
-    const { data: insertData, error: insertError } = await supabase
+
+    const { error: insertError } = await supabase
       .from('checkins')
       .insert([
         { class_id: classId, user_id: user.id, status: 'confirmed' }
-      ])
-      .select();
-    
+      ]);
+
     if (insertError) {
       console.error("Error checking in:", insertError);
       toast.error("Erro ao fazer check-in");
       return false;
     }
-    
-    console.log("Check-in realizado com sucesso:", insertData);
+
     toast.success("Check-in realizado com sucesso!");
     return true;
   } catch (error) {
