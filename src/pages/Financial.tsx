@@ -6,14 +6,22 @@ import PaymentsList from "@/components/financial/PaymentsList";
 import PlansList from "@/components/financial/PlansList";
 import CashFlow from "@/components/financial/CashFlow";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Financial = () => {
   const [activeTab, setActiveTab] = useState("payments");
   const { plans, payments, cashFlow, loading } = useFinancialData(activeTab);
+  const { signOut } = useAuth();
 
   return (
     <div className="container mx-auto p-6">
-      <DashboardHeader heading="Financeiro" text="Gerencie pagamentos, planos e fluxo de caixa" />
+      <DashboardHeader title="Financeiro" signOut={signOut} />
+      
+      <div className="mb-6">
+        <h2 className="text-lg text-muted-foreground">
+          Gerencie pagamentos, planos e fluxo de caixa
+        </h2>
+      </div>
       
       <Tabs defaultValue="payments" className="space-y-6" onValueChange={setActiveTab}>
         <TabsList>
