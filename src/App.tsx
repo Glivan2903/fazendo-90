@@ -48,7 +48,7 @@ const App = () => (
                 path="/class/:classId" 
                 element={
                   <ProtectedRoute>
-                    <ClassDetailRedirect />
+                    <ClassDetail />
                   </ProtectedRoute>
                 } 
               />
@@ -56,7 +56,7 @@ const App = () => (
                 path="/class/:classId/:uuid" 
                 element={
                   <ProtectedRoute>
-                    <ClassDetail />
+                    <Navigate to="/class/:classId" replace />
                   </ProtectedRoute>
                 } 
               />

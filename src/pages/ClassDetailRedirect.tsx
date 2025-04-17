@@ -24,7 +24,7 @@ const ClassDetailRedirect: React.FC = () => {
       }
       
       // Se for um UUID válido, continuamos para a página de detalhes
-      navigate(`/class/${classId}/${crypto.randomUUID()}`, { replace: true });
+      navigate(`/class/${classId}`, { replace: true });
     } catch (error) {
       console.error("Erro ao redirecionar:", error);
       navigate("/check-in", { replace: true });
