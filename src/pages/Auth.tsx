@@ -66,7 +66,7 @@ const Auth = () => {
         )}
         
         {isLogin && (
-          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+          <Alert variant="default" className="bg-amber-50 border-amber-200">
             <AlertCircle className="h-4 w-4 text-amber-600" />
             <AlertTitle className="text-amber-800">Aviso</AlertTitle>
             <AlertDescription className="text-amber-700">

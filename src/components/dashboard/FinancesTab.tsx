@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Search, DollarSign, Download, Check, X, ChevronLeft, ChevronRight, Edit } from "lucide-react";
+import { Plus, Search, Download, Edit, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,12 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -71,6 +65,7 @@ interface NewPaymentData {
   interest: string;
   value_to_receive: string;
   user_id: string | null;
+  repeat: boolean;
 }
 
 const FinancesTab = () => {
@@ -82,10 +77,15 @@ const FinancesTab = () => {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [pendingRevenue, setPendingRevenue] = useState(0);
   const [dateRange, setDateRange] = useState("01/04/2025 - 30/04/2025");
-  const [showNewPaymentDialog, setShowNewPaymentDialog] = useState(false);
   const [showNewReceiptDialog, setShowNewReceiptDialog] = useState(false);
+  const [showEditPaymentDialog, setShowEditPaymentDialog] = useState(false);
   const [showOnlyActive, setShowOnlyActive] = useState(false);
   const [users, setUsers] = useState<{id: string, name: string}[]>([]);
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [categories, setCategories] = useState([
+    "Selecione", "Adesões", "Drop-in", "Vendas", "Transferência", 
+    "Patrocinadores", "Aluguel (sublocação)", "Internet (Novidades em breve)"
+  ]);
   
   const [newPayment, setNewPayment] = useState<NewPaymentData>({
     category: "Adesões",
@@ -94,15 +94,16 @@ const FinancesTab = () => {
     account: "Musculação",
     competence_date: format(new Date(), "yyyy-MM-dd"),
     due_date: format(new Date(), "yyyy-MM-dd"),
-    amount: "",
+    amount: "0,00",
     payment_method: "Dinheiro",
     notes: "",
     received: false,
     payment_date: format(new Date(), "yyyy-MM-dd"),
-    tax: "0.00",
-    interest: "0.00",
-    value_to_receive: "",
-    user_id: null
+    tax: "0,00",
+    interest: "0,00",
+    value_to_receive: "0,00",
+    user_id: null,
+    repeat: false
   });
 
   useEffect(() => {
@@ -169,8 +170,8 @@ const FinancesTab = () => {
     // Filtrar por termo de busca
     if (searchTerm) {
       filtered = filtered.filter(payment => 
-        payment.profiles?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        payment.profiles?.email.toLowerCase().includes(searchTerm.toLowerCase())
+        payment.profiles?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
     
@@ -201,12 +202,12 @@ const FinancesTab = () => {
   };
 
   const handleSavePayment = async () => {
-    if (!newPayment.client || !newPayment.amount) {
-      toast.error("Cliente e valor são obrigatórios");
-      return;
-    }
-
     try {
+      if (!newPayment.client || !newPayment.amount || newPayment.amount === "0,00") {
+        toast.error("Cliente e valor são obrigatórios");
+        return;
+      }
+
       const selectedUserId = newPayment.user_id;
       if (!selectedUserId) {
         toast.error("Selecione um cliente válido");
@@ -223,34 +224,87 @@ const FinancesTab = () => {
         .single();
 
       if (subError) {
-        toast.error("Erro ao encontrar assinatura do usuário");
-        return;
+        // Se não encontrar assinatura, criar uma nova
+        const start = new Date();
+        const end = new Date();
+        end.setMonth(end.getMonth() + 1);
+        
+        const { data: newSub, error: newSubError } = await supabase
+          .from('subscriptions')
+          .insert([{
+            user_id: selectedUserId,
+            start_date: start.toISOString().split('T')[0],
+            end_date: end.toISOString().split('T')[0]
+          }])
+          .select()
+          .single();
+          
+        if (newSubError) {
+          toast.error("Erro ao criar assinatura para o usuário");
+          return;
+        }
+        
+        const subscriptionId = newSub.id;
+        
+        // Converter montante para número
+        const amountValue = Number(newPayment.amount.replace(/\./g, '').replace(',', '.'));
+        
+        // Criar novo pagamento
+        const { error: paymentError } = await supabase
+          .from('payments')
+          .insert([{
+            subscription_id: subscriptionId,
+            user_id: selectedUserId,
+            amount: amountValue,
+            payment_date: newPayment.received ? newPayment.payment_date : null,
+            due_date: newPayment.due_date,
+            status: newPayment.received ? 'paid' : 'pending',
+            payment_method: newPayment.payment_method,
+            notes: newPayment.notes
+          }]);
+
+        if (paymentError) throw paymentError;
+        
+        // Se recebido, ativar usuário
+        if (newPayment.received) {
+          await handleUserActivation(selectedUserId);
+        }
+        
+        toast.success("Pagamento registrado com sucesso!");
+        setShowNewReceiptDialog(false);
+        loadPayments();
+      } else {
+        // Usar a assinatura existente
+        const subscriptionId = subscriptionData.id;
+        
+        // Converter montante para número
+        const amountValue = Number(newPayment.amount.replace(/\./g, '').replace(',', '.'));
+        
+        // Criar novo pagamento
+        const { error: paymentError } = await supabase
+          .from('payments')
+          .insert([{
+            subscription_id: subscriptionId,
+            user_id: selectedUserId,
+            amount: amountValue,
+            payment_date: newPayment.received ? newPayment.payment_date : null,
+            due_date: newPayment.due_date,
+            status: newPayment.received ? 'paid' : 'pending',
+            payment_method: newPayment.payment_method,
+            notes: newPayment.notes
+          }]);
+
+        if (paymentError) throw paymentError;
+        
+        // Se recebido, ativar usuário
+        if (newPayment.received) {
+          await handleUserActivation(selectedUserId);
+        }
+        
+        toast.success("Pagamento registrado com sucesso!");
+        setShowNewReceiptDialog(false);
+        loadPayments();
       }
-
-      // Criar novo pagamento
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert([{
-          subscription_id: subscriptionData.id,
-          user_id: selectedUserId,
-          amount: Number(newPayment.amount),
-          payment_date: newPayment.received ? newPayment.payment_date : null,
-          due_date: newPayment.due_date,
-          status: newPayment.received ? 'paid' : 'pending',
-          payment_method: newPayment.payment_method,
-          notes: newPayment.notes
-        }]);
-
-      if (paymentError) throw paymentError;
-
-      // Se recebido, ativar usuário
-      if (newPayment.received) {
-        await handleUserActivation(selectedUserId);
-      }
-
-      toast.success("Pagamento registrado com sucesso!");
-      setShowNewPaymentDialog(false);
-      loadPayments();
       
       // Reset form
       setNewPayment({
@@ -260,15 +314,16 @@ const FinancesTab = () => {
         account: "Musculação",
         competence_date: format(new Date(), "yyyy-MM-dd"),
         due_date: format(new Date(), "yyyy-MM-dd"),
-        amount: "",
+        amount: "0,00",
         payment_method: "Dinheiro",
         notes: "",
         received: false,
         payment_date: format(new Date(), "yyyy-MM-dd"),
-        tax: "0.00",
-        interest: "0.00",
-        value_to_receive: "",
-        user_id: null
+        tax: "0,00",
+        interest: "0,00",
+        value_to_receive: "0,00",
+        user_id: null,
+        repeat: false
       });
     } catch (error) {
       console.error("Erro ao registrar pagamento:", error);
@@ -292,6 +347,37 @@ const FinancesTab = () => {
       await handleUserActivation(payment.user_id);
       
       toast.success("Pagamento marcado como recebido!");
+      loadPayments();
+    } catch (error) {
+      console.error("Erro ao atualizar pagamento:", error);
+      toast.error("Erro ao atualizar pagamento");
+    }
+  };
+
+  const handleEditPayment = (payment: Payment) => {
+    setSelectedPayment(payment);
+    setShowEditPaymentDialog(true);
+  };
+
+  const handleUpdatePayment = async () => {
+    if (!selectedPayment) return;
+    
+    try {
+      const { error } = await supabase
+        .from('payments')
+        .update({
+          status: 'paid',
+          payment_date: format(new Date(), "yyyy-MM-dd")
+        })
+        .eq('id', selectedPayment.id);
+        
+      if (error) throw error;
+      
+      // Ativar usuário
+      await handleUserActivation(selectedPayment.user_id);
+      
+      toast.success("Pagamento atualizado com sucesso!");
+      setShowEditPaymentDialog(false);
       loadPayments();
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
@@ -330,10 +416,6 @@ const FinancesTab = () => {
             <Button onClick={() => setShowNewReceiptDialog(true)} className="bg-green-500 hover:bg-green-600 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Novo recebimento
-            </Button>
-            <Button onClick={() => setShowNewPaymentDialog(true)} className="bg-red-500 hover:bg-red-600 text-white">
-              <Plus className="w-4 h-4 mr-2" />
-              Novo pagamento
             </Button>
           </div>
         </div>
@@ -460,13 +542,13 @@ const FinancesTab = () => {
                     <Checkbox />
                   </TableHead>
                   <TableHead>Data vencto</TableHead>
-                  <TableHead>Forma pago</TableHead>
+                  <TableHead>Forma pagto</TableHead>
                   <TableHead>Venda</TableHead>
                   <TableHead>Observação</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Desc Parcela</TableHead>
-                  <TableHead>Taxa</TableHead>
-                  <TableHead>Valor</TableHead>
+                  <TableHead className="text-right">Taxa</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -511,7 +593,7 @@ const FinancesTab = () => {
                             >
                               Receber
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" onClick={() => handleEditPayment(payment)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           </div>
@@ -544,13 +626,13 @@ const FinancesTab = () => {
                     <Checkbox />
                   </TableHead>
                   <TableHead>Data vencto</TableHead>
-                  <TableHead>Forma pago</TableHead>
+                  <TableHead>Forma pagto</TableHead>
                   <TableHead>Venda</TableHead>
                   <TableHead>Observação</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Desc Parcela</TableHead>
-                  <TableHead>Taxa</TableHead>
-                  <TableHead>Valor</TableHead>
+                  <TableHead className="text-right">Taxa</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="w-24"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -595,7 +677,7 @@ const FinancesTab = () => {
                             >
                               Receber
                             </Button>
-                            <Button size="sm" variant="outline">
+                            <Button size="sm" variant="outline" onClick={() => handleEditPayment(payment)}>
                               <Edit className="h-4 w-4" />
                             </Button>
                           </div>
@@ -616,14 +698,19 @@ const FinancesTab = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Diálogo para novo pagamento */}
-      <Dialog open={showNewPaymentDialog} onOpenChange={setShowNewPaymentDialog}>
+      {/* Diálogo para novo recebimento */}
+      <Dialog open={showNewReceiptDialog} onOpenChange={setShowNewReceiptDialog}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>Novo pagamento</DialogTitle>
+            <DialogTitle className="bg-blue-600 text-white p-4 -mt-5 -mx-6 rounded-t-lg flex justify-between items-center">
+              Novo recebimento
+              <Button variant="ghost" size="icon" className="text-white hover:bg-blue-700 h-8 w-8 p-0" onClick={() => setShowNewReceiptDialog(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
           </DialogHeader>
           
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Categorias</label>
               <Select value={newPayment.category} onValueChange={(value) => setNewPayment({...newPayment, category: value})}>
@@ -631,9 +718,9 @@ const FinancesTab = () => {
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Adesões">Adesões</SelectItem>
-                  <SelectItem value="Vendas">Vendas</SelectItem>
-                  <SelectItem value="Outros">Outros</SelectItem>
+                  {categories.map((category, index) => (
+                    <SelectItem key={index} value={category}>{category}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -643,7 +730,7 @@ const FinancesTab = () => {
               <Input 
                 value={newPayment.description}
                 onChange={(e) => setNewPayment({...newPayment, description: e.target.value})}
-                placeholder="Descrição do pagamento"
+                placeholder="Defina um nome"
               />
             </div>
             
@@ -713,7 +800,7 @@ const FinancesTab = () => {
                     value_to_receive: value // Atualizar também o valor a receber
                   })
                 }}
-                placeholder="0.00"
+                placeholder="0,00"
               />
             </div>
             
@@ -741,10 +828,22 @@ const FinancesTab = () => {
                 value={newPayment.notes}
                 onChange={(e) => setNewPayment({...newPayment, notes: e.target.value})}
                 placeholder="Observações adicionais"
+                className="min-h-[100px]"
               />
             </div>
             
-            <div className="flex items-center space-x-2 col-span-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="repeat" 
+                checked={newPayment.repeat}
+                onCheckedChange={(checked) => setNewPayment({...newPayment, repeat: !!checked})}
+              />
+              <label htmlFor="repeat" className="font-medium">
+                Repetir
+              </label>
+            </div>
+            
+            <div className="flex items-center space-x-2">
               <Checkbox 
                 id="recebido" 
                 checked={newPayment.received}
@@ -771,7 +870,7 @@ const FinancesTab = () => {
                   <Input 
                     value={newPayment.interest}
                     onChange={(e) => setNewPayment({...newPayment, interest: e.target.value})}
-                    placeholder="0.00"
+                    placeholder="0,00"
                   />
                 </div>
                 
@@ -780,7 +879,7 @@ const FinancesTab = () => {
                   <Input 
                     value={newPayment.tax}
                     onChange={(e) => setNewPayment({...newPayment, tax: e.target.value})}
-                    placeholder="0.00"
+                    placeholder="0,00"
                   />
                 </div>
                 
@@ -789,56 +888,173 @@ const FinancesTab = () => {
                   <Input 
                     value={newPayment.value_to_receive || newPayment.amount}
                     onChange={(e) => setNewPayment({...newPayment, value_to_receive: e.target.value})}
-                    placeholder="0.00"
+                    placeholder="0,00"
                   />
+                  {parseFloat(newPayment.value_to_receive.replace(',', '.')) === 0 && (
+                    <p className="text-red-500 text-xs">
+                      "Valor" não pode ficar em branco.
+                    </p>
+                  )}
                 </div>
               </>
             )}
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewPaymentDialog(false)}>
+            <Button onClick={() => setShowNewReceiptDialog(false)} variant="outline">
               Fechar
             </Button>
-            <Button onClick={handleSavePayment} className="bg-blue-500 hover:bg-blue-600">
+            <Button onClick={handleSavePayment} className="bg-blue-600 hover:bg-blue-700">
               Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo para novo recebimento - similar ao de pagamento */}
-      <Dialog open={showNewReceiptDialog} onOpenChange={setShowNewReceiptDialog}>
+      {/* Diálogo para editar pagamento */}
+      <Dialog open={showEditPaymentDialog} onOpenChange={setShowEditPaymentDialog}>
         <DialogContent className="sm:max-w-[700px]">
           <DialogHeader>
-            <DialogTitle>Novo recebimento</DialogTitle>
+            <DialogTitle className="bg-blue-600 text-white p-4 -mt-5 -mx-6 rounded-t-lg flex justify-between items-center">
+              Editar lançamento
+              <Button variant="ghost" size="icon" className="text-white hover:bg-blue-700 h-8 w-8 p-0" onClick={() => setShowEditPaymentDialog(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
           </DialogHeader>
           
-          {/* Conteúdo igual ao do diálogo de pagamento */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* Mesmos campos do diálogo de pagamento */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Categorias</label>
-              <Select defaultValue="Adesões">
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Adesões">Adesões</SelectItem>
-                  <SelectItem value="Vendas">Vendas</SelectItem>
-                </SelectContent>
-              </Select>
+          {selectedPayment && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Categorias</label>
+                <Select defaultValue="Vendas">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Vendas">Vendas</SelectItem>
+                    <SelectItem value="Adesões">Adesões</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Descrição</label>
+                <Input defaultValue={`Venda ${selectedPayment.id.substring(0, 4)}`} />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Cliente</label>
+                <Input defaultValue={selectedPayment.profiles?.name || ""} readOnly />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Desc Parcela</label>
+                <Select defaultValue="">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Selecione</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Conta</label>
+                <Select defaultValue="Musculação">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a conta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Musculação">Musculação</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data competência</label>
+                <Input 
+                  type="date"
+                  defaultValue={selectedPayment.due_date}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data vencto</label>
+                <Input 
+                  type="date"
+                  defaultValue={selectedPayment.due_date}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Valor</label>
+                <Input defaultValue={selectedPayment.amount.toFixed(2).replace('.', ',')} />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Forma de pagamento</label>
+                <Select defaultValue={selectedPayment.payment_method || "Dinheiro"}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Forma de pagamento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                    <SelectItem value="PIX">PIX</SelectItem>
+                    <SelectItem value="Cartão">Cartão</SelectItem>
+                    <SelectItem value="Transferência">Transferência</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2 col-span-2">
+                <label className="text-sm font-medium">Observações</label>
+                <Textarea defaultValue={selectedPayment.notes || ""} className="min-h-[100px]" />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data do pagamento</label>
+                <Input 
+                  type="date"
+                  defaultValue={selectedPayment.payment_date || format(new Date(), "yyyy-MM-dd")}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data do recebimento</label>
+                <Input 
+                  type="date"
+                  defaultValue={format(new Date(), "yyyy-MM-dd")}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Juros</label>
+                <Input defaultValue="0,00" />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Taxa</label>
+                <Input defaultValue="0,00" />
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Valor a receber</label>
+                <Input defaultValue={selectedPayment.amount.toFixed(2).replace('.', ',')} />
+              </div>
+              
+              <div className="col-span-2 text-xs text-gray-500 mt-4">
+                Criado em: {selectedPayment.payment_date ? format(new Date(selectedPayment.payment_date), "dd/MM/yyyy HH:mm") : "N/A"} por: Cross Box Fênix
+              </div>
             </div>
-            
-            {/* Outros campos idênticos */}
-            {/* ... */}
-          </div>
+          )}
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowNewReceiptDialog(false)}>
+            <Button variant="outline" onClick={() => setShowEditPaymentDialog(false)}>
               Fechar
             </Button>
-            <Button onClick={() => setShowNewReceiptDialog(false)} className="bg-blue-500 hover:bg-blue-600">
+            <Button onClick={handleUpdatePayment} className="bg-blue-600 hover:bg-blue-700">
               Salvar
             </Button>
           </DialogFooter>

@@ -75,6 +75,23 @@ const SubscriptionsTab = () => {
       setLoading(true);
       const data = await fetchSubscriptions();
       
+      // Fetch all profiles to get plan information
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, email, plan');
+        
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+      }
+      
+      // Map profiles to user_id for quicker lookup
+      const profileMap = new Map();
+      if (profiles) {
+        profiles.forEach(profile => {
+          profileMap.set(profile.id, profile);
+        });
+      }
+      
       // Fetch payment information for each subscription
       const enhancedData = await Promise.all(data.map(async (sub) => {
         const { data: payments, error } = await supabase
@@ -88,7 +105,18 @@ const SubscriptionsTab = () => {
         }
         
         const hasValidPayment = payments?.some(p => p.status === 'paid') || false;
-        return { ...sub, payments, hasValidPayment };
+        
+        // Get profile information from the profileMap
+        const profile = profileMap.get(sub.user_id);
+        const enhancedSub = { 
+          ...sub, 
+          payments, 
+          hasValidPayment,
+          profiles: profile || sub.profiles 
+        };
+        
+        console.log("Enhanced subscription:", enhancedSub);
+        return enhancedSub;
       }));
       
       setSubscriptions(enhancedData);
