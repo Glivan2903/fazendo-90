@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -12,6 +11,10 @@ export interface User {
   birth_date?: string;
   plan?: string;
   status?: string;
+  weight?: number;
+  gender?: string;
+  address?: string;
+  membership_date?: string;
 }
 
 export interface Class {
