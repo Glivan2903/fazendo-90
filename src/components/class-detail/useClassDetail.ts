@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkInToClass, cancelCheckIn, fetchClassDetails } from "../../api/classApi";
@@ -20,7 +21,11 @@ export const useClassDetail = (classId: string | undefined) => {
 
       setLoading(true);
       try {
+        console.log("Fetching details for class:", classId);
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
+        console.log("Class details received:", details);
+        console.log("Attendees received:", attendeesList);
+        
         setClassDetail(details);
         setAttendees(attendeesList);
         
@@ -28,6 +33,7 @@ export const useClassDetail = (classId: string | undefined) => {
           const isUserCheckedIn = attendeesList.some(
             (attendee) => attendee.id === user.id
           );
+          console.log("Is user checked in:", isUserCheckedIn, "User ID:", user.id);
           setIsCheckedIn(isUserCheckedIn);
         }
       } catch (error) {
@@ -46,6 +52,7 @@ export const useClassDetail = (classId: string | undefined) => {
 
     setProcessing(true);
     try {
+      console.log("Attempting check-in for class:", classId);
       const result = await checkInToClass(classId);
       
       if (result === true) {
@@ -56,6 +63,7 @@ export const useClassDetail = (classId: string | undefined) => {
         toast.success("Check-in realizado com sucesso!");
       } 
       else if (typeof result === 'string') {
+        console.log("Conflicting check-in found:", result);
         setPreviousClassId(result);
         setShowChangeDialog(true);
       }
@@ -75,6 +83,7 @@ export const useClassDetail = (classId: string | undefined) => {
     
     setProcessing(true);
     try {
+      console.log("Canceling check-in for class:", classId);
       const success = await cancelCheckIn(classId);
       if (success) {
         setIsCheckedIn(false);
@@ -96,6 +105,7 @@ export const useClassDetail = (classId: string | undefined) => {
 
     setProcessing(true);
     try {
+      console.log("Changing check-in from", previousClassId, "to", classId);
       await cancelCheckIn(previousClassId);
       
       const success = await checkInToClass(classId);

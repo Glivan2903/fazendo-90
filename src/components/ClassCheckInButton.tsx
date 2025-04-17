@@ -11,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Check } from "lucide-react";
 
 interface ClassCheckInButtonProps {
   isCheckedIn: boolean;
@@ -38,14 +38,20 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
     <>
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t">
         {isCheckedIn ? (
-          <Button 
-            variant="outline" 
-            className="w-full py-6 text-base border-gray-300"
-            onClick={onCancelCheckIn}
-            disabled={processing}
-          >
-            {processing ? "Cancelando..." : "Cancelar Check-in"}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-center gap-2 py-2 bg-green-50 rounded-md text-green-700 mb-2">
+              <Check className="h-5 w-5" />
+              <span>Check-in confirmado para esta aula</span>
+            </div>
+            <Button 
+              variant="outline" 
+              className="w-full py-6 text-base border-gray-300"
+              onClick={onCancelCheckIn}
+              disabled={processing}
+            >
+              {processing ? "Cancelando..." : "Cancelar Check-in"}
+            </Button>
+          </div>
         ) : (
           <Button
             className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700"

@@ -12,9 +12,10 @@ import ProfileTab from "../components/tabs/ProfileTab";
 import { fetchClasses } from "@/api/classApi";
 import { Class } from "@/types";
 import { toast } from "sonner";
+import LoadingSpinner from "../components/LoadingSpinner";
 
 const CheckIn = () => {
-  const [activeTab, setActiveTab] = useState("aulas");
+  const [activeTab, setActiveTab] = useState("inicio");
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -22,23 +23,23 @@ const CheckIn = () => {
   
   useEffect(() => {
     const loadTodayClasses = async () => {
-      if (activeTab === "inicio") {
-        setLoading(true);
-        try {
-          const today = new Date();
-          const fetchedClasses = await fetchClasses(today);
-          setClasses(fetchedClasses);
-        } catch (error) {
-          console.error("Error fetching today's classes:", error);
-          toast.error("Erro ao carregar aulas de hoje");
-        } finally {
-          setLoading(false);
-        }
+      setLoading(true);
+      try {
+        console.log("Loading today's classes for dashboard");
+        const today = new Date();
+        const fetchedClasses = await fetchClasses(today);
+        console.log("Fetched classes:", fetchedClasses);
+        setClasses(fetchedClasses);
+      } catch (error) {
+        console.error("Error fetching today's classes:", error);
+        toast.error("Erro ao carregar aulas de hoje");
+      } finally {
+        setLoading(false);
       }
     };
     
     loadTodayClasses();
-  }, [activeTab]);
+  }, []);
   
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -63,11 +64,17 @@ const CheckIn = () => {
       {/* Tab content */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsContent value="inicio">
-          <DashboardTab 
-            classes={classes}
-            onTabChange={handleTabChange}
-            onClassClick={handleClassClick}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <DashboardTab 
+              classes={classes}
+              onTabChange={handleTabChange}
+              onClassClick={handleClassClick}
+            />
+          )}
         </TabsContent>
         <TabsContent value="aulas">
           <ClassesTab onClassClick={handleClassClick} />

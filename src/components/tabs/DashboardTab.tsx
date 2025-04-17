@@ -4,6 +4,8 @@ import { Calendar, BarChart2, User, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Class } from "@/types";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface DashboardTabProps {
   classes: Class[];
@@ -18,7 +20,17 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 }) => {
   // Get the next scheduled class (if any)
   const now = new Date();
-  const upcomingClass = classes.find(cls => cls.startTime > now);
+  const upcomingClass = classes.find(cls => new Date(cls.startTime) > now);
+
+  // Format date in Portuguese
+  const formatDate = (date: Date) => {
+    try {
+      return format(date, "HH:mm", { locale: ptBR });
+    } catch (error) {
+      console.error("Invalid date format:", date, error);
+      return "--:--";
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -43,7 +55,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                   <h4 className="font-bold">{upcomingClass.programName}</h4>
                   <div className="flex items-center text-sm text-gray-500">
                     <Calendar className="h-4 w-4 mr-1" />
-                    {upcomingClass.startTime.toTimeString().substring(0, 5)} - {upcomingClass.endTime.toTimeString().substring(0, 5)}
+                    {formatDate(new Date(upcomingClass.startTime))} - {formatDate(new Date(upcomingClass.endTime))}
                   </div>
                   <div className="flex items-center text-sm text-gray-500">
                     <User className="h-4 w-4 mr-1" />
