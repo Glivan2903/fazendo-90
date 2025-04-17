@@ -15,13 +15,14 @@ export type User = {
 };
 
 export type Class = {
+  // Database properties
   id: string;
-  date: string;
-  start_time: string;
-  end_time: string;
-  max_capacity: number;
-  program_id: string;
-  coach_id: string;
+  date?: string;
+  start_time?: string;
+  end_time?: string;
+  max_capacity?: number;
+  program_id?: string;
+  coach_id?: string;
   created_at?: string;
   updated_at?: string;
   
@@ -34,11 +35,11 @@ export type Class = {
   attendeeCount: number;
   spotsLeft: number;
   isCheckedIn: boolean;
+  maxCapacity?: number; // Alias for max_capacity for frontend use
   
   // Optional properties used in some components
   program?: { id: string; name: string };
   coach?: { id: string; name: string; avatar_url?: string };
-  maxCapacity?: number; // Alias for max_capacity for frontend use
 };
 
 export type ClassDetail = {

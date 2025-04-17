@@ -1,3 +1,4 @@
+
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -14,9 +15,12 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
       .from('classes')
       .select(`
         id,
+        date,
         start_time,
         end_time,
         max_capacity,
+        program_id,
+        coach_id,
         programs (name),
         profiles!coach_id (name, avatar_url),
         checkins (id, user_id)
@@ -55,6 +59,12 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
         
         return {
           id: cls.id,
+          date: cls.date,
+          start_time: cls.start_time,
+          end_time: cls.end_time,
+          max_capacity: cls.max_capacity,
+          program_id: cls.program_id,
+          coach_id: cls.coach_id,
           startTime,
           endTime,
           programName: cls.programs?.name || "CrossFit",
@@ -74,6 +84,12 @@ export const fetchClasses = async (date: Date): Promise<Class[]> => {
         
         return {
           id: cls.id || crypto.randomUUID(),
+          date: cls.date,
+          start_time: cls.start_time,
+          end_time: cls.end_time,
+          max_capacity: cls.max_capacity,
+          program_id: cls.program_id,
+          coach_id: cls.coach_id,
           startTime: new Date(now),
           endTime: new Date(now.getTime() + 3600000),
           programName: cls.programs?.name || "CrossFit",
@@ -114,7 +130,6 @@ const fetchMockClasses = async (date: Date): Promise<Class[]> => {
       
     return {
       ...cls,
-      id: crypto.randomUUID(),
       startTime,
       endTime
     };

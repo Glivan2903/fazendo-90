@@ -76,6 +76,10 @@ export const generateClassesForDay = (dayOffset: number): Class[] => {
     }
   ];
 
+  const today = new Date();
+  const targetDate = addDays(today, dayOffset);
+  const dateString = targetDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+
   return classTemplates.map((template, index) => {
     const attendeeCount = Math.floor(Math.random() * (template.maxCapacity + 1));
     const isCheckedIn = Math.random() > 0.7;
@@ -107,7 +111,13 @@ export const generateClassesForDay = (dayOffset: number): Class[] => {
     }
     
     return {
-      id: crypto.randomUUID(), // Usamos UUID direto em vez do formato day-index
+      id: crypto.randomUUID(),
+      date: dateString,
+      start_time: startTime.toTimeString().substring(0, 8), // HH:MM:SS
+      end_time: endTime.toTimeString().substring(0, 8),
+      max_capacity: template.maxCapacity,
+      program_id: `program-${index}`,
+      coach_id: `coach-${index}`,
       startTime,
       endTime,
       programName: template.programName,

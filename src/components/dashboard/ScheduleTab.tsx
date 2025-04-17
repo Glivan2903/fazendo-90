@@ -44,7 +44,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
     end: addDays(startOfWeek(new Date(), { weekStartsOn: 0 }), 6)
   });
 
-  // Form data state
   const [formData, setFormData] = useState({
     programId: "",
     programName: "",
@@ -85,7 +84,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
           allClasses = [...allClasses, ...fetchedClasses];
         }
       } else {
-        // For list view, fetch all recurring classes
         const { data, error } = await supabase
           .from("classes")
           .select(`
@@ -94,6 +92,8 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
             start_time,
             end_time,
             max_capacity,
+            program_id,
+            coach_id,
             programs (id, name),
             profiles!coach_id (id, name, avatar_url),
             checkins (id)
@@ -102,19 +102,23 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
           
         if (error) throw error;
         
-        // Transform to Class objects
         allClasses = (data || []).map(cls => {
           try {
             const dateStr = cls.date;
             const startTimeStr = cls.start_time;
             const endTimeStr = cls.end_time;
             
-            // Create valid date objects
             const startTimeDate = new Date(`${dateStr}T${startTimeStr}`);
             const endTimeDate = new Date(`${dateStr}T${endTimeStr}`);
             
             return {
               id: cls.id,
+              date: dateStr,
+              start_time: startTimeStr,
+              end_time: endTimeStr,
+              max_capacity: cls.max_capacity,
+              program_id: cls.program_id,
+              coach_id: cls.coach_id,
               programName: cls.programs?.name || "CrossFit",
               coachName: cls.profiles?.name || "Coach",
               startTime: startTimeDate,
@@ -124,14 +128,19 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               spotsLeft: cls.max_capacity - (cls.checkins ? cls.checkins.length : 0),
               isCheckedIn: false,
               program: cls.programs,
-              coach: cls.profiles,
-              date: dateStr
+              coach: cls.profiles
             };
           } catch (error) {
             console.error("Error processing class:", error);
             const now = new Date();
             return {
               id: cls.id,
+              date: cls.date,
+              start_time: cls.start_time,
+              end_time: cls.end_time,
+              max_capacity: cls.max_capacity,
+              program_id: cls.program_id,
+              coach_id: cls.coach_id,
               programName: cls.programs?.name || "CrossFit",
               coachName: cls.profiles?.name || "Coach",
               startTime: now,
@@ -141,8 +150,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               spotsLeft: (cls.max_capacity || 15) - (cls.checkins ? cls.checkins.length : 0),
               isCheckedIn: false,
               program: cls.programs,
-              coach: cls.profiles,
-              date: cls.date
+              coach: cls.profiles
             };
           }
         });
@@ -169,6 +177,8 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
           start_time,
           end_time,
           max_capacity,
+          program_id,
+          coach_id,
           programs (id, name),
           profiles!coach_id (id, name, avatar_url),
           checkins (id, user_id)
@@ -179,14 +189,12 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
       
       if (error) throw error;
       
-      // Transform the data
       const transformedClasses = (data || []).map(cls => {
         try {
           const dateStr = cls.date;
           const startTimeStr = cls.start_time;
           const endTimeStr = cls.end_time;
           
-          // Create valid date objects
           const startTimeDate = new Date(`${dateStr}T${startTimeStr}`);
           const endTimeDate = new Date(`${dateStr}T${endTimeStr}`);
           
@@ -195,6 +203,12 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
             const now = new Date();
             return {
               id: cls.id,
+              date: cls.date,
+              start_time: cls.start_time,
+              end_time: cls.end_time,
+              max_capacity: cls.max_capacity,
+              program_id: cls.program_id,
+              coach_id: cls.coach_id,
               programName: cls.programs?.name || "CrossFit",
               coachName: cls.profiles?.name || "Coach",
               startTime: now,
@@ -204,8 +218,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               spotsLeft: cls.max_capacity - (cls.checkins ? cls.checkins.length : 0),
               isCheckedIn: false,
               program: cls.programs,
-              coach: cls.profiles,
-              date: dateStr
+              coach: cls.profiles
             };
           }
           
@@ -213,6 +226,12 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
           
           return {
             id: cls.id,
+            date: cls.date,
+            start_time: cls.start_time,
+            end_time: cls.end_time,
+            max_capacity: cls.max_capacity,
+            program_id: cls.program_id,
+            coach_id: cls.coach_id,
             programName: cls.programs?.name || "CrossFit",
             coachName: cls.profiles?.name || "Coach",
             startTime: startTimeDate,
@@ -222,14 +241,19 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
             spotsLeft: cls.max_capacity - attendeeCount,
             isCheckedIn: false,
             program: cls.programs,
-            coach: cls.profiles,
-            date: dateStr
+            coach: cls.profiles
           };
         } catch (error) {
           console.error("Error processing class:", error);
           const now = new Date();
           return {
             id: cls.id,
+            date: cls.date,
+            start_time: cls.start_time,
+            end_time: cls.end_time,
+            max_capacity: cls.max_capacity,
+            program_id: cls.program_id,
+            coach_id: cls.coach_id,
             programName: cls.programs?.name || "CrossFit",
             coachName: cls.profiles?.name || "Coach",
             startTime: now,
@@ -239,8 +263,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
             spotsLeft: cls.max_capacity - (cls.checkins ? cls.checkins.length : 0),
             isCheckedIn: false,
             program: cls.programs,
-            coach: cls.profiles,
-            date: cls.date
+            coach: cls.profiles
           };
         }
       });
@@ -260,7 +283,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
       
       setPrograms(data || []);
       
-      // If no program is selected but we have programs, select the first one
       if ((!formData.programId || formData.programId === "") && data && data.length > 0) {
         setFormData(prev => ({
           ...prev,
@@ -326,10 +348,8 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         return;
       }
       
-      // Format date as YYYY-MM-DD
       const dateStr = format(formData.date, "yyyy-MM-dd");
       
-      // Create time strings
       const startTimeStr = `${formData.startHour}:${formData.startMinute}:00`;
       const endTimeStr = `${formData.endHour}:${formData.endMinute}:00`;
       
@@ -343,7 +363,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
       };
       
       if (selectedClass?.id) {
-        // Update existing class
         const { error } = await supabase
           .from("classes")
           .update(classDataToSave)
@@ -353,7 +372,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         
         toast.success("Aula atualizada com sucesso!");
       } else {
-        // Create new class
         const { error } = await supabase
           .from("classes")
           .insert([classDataToSave]);
@@ -363,7 +381,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         toast.success("Aula criada com sucesso!");
       }
       
-      // Refresh classes
       fetchWeeklySchedule();
       setShowNewDialog(false);
       setShowEditDialog(false);
@@ -389,7 +406,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
       
       toast.success("Aula excluída com sucesso!");
       
-      // Refresh classes
       fetchWeeklySchedule();
       setShowEditDialog(false);
     } catch (error) {
@@ -1029,7 +1045,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         </CardContent>
       </Card>
       
-      {/* Add/Edit Class Dialog */}
       {renderClassDialog(true)}
       {renderClassDialog(false)}
     </div>
