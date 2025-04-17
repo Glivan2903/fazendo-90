@@ -32,12 +32,26 @@ import { fetchSubscriptions, renewSubscription } from "@/api/subscriptionApi";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import NewSubscriptionDialog from "./NewSubscriptionDialog";
-import { Subscription } from "@/api/subscriptionApi";
 import { Badge } from "@/components/ui/badge";
+
+interface Profile {
+  name: string;
+  email: string;
+  plan?: string;
+}
 
 interface Payment {
   id: string;
   status: string;
+}
+
+interface Subscription {
+  id: string;
+  user_id: string;
+  start_date: string;
+  end_date: string;
+  created_at?: string;
+  profiles?: Profile | null;
 }
 
 interface EnhancedSubscription extends Subscription {
@@ -285,9 +299,9 @@ const SubscriptionsTab = () => {
                   </TableCell>
                   <TableCell>
                     {sub.hasValidPayment ? (
-                      <Badge variant="success" className="bg-green-100 text-green-800 hover:bg-green-200">Pago</Badge>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">Pago</Badge>
                     ) : (
-                      <Badge variant="destructive" className="bg-red-100 text-red-800 hover:bg-red-200">Pendente</Badge>
+                      <Badge variant="outline" className="bg-red-100 text-red-800 hover:bg-red-200">Pendente</Badge>
                     )}
                   </TableCell>
                   <TableCell className="text-right space-x-2">

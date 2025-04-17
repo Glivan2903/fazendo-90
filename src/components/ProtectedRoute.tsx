@@ -53,7 +53,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   // Check for active subscription
   if (!hasActiveSubscription && location.pathname !== "/auth") {
     console.log("Usuário sem assinatura ativa, redirecionando para /auth");
-    toast.error("Sua assinatura não está ativa. Entre em contato com o administrador.");
+    toast.error("Sua assinatura não está ativa. Por favor, entre em contato com o administrador para regularizar seu pagamento.");
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

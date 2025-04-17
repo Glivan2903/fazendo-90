@@ -60,6 +60,18 @@ const Auth = () => {
             <AlertTitle>Importante</AlertTitle>
             <AlertDescription>
               Sua conta será ativada somente após confirmação do pagamento da assinatura.
+              Após criar a conta, o administrador precisará validar seu pagamento.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {isLogin && (
+          <Alert variant="warning" className="bg-amber-50 border-amber-200">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertTitle className="text-amber-800">Aviso</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Para acessar o sistema sua assinatura precisa estar ativa. 
+              Se você não conseguir fazer login, entre em contato com o administrador.
             </AlertDescription>
           </Alert>
         )}
