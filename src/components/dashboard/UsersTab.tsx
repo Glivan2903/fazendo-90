@@ -29,8 +29,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
     name: "",
     email: "",
     role: "student",
-    status: "Ativo",
-    plan: "Mensal"
+    status: "Ativo"
   });
   
   const filteredUsers = users.filter((user) => {
@@ -58,8 +57,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
         name: newUser.name,
         email: newUser.email,
         role: newUser.role || "student",
-        status: newUser.status || "Ativo",
-        plan: newUser.plan || "Mensal"
+        status: newUser.status || "Ativo"
       };
       
       await createUser(userToCreate);
@@ -71,8 +69,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
         name: "",
         email: "",
         role: "student",
-        status: "Ativo",
-        plan: "Mensal"
+        status: "Ativo"
       });
       setShowNewUserDialog(false);
       
@@ -256,24 +253,6 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
                   <SelectItem value="student">Aluno</SelectItem>
                   <SelectItem value="coach">Professor</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="plan">Plano</Label>
-              <Select
-                value={newUser.plan}
-                onValueChange={(value) => setNewUser({ ...newUser, plan: value })}
-              >
-                <SelectTrigger id="plan">
-                  <SelectValue placeholder="Selecione um plano" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Mensal">Mensal</SelectItem>
-                  <SelectItem value="Trimestral">Trimestral</SelectItem>
-                  <SelectItem value="Anual">Anual</SelectItem>
-                  <SelectItem value="N/A">N/A</SelectItem>
                 </SelectContent>
               </Select>
             </div>

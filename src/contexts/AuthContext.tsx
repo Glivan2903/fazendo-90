@@ -21,7 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   hasActiveSubscription: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, name: string, plan: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -48,7 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (initialSession?.user) {
           await fetchUserRole(initialSession.user.id);
-          await checkSubscription(initialSession.user.id);
+          // Como removemos a parte de pagamentos, vamos assumir que todas as assinaturas estão ativas
+          setHasActiveSubscription(true);
         }
       } catch (error) {
         console.error("Erro ao carregar sessão:", error);
@@ -66,7 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (currentSession?.user) {
         fetchUserRole(currentSession.user.id);
-        checkSubscription(currentSession.user.id);
+        // Como removemos a parte de pagamentos, vamos assumir que todas as assinaturas estão ativas
+        setHasActiveSubscription(true);
       } else {
         setUserRole(null);
         setHasActiveSubscription(false);
@@ -106,52 +108,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const checkActiveSubscription = useCallback(async (userId: string) => {
-    // Special case for admin email
-    if (user?.email === "matheusprograming@gmail.com") {
-      return true;
-    }
-    
-    const { data: payments, error } = await supabase
-      .from('pagamentos')
-      .select('*')
-      .eq('aluno_id', userId)
-      .eq('status', 'pago')
-      .order('data_vencimento', { ascending: false })
-      .limit(1);
-
-    if (error) {
-      console.error('Error checking subscription:', error);
-      return false;
-    }
-
-    if (!payments || payments.length === 0) {
-      return false;
-    }
-
-    const lastPayment = payments[0];
-    const today = new Date();
-    const dueDate = new Date(lastPayment.data_vencimento);
-    
-    return dueDate >= today;
-  }, [user?.email]);
-
-  const checkSubscription = async (userId: string) => {
-    try {
-      // Always consider admin email as having active subscription
-      if (user?.email === "matheusprograming@gmail.com") {
-        setHasActiveSubscription(true);
-        return;
-      }
-      
-      const isActive = await checkActiveSubscription(userId);
-      setHasActiveSubscription(isActive);
-    } catch (error) {
-      console.error("Erro ao verificar assinatura:", error);
-      setHasActiveSubscription(false);
-    }
-  };
-
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -172,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string, plan: string) => {
+  const signUp = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
       const { data, error } = await supabase.auth.signUp({
@@ -180,8 +136,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         options: {
           data: {
-            name,
-            plan
+            name
           }
         }
       });
@@ -195,8 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name,
           email,
           role: 'student',
-          status: 'Ativo',
-          plano_id: plan
+          status: 'Ativo'
         });
 
       if (profileError) throw profileError;
