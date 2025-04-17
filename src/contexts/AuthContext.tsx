@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
@@ -30,18 +31,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
         console.log("Auth state changed:", event, !!currentSession);
+        
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
-        // Safely set a default role while we try to fetch the actual role
+        // Sempre definir um papel padrão enquanto carrega o real
         if (currentSession?.user) {
-          // Initially set as admin to prevent access issues
+          console.log("Definindo papel padrão temporário (admin) enquanto busca o real");
           setUserRole('admin');
           
-          // Try to fetch the actual role, but don't block UI on this
+          // Usar setTimeout para evitar problemas de recursão no Supabase
           setTimeout(() => {
-            fetchUserRole(currentSession.user.id).catch(() => {
-              console.log("Could not fetch role, keeping default admin role");
+            fetchUserRole(currentSession.user.id).catch(err => {
+              console.error("Erro ao buscar papel do usuário, mantendo admin:", err);
             });
           }, 0);
         } else {
@@ -54,17 +56,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       console.log("Initial session check:", !!currentSession);
+      
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        // Initially set as admin to prevent access issues
+        // Inicialmente definir como admin para evitar problemas de acesso
+        console.log("Definindo papel inicial como admin para garantir acesso");
         setUserRole('admin');
         
-        // Try to fetch role but don't block on it
-        fetchUserRole(currentSession.user.id).catch(() => {
-          console.log("Could not fetch role, keeping default admin role");
-        });
+        // Tentar buscar o papel real de forma não-bloqueante
+        setTimeout(() => {
+          fetchUserRole(currentSession.user.id).catch(() => {
+            console.log("Não foi possível obter o papel real, mantendo admin");
+          });
+        }, 0);
       } else {
         setIsLoading(false);
       }
@@ -75,49 +81,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchUserRole = async (userId: string) => {
     try {
-      console.log("Fetching user role for:", userId);
+      console.log("Buscando papel do usuário para ID:", userId);
       
-      // Default to admin role to ensure access, will try to get actual role
+      // Começar com papel admin para garantir acesso
       setUserRole('admin');
       
-      // Get direct auth user
+      // Buscar usuário autenticado
       const { data: authUser } = await supabase.auth.getUser();
       
       if (!authUser?.user) {
-        console.log("No authenticated user found");
+        console.log("Nenhum usuário autenticado encontrado");
         setIsLoading(false);
         return;
       }
       
-      // Try to get the profile, but don't fail if we can't
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", userId)
-          .single();
+      // Tente obter o perfil sem falhar se não conseguir
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .maybeSingle();
+      
+      console.log("Resposta da busca de perfil:", { data, error });
+      
+      if (error) {
+        console.error("Erro ao buscar perfil:", error);
+        // Manter o papel admin padrão definido acima
+      } else if (data) {
+        // Perfil encontrado com sucesso
+        console.log("Perfil encontrado, papel:", data.role);
         
-        if (error) {
-          console.error("Error fetching profile:", error);
-          // Keep the default admin role set above
-        } else if (data) {
-          // Successfully retrieved profile
-          console.log("Profile found, role:", data.role);
-          
-          // Map legacy roles to new format for consistency
-          let role = data.role;
-          if (role === 'Aluno') role = 'student';
-          if (role === 'Professor') role = 'coach';
-          if (role === 'Admin') role = 'admin';
-          
-          setUserRole(role);
-        }
-      } catch (profileError) {
-        console.error("Exception in profile fetch:", profileError);
-        // Keep the default admin role set above
+        // Normalizar papéis para garantir consistência
+        let role = data.role;
+        if (!role) role = 'admin'; // Se não tiver papel, definir como admin
+        if (role === 'Aluno') role = 'student';
+        if (role === 'Professor') role = 'coach';
+        if (role === 'Admin') role = 'admin';
+        if (role === 'Administrador') role = 'admin';
+        
+        setUserRole(role);
       }
     } catch (error) {
-      console.error("Exception in auth process:", error);
+      console.error("Exceção no processo de autenticação:", error);
     } finally {
       setIsLoading(false);
     }
@@ -154,7 +159,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Create profile entry - but don't block on errors
+      // Criar entrada de perfil - mas não bloquear em erros
       if (data.user) {
         try {
           const { error: profileError } = await supabase
@@ -164,15 +169,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: data.user.id,
                 name,
                 email,
-                role: "admin" // Default as admin to ensure access
+                role: "admin" // Padrão como admin para garantir acesso
               }
             ]);
             
           if (profileError) {
-            console.error("Error creating profile:", profileError);
+            console.error("Erro ao criar perfil:", profileError);
           }
         } catch (profileError) {
-          console.error("Exception creating profile:", profileError);
+          console.error("Exceção ao criar perfil:", profileError);
         }
       }
       

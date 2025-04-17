@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UsersTabProps {
   users: User[];
@@ -35,34 +36,93 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
     );
   });
   
-  const handleCreateUser = () => {
-    // Validate fields
+  const handleCreateUser = async () => {
+    // Validar campos
     if (!newUser.name || !newUser.email) {
       toast.error("Por favor, preencha todos os campos obrigatórios");
       return;
     }
     
-    // Create a full user object with a temporary ID
-    const userToCreate: User = {
-      id: crypto.randomUUID(),
-      name: newUser.name,
-      email: newUser.email,
-      role: newUser.role || "student",
-      status: newUser.status || "Ativo",
-      created_at: new Date().toISOString()
-    };
-    
-    // Call the onEditUser function which will handle the API calls
-    onEditUser(userToCreate);
-    
-    // Reset form and close dialog
-    setNewUser({
-      name: "",
-      email: "",
-      role: "student",
-      status: "Ativo"
-    });
-    setShowNewUserDialog(false);
+    try {
+      // Criar perfil diretamente no Supabase
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .insert([{
+          id: crypto.randomUUID(), // Gerar ID para usuário sem auth
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role || "student",
+          status: newUser.status || "Ativo",
+          created_at: new Date().toISOString()
+        }])
+        .select();
+        
+      if (profileError) {
+        console.error("Erro ao criar perfil:", profileError);
+        toast.error("Erro ao criar usuário: " + profileError.message);
+        return;
+      }
+      
+      if (profileData && profileData[0]) {
+        // Criar objeto de usuário completo
+        const createdUser: User = {
+          id: profileData[0].id,
+          name: profileData[0].name,
+          email: profileData[0].email,
+          role: profileData[0].role,
+          status: profileData[0].status || "Ativo",
+          created_at: profileData[0].created_at
+        };
+        
+        toast.success("Usuário criado com sucesso!");
+        
+        // Reset form and close dialog
+        setNewUser({
+          name: "",
+          email: "",
+          role: "student",
+          status: "Ativo"
+        });
+        setShowNewUserDialog(false);
+        
+        // Callback para atualizar a lista
+        onEditUser(createdUser);
+      }
+    } catch (error: any) {
+      console.error("Erro ao criar usuário:", error);
+      toast.error("Erro ao criar usuário: " + (error.message || "Erro desconhecido"));
+    }
+  };
+  
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('id', userId);
+        
+      if (error) {
+        console.error("Erro ao excluir usuário:", error);
+        toast.error("Erro ao excluir usuário: " + error.message);
+        return;
+      }
+      
+      toast.success("Usuário excluído com sucesso!");
+      
+      // Simular uma edição para atualizar a lista de usuários
+      const dummyUser: User = {
+        id: userId,
+        name: "",
+        email: "",
+        role: "",
+        created_at: ""
+      };
+      onEditUser(dummyUser);
+      
+    } catch (error: any) {
+      console.error("Erro ao excluir usuário:", error);
+      toast.error("Erro ao excluir usuário: " + (error.message || "Erro desconhecido"));
+    }
   };
   
   return (
@@ -107,15 +167,15 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        user.role === "admin" 
+                        user.role === "admin" || user.role === "Admin" || user.role === "Administrador"
                           ? "bg-purple-100 text-purple-800" 
-                          : user.role === "coach" 
+                          : user.role === "coach" || user.role === "Coach" || user.role === "Professor"
                             ? "bg-blue-100 text-blue-800"
                             : "bg-green-100 text-green-800"
                       }`}>
-                        {user.role === "admin" 
+                        {user.role === "admin" || user.role === "Admin" || user.role === "Administrador"
                           ? "Administrador" 
-                          : user.role === "coach" 
+                          : user.role === "coach" || user.role === "Coach" || user.role === "Professor" 
                             ? "Professor" 
                             : "Aluno"}
                       </span>
@@ -124,7 +184,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         user.status === "Ativo" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
                       }`}>
-                        {user.status}
+                        {user.status || "Ativo"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -139,6 +199,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
                         <Button 
                           variant="ghost" 
                           className="h-8 text-red-600 hover:text-red-800 hover:bg-red-50"
+                          onClick={() => handleDeleteUser(user.id)}
                         >
                           Excluir
                         </Button>
