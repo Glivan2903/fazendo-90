@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Users, LayoutDashboard, Clock, UserCheck, LogOut, CalendarDays, ListFilter, CreditCard } from "lucide-react";
+import { 
+  Calendar, Users, LayoutDashboard, Clock, UserCheck, 
+  LogOut, CalendarDays, ListFilter, CreditCard, DollarSign 
+} from "lucide-react";
 import { SidebarHeader, SidebarContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarFooter } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -110,6 +113,12 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             <SidebarMenuButton onClick={() => navigate("/check-in")}>
               <Clock size={20} />
               <span>Check-in</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton onClick={() => setActiveTab("finances")} isActive={activeTab === "finances"}>
+              <DollarSign size={20} />
+              <span>Financeiro</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

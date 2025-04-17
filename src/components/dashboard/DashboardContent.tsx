@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Loader2 } from "lucide-react";
 import OverviewTab from "./OverviewTab";
@@ -7,6 +6,7 @@ import ProgramsTab from "./ProgramsTab";
 import UsersTab from "./UsersTab";
 import AttendanceTab from "./AttendanceTab";
 import SubscriptionsTab from "./SubscriptionsTab";
+import FinancesTab from "./FinancesTab";
 import { User } from "@/types";
 
 interface DashboardContentProps {
@@ -28,9 +28,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   attendance,
   onEditUser,
 }) => {
-  // Only show loader for tabs other than overview and subscriptions
-  // since those have their own loading states
-  if (loading && activeTab !== "overview" && activeTab !== "subscriptions") {
+  if (loading && activeTab !== "overview" && activeTab !== "subscriptions" && activeTab !== "finances") {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -51,6 +49,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       return <AttendanceTab attendanceData={attendance} />;
     case "subscriptions":
       return <SubscriptionsTab />;
+    case "finances":
+      return <FinancesTab />;
     default:
       return null;
   }
