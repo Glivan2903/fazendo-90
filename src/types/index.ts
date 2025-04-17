@@ -1,48 +1,25 @@
-
 export interface Class {
   id: string;
-  startTime: Date;
-  endTime: Date;
-  programName: string;
-  coachName: string;
-  coachAvatar?: string;
-  maxCapacity: number;
-  attendeeCount: number;
-  spotsLeft: number;
-  isCheckedIn: boolean;
-}
-
-export interface Attendee {
-  id: string;
   name: string;
-  avatarUrl?: string;
-}
-
-export interface ClassDetail {
-  id: string;
-  startTime: Date;
-  endTime: Date;
-  program: {
-    id: string;
-    name: string;
-  };
-  coach: {
-    id: string;
-    name: string;
-    avatarUrl?: string;
-  };
-  maxCapacity: number;
-  attendeeCount: number;
+  description: string;
+  coach_id: string;
+  start_time: string;
+  end_time: string;
+  date: string;
+  max_capacity: number;
+  created_at: string;
+  updated_at: string;
+  users?: User[];
 }
 
 export interface User {
   id: string;
   name: string;
   email: string;
-  avatarUrl?: string;
   role: string;
-  plan?: string;
-  status: string;
+  avatar_url?: string;
+  box_id?: string;
+  created_at: string;
   phone?: string;
   birth_date?: string;
 }
