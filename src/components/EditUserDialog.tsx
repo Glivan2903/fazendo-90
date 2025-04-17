@@ -22,7 +22,8 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, user, 
     name: "",
     email: "",
     role: "student",
-    status: "Ativo"
+    status: "Ativo",
+    plan: "Mensal"
   });
   
   useEffect(() => {
@@ -54,10 +55,27 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, user, 
       status: value
     }));
   };
+
+  const handlePlanChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      plan: value
+    }));
+  };
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
+  };
+  
+  // Map role values to display text
+  const getRoleName = (role: string) => {
+    switch(role) {
+      case "admin": return "Administrador";
+      case "coach": return "Professor";
+      case "student": return "Aluno";
+      default: return role;
+    }
   };
   
   return (
@@ -105,6 +123,24 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, user, 
                   <SelectItem value="student">Aluno</SelectItem>
                   <SelectItem value="coach">Professor</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="plan">Plano</Label>
+              <Select
+                value={formData.plan}
+                onValueChange={handlePlanChange}
+              >
+                <SelectTrigger id="plan">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Mensal">Mensal</SelectItem>
+                  <SelectItem value="Trimestral">Trimestral</SelectItem>
+                  <SelectItem value="Anual">Anual</SelectItem>
+                  <SelectItem value="N/A">N/A</SelectItem>
                 </SelectContent>
               </Select>
             </div>

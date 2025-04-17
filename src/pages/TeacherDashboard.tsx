@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
@@ -105,7 +104,9 @@ const TeacherDashboard = () => {
       const loadUsers = async () => {
         setLoading(true);
         try {
+          console.log("Carregando usuários do Supabase");
           const userData = await fetchUsers();
+          console.log("Usuários carregados:", userData);
           setUsers(userData);
         } catch (error) {
           console.error("Error fetching users:", error);
