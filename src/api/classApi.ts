@@ -275,7 +275,7 @@ const fetchMockClassDetails = async (classId: string): Promise<{classDetail: Cla
   }
 };
 
-export const checkInToClass = async (classId: string): Promise<boolean | { hasConflict: boolean; conflictClass?: { id: string; name: string; time: string } }> => {
+export const checkInToClass = async (classId: string): Promise<boolean> => {
   try {
     console.log("Realizando check-in para a aula:", classId);
     
@@ -318,7 +318,7 @@ export const checkInToClass = async (classId: string): Promise<boolean | { hasCo
       
       if (sameDayCheckins.length > 0) {
         // O usuário já tem check-in em outra aula no mesmo dia
-        // Retornaremos um objeto especial para indicar conflito
+        // Retornaremos true com um código especial para indicar conflito
         console.log("Usuário já tem check-in em outra aula no mesmo dia:", sameDayCheckins);
         
         return {
@@ -514,88 +514,27 @@ export const changeCheckIn = async (fromClassId: string, toClassId: string): Pro
       return false;
     }
     
-    console.log(`Alterando check-in: de ${fromClassId} para ${toClassId}`);
-    
     // Primeiro, cancelar o check-in atual
-    const { error: deleteError } = await supabase
-      .from('checkins')
-      .delete()
-      .eq('class_id', fromClassId)
-      .eq('user_id', user.id);
-      
-    if (deleteError) {
-      console.error("Erro ao cancelar check-in anterior:", deleteError);
-      toast.error("Erro ao cancelar o check-in anterior");
+    const cancelResult = await cancelCheckIn(fromClassId);
+    if (!cancelResult) {
+      toast.error("Erro ao cancelar o check-in atual");
       return false;
     }
-    
-    console.log("Check-in anterior cancelado com sucesso");
     
     // Depois, fazer check-in na nova aula
-    // Verificar lotação da aula primeiro
-    const { data: classDetails, error: classError } = await supabase
-      .from('classes')
-      .select(`
-        id,
-        max_capacity,
-        checkins (id, user_id)
-      `)
-      .eq('id', toClassId)
-      .single();
-      
-    if (classError || !classDetails) {
-      console.error("Aula não encontrada:", classError);
-      toast.error("Aula não encontrada");
-      
+    const checkInResult = await checkInToClass(toClassId);
+    if (!checkInResult) {
       // Tentar restaurar o check-in anterior
       await supabase
         .from('checkins')
         .insert([
           { class_id: fromClassId, user_id: user.id, status: 'confirmed' }
         ]);
-        
-      return false;
-    }
-    
-    const checkins = Array.isArray(classDetails.checkins) ? classDetails.checkins : [];
-    
-    if (checkins.length >= classDetails.max_capacity) {
-      toast.error("A aula selecionada está lotada");
       
-      // Tentar restaurar o check-in anterior
-      await supabase
-        .from('checkins')
-        .insert([
-          { class_id: fromClassId, user_id: user.id, status: 'confirmed' }
-        ]);
-        
-      return false;
-    }
-    
-    // Inserir o novo check-in
-    const { data: insertData, error: insertError } = await supabase
-      .from('checkins')
-      .insert([
-        { class_id: toClassId, user_id: user.id, status: 'confirmed' }
-      ])
-      .select();
-    
-    if (insertError) {
-      console.error("Erro ao fazer check-in na nova aula:", insertError);
       toast.error("Erro ao fazer check-in na nova aula");
-      
-      // Tentar restaurar o check-in anterior
-      await supabase
-        .from('checkins')
-        .insert([
-          { class_id: fromClassId, user_id: user.id, status: 'confirmed' }
-        ]);
-        
       return false;
     }
     
-    console.log("Check-in na nova aula realizado com sucesso:", insertData);
-    toast.success("Check-in alterado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in change:", error);
