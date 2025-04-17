@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PaymentsList from "@/components/financial/PaymentsList";
 import PlansList from "@/components/financial/PlansList";
 import CashFlow from "@/components/financial/CashFlow";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import DashboardHeader from "@/components/dashboard/DashboardHeader";
 
 const Financial = () => {
   const [activeTab, setActiveTab] = useState("payments");
