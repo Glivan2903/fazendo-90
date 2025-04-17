@@ -111,7 +111,14 @@ export const cancelCheckIn = async (classId: string): Promise<boolean> => {
 };
 
 // Check for conflicting check-ins for the current user
-export const checkConflictingCheckins = async (classId: string) => {
+export const checkConflictingCheckins = async (classId: string): Promise<{ 
+  hasConflict: boolean; 
+  conflictClass?: { 
+    id: string; 
+    name: string; 
+    time: string;
+  }
+}> => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     

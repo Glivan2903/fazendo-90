@@ -20,7 +20,14 @@ export const fetchClassById = async (classId: string) => {
 };
 
 // Check for conflicting check-ins for a user on the same day as a specific class
-export const checkUserCheckinConflicts = async (userId: string, classId: string) => {
+export const checkUserCheckinConflicts = async (userId: string, classId: string): Promise<{
+  hasConflict: boolean;
+  conflictClass?: {
+    id: string;
+    name: string;
+    time: string;
+  }
+}> => {
   // First, obtain the class date
   const classData = await fetchClassById(classId);
   if (!classData) {
