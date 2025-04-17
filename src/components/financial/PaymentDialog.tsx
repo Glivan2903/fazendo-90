@@ -2,13 +2,16 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Payment } from "@/types";
 import { format } from "date-fns";
 import { updatePayment } from "@/api/financialApi";
 import { toast } from "sonner";
+
+// Define payment method type for proper type checking
+type PaymentMethod = "dinheiro" | "cartao" | "pix" | "transferencia";
+type PaymentStatus = "pendente" | "pago" | "atrasado";
 
 interface PaymentDialogProps {
   isOpen: boolean;
@@ -23,8 +26,10 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
   payment,
   onUpdate,
 }) => {
-  const [status, setStatus] = useState(payment?.status || "pendente");
-  const [paymentMethod, setPaymentMethod] = useState(payment?.metodo_pagamento || "");
+  const [status, setStatus] = useState<PaymentStatus>(payment?.status || "pendente");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | undefined>(
+    payment?.metodo_pagamento as PaymentMethod || undefined
+  );
   const [loading, setLoading] = useState(false);
 
   if (!payment) return null;
@@ -75,7 +80,10 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
           
           <div className="space-y-2">
             <Label>Status</Label>
-            <Select value={status} onValueChange={setStatus}>
+            <Select 
+              value={status} 
+              onValueChange={(value: PaymentStatus) => setStatus(value)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -89,7 +97,10 @@ export const PaymentDialog: React.FC<PaymentDialogProps> = ({
           
           <div className="space-y-2">
             <Label>Método de Pagamento</Label>
-            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+            <Select 
+              value={paymentMethod || ""} 
+              onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o método" />
               </SelectTrigger>

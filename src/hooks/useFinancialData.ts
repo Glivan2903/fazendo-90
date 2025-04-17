@@ -38,13 +38,21 @@ export const useFinancialData = (activeTab: string) => {
   }, [activeTab]);
 
   const refetchPayments = async () => {
-    const paymentsData = await fetchPayments();
-    setPayments(paymentsData);
+    try {
+      const paymentsData = await fetchPayments();
+      setPayments(paymentsData);
+    } catch (error) {
+      console.error("Error refetching payments:", error);
+    }
   };
 
   const refetchCashFlow = async () => {
-    const cashFlowData = await fetchCashFlow();
-    setCashFlow(cashFlowData);
+    try {
+      const cashFlowData = await fetchCashFlow();
+      setCashFlow(cashFlowData);
+    } catch (error) {
+      console.error("Error refetching cash flow:", error);
+    }
   };
 
   return {
