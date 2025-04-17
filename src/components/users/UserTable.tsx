@@ -5,21 +5,33 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@
 import { Button } from "@/components/ui/button";
 import UserStatusBadge from "./UserStatusBadge";
 import UserRoleBadge from "./UserRoleBadge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 interface UserTableProps {
   users: User[];
   onEditUser: (user: User) => void;
   onDeleteUser: (userId: string) => void;
+  error?: string;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEditUser, onDeleteUser }) => {
-  if (users.length === 0) {
+const UserTable: React.FC<UserTableProps> = ({ users, onEditUser, onDeleteUser, error }) => {
+  if (error) {
     return (
-      <TableRow>
-        <TableCell colSpan={5} className="text-center py-6">
-          Nenhum usuário cadastrado
-        </TableCell>
-      </TableRow>
+      <Alert variant="destructive" className="mb-6">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          Erro ao carregar usuários: {error}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  
+  if (!users || users.length === 0) {
+    return (
+      <div className="text-center py-10">
+        <p className="text-gray-500">Nenhum usuário cadastrado</p>
+      </div>
     );
   }
 
@@ -43,7 +55,7 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEditUser, onDeleteUser }
               <UserRoleBadge role={user.role} />
             </TableCell>
             <TableCell>
-              <UserStatusBadge status={user.status || "Ativo"} />
+              <UserStatusBadge status={user.status} />
             </TableCell>
             <TableCell className="text-right">
               <div className="flex justify-end space-x-2">

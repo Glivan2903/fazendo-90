@@ -2,11 +2,11 @@
 import React from "react";
 
 interface UserRoleBadgeProps {
-  role: string;
+  role?: string;
 }
 
-const UserRoleBadge: React.FC<UserRoleBadgeProps> = ({ role }) => {
-  const normalizedRole = role.toLowerCase();
+const UserRoleBadge: React.FC<UserRoleBadgeProps> = ({ role = "student" }) => {
+  const normalizedRole = role?.toLowerCase() || "student";
   const isAdmin = normalizedRole === "admin" || normalizedRole === "administrador";
   const isCoach = normalizedRole === "coach" || normalizedRole === "professor";
 

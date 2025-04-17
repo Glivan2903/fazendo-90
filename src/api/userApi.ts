@@ -4,6 +4,8 @@ import { User } from "@/types";
 
 export const fetchUsers = async (): Promise<User[]> => {
   try {
+    console.log("Iniciando busca de usuários...");
+    
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
@@ -21,14 +23,15 @@ export const fetchUsers = async (): Promise<User[]> => {
     
     console.log("Usuários encontrados:", profiles.length);
     
+    // Mapear corretamente os campos do banco de dados para o modelo User
     return profiles.map(profile => ({
       id: profile.id,
-      name: profile.name,
-      email: profile.email,
-      avatarUrl: profile.avatar_url,
-      avatar_url: profile.avatar_url,
-      role: profile.role,
-      created_at: profile.created_at,
+      name: profile.name || '',
+      email: profile.email || '',
+      avatarUrl: profile.avatar_url || undefined,
+      avatar_url: profile.avatar_url || undefined,
+      role: profile.role || 'student',
+      created_at: profile.created_at || '',
       phone: profile.phone || undefined,
       birth_date: profile.birth_date || undefined,
       weight: profile.weight || undefined,
@@ -62,16 +65,20 @@ export const updateUser = async (user: User): Promise<User> => {
         gender: user.gender,
         address: user.address,
         membership_date: user.membership_date,
-        status: user.status,
-        plan: user.plan
+        status: user.status || 'Ativo',
+        plan: user.plan || 'Mensal'
       })
       .eq('id', user.id)
-      .select()
+      .select('*')
       .single();
     
     if (error) {
       console.error("Erro ao atualizar usuário:", error);
       throw error;
+    }
+    
+    if (!data) {
+      throw new Error("Nenhum dado retornado após atualização");
     }
     
     return {
@@ -88,8 +95,8 @@ export const updateUser = async (user: User): Promise<User> => {
       gender: data.gender,
       address: data.address,
       membership_date: data.membership_date,
-      plan: data.plan || user.plan,
-      status: data.status || user.status
+      plan: data.plan || 'Mensal',
+      status: data.status || 'Ativo'
     };
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);

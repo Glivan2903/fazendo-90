@@ -1,35 +1,62 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import UserTable from "../users/UserTable";
 import NewUserDialog from "../users/NewUserDialog";
+import { fetchUsers } from "@/api/userApi";
 
 interface UsersTabProps {
   users: User[];
   onEditUser: (user: User) => void;
 }
 
-const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
+const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showNewUserDialog, setShowNewUserDialog] = useState(false);
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | undefined>();
+  
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: "",
     email: "",
     role: "student",
     status: "Ativo"
   });
+
+  // Carregar os usuários do Supabase
+  const loadUsers = async () => {
+    setLoading(true);
+    setError(undefined);
+    try {
+      const userData = await fetchUsers();
+      console.log("Dados carregados:", userData);
+      setUsers(userData);
+    } catch (err: any) {
+      console.error("Erro ao carregar usuários:", err);
+      setError(err.message || "Erro ao carregar usuários");
+      toast.error("Erro ao carregar usuários");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Carregar usuários ao montar o componente
+  useEffect(() => {
+    loadUsers();
+  }, []);
   
   const filteredUsers = users.filter((user) => {
     const search = searchTerm.toLowerCase();
     return (
-      user.name.toLowerCase().includes(search) ||
-      user.email.toLowerCase().includes(search) ||
+      user.name?.toLowerCase().includes(search) ||
+      user.email?.toLowerCase().includes(search) ||
       (user.role && user.role.toLowerCase().includes(search))
     );
   });
@@ -81,7 +108,9 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
           status: "Ativo"
         });
         setShowNewUserDialog(false);
-        onEditUser(createdUser);
+        
+        // Atualizar a lista de usuários
+        setUsers(prevUsers => [...prevUsers, createdUser]);
       }
     } catch (error: any) {
       console.error("Erro ao criar usuário:", error);
@@ -104,14 +133,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
       
       toast.success("Usuário excluído com sucesso!");
       
-      const dummyUser: User = {
-        id: userId,
-        name: "",
-        email: "",
-        role: "",
-        created_at: ""
-      };
-      onEditUser(dummyUser);
+      // Atualizar a lista de usuários
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
       
     } catch (error: any) {
       console.error("Erro ao excluir usuário:", error);
@@ -126,9 +149,23 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
           <h2 className="text-2xl font-bold">Usuários</h2>
           <p className="text-gray-500">Gerenciar alunos, professores e administradores</p>
         </div>
-        <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => setShowNewUserDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Usuário
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={loadUsers}
+            disabled={loading}
+          >
+            {loading ? (
+              <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Atualizar
+          </Button>
+          <Button className="bg-blue-600 text-white hover:bg-blue-700" onClick={() => setShowNewUserDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" /> Novo Usuário
+          </Button>
+        </div>
       </div>
       
       <div className="relative">
@@ -147,6 +184,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
             users={filteredUsers}
             onEditUser={onEditUser}
             onDeleteUser={handleDeleteUser}
+            error={error}
           />
         </CardContent>
       </Card>
