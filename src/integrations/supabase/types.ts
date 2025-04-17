@@ -185,7 +185,9 @@ export type Database = {
           membership_date: string | null
           name: string
           phone: string | null
+          plan: string | null
           role: string
+          status: string | null
           weight: number | null
         }
         Insert: {
@@ -200,7 +202,9 @@ export type Database = {
           membership_date?: string | null
           name: string
           phone?: string | null
+          plan?: string | null
           role?: string
+          status?: string | null
           weight?: number | null
         }
         Update: {
@@ -215,7 +219,9 @@ export type Database = {
           membership_date?: string | null
           name?: string
           phone?: string | null
+          plan?: string | null
           role?: string
+          status?: string | null
           weight?: number | null
         }
         Relationships: [
