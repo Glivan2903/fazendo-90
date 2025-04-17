@@ -1,18 +1,18 @@
+
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import LoadingSpinner from "@/components/LoadingSpinner";
+import { Loader2, Eye, User as UserIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Eye, CheckCircle, XCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Dialog,
@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogDescription
 } from "@/components/ui/dialog";
+import { fetchAttendance, fetchClassAttendees } from "@/api/attendanceApi";
 
 interface AttendanceTabProps {
   attendanceData: any[];
@@ -30,8 +31,8 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedProgram, setSelectedProgram] = useState<string>("all");
   const [programs, setPrograms] = useState<any[]>([]);
-  const [attendanceData, setAttendanceData] = useState<any[]>(initialData);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [attendees, setAttendees] = useState<any[]>([]);
@@ -39,7 +40,7 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
   
   useEffect(() => {
     fetchPrograms();
-    fetchAttendanceData(selectedDate, selectedProgram);
+    loadAttendanceData();
   }, []);
   
   const fetchPrograms = async () => {
@@ -53,63 +54,17 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
       setPrograms(data || []);
     } catch (error) {
       console.error("Erro ao buscar programas:", error);
+      toast.error("Erro ao carregar programas");
     }
   };
   
-  const fetchAttendanceData = async (date: Date, programId: string) => {
+  const loadAttendanceData = async () => {
     setLoading(true);
     try {
-      const formattedDate = format(date, 'yyyy-MM-dd');
-      
-      let query = supabase
-        .from('classes')
-        .select(`
-          id,
-          date,
-          start_time,
-          end_time,
-          max_capacity,
-          programs (id, name),
-          profiles!coach_id (id, name),
-          checkins (id, status)
-        `)
-        .eq('date', formattedDate);
-        
-      if (programId !== "all") {
-        query = query.eq('program_id', programId);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      const transformedData = (data || []).map(cls => {
-        const confirmedCheckIns = cls.checkins?.filter(ci => ci.status === 'confirmed') || [];
-        const total = cls.max_capacity;
-        const present = confirmedCheckIns.length;
-        const absent = total - present;
-        const rate = total > 0 ? Math.round((present / total) * 100) : 0;
-        
-        return {
-          id: cls.id,
-          date: cls.date,
-          startTime: cls.start_time,
-          endTime: cls.end_time,
-          class: `${cls.start_time.substring(0, 5)} - ${cls.programs?.name || 'CrossFit'}`,
-          coach: cls.profiles?.name || 'Não atribuído',
-          present,
-          absent,
-          total,
-          rate,
-          programName: cls.programs?.name || 'CrossFit'
-        };
-      });
-      
-      setAttendanceData(transformedData);
+      const data = await fetchAttendance(selectedDate);
+      setAttendanceData(data);
     } catch (error) {
-      console.error("Erro ao buscar dados de presença:", error);
-      toast.error("Erro ao buscar dados de presença");
-      setAttendanceData([]);
+      console.error("Erro ao carregar dados de presença:", error);
     } finally {
       setLoading(false);
     }
@@ -118,51 +73,45 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
-      fetchAttendanceData(date, selectedProgram);
+      setLoading(true);
+      fetchAttendance(date).then(data => {
+        setAttendanceData(data);
+        setLoading(false);
+      });
     }
   };
   
   const handleProgramChange = (value: string) => {
     setSelectedProgram(value);
-    fetchAttendanceData(selectedDate, value);
+    setLoading(true);
+    
+    // Filtrar os dados localmente se já tivermos os dados
+    if (selectedProgram === "all") {
+      fetchAttendance(selectedDate).then(data => {
+        setAttendanceData(data);
+        setLoading(false);
+      });
+    } else {
+      fetchAttendance(selectedDate).then(data => {
+        const filtered = data.filter(item => 
+          item.programName === programs.find(p => p.id === value)?.name
+        );
+        setAttendanceData(filtered);
+        setLoading(false);
+      });
+    }
   };
   
   const handleViewDetails = async (classItem: any) => {
     setSelectedClass(classItem);
     setIsDialogOpen(true);
-    await fetchClassAttendees(classItem.id);
-  };
-
-  const fetchClassAttendees = async (classId: string) => {
     setAttendeesLoading(true);
+    
     try {
-      const { data, error } = await supabase
-        .from('checkins')
-        .select(`
-          id,
-          status,
-          profiles!user_id (
-            id,
-            name,
-            avatar_url
-          )
-        `)
-        .eq('class_id', classId);
-
-      if (error) throw error;
-      
-      const transformedData = (data || []).map(checkin => ({
-        id: checkin.profiles.id,
-        name: checkin.profiles.name,
-        avatarUrl: checkin.profiles.avatar_url,
-        status: checkin.status
-      }));
-      
-      setAttendees(transformedData);
+      const attendeesData = await fetchClassAttendees(classItem.id);
+      setAttendees(attendeesData);
     } catch (error) {
       console.error("Erro ao buscar alunos:", error);
-      toast.error("Erro ao buscar alunos");
-      setAttendees([]);
     } finally {
       setAttendeesLoading(false);
     }
@@ -230,7 +179,7 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
         <CardContent className="p-0 overflow-auto">
           {loading ? (
             <div className="flex justify-center items-center py-10">
-              <LoadingSpinner />
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
           ) : (
             <Table>
@@ -247,8 +196,8 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
               </TableHeader>
               <TableBody>
                 {attendanceData.length > 0 ? (
-                  attendanceData.map((item, index) => (
-                    <TableRow key={index}>
+                  attendanceData.map((item) => (
+                    <TableRow key={item.id}>
                       <TableCell>{format(new Date(item.date), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>{item.class}</TableCell>
                       <TableCell>{item.coach}</TableCell>
@@ -298,7 +247,7 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
             <DialogDescription>
               {selectedClass && (
                 <div className="text-foreground font-medium py-2">
-                  {format(new Date(selectedClass.date), 'dd/MM/yyyy')} • {selectedClass.startTime.substring(0, 5)}-{selectedClass.endTime.substring(0, 5)} • {selectedClass.programName}
+                  {format(new Date(selectedClass.date), 'dd/MM/yyyy')} • {selectedClass.startTime?.substring(0, 5)}-{selectedClass.endTime?.substring(0, 5)} • {selectedClass.programName}
                 </div>
               )}
             </DialogDescription>
@@ -306,13 +255,13 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
 
           {attendeesLoading ? (
             <div className="flex justify-center items-center py-8">
-              <LoadingSpinner />
+              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-center justify-between bg-blue-50 p-3 rounded-md">
                 <div className="flex items-center">
-                  <User className="h-5 w-5 text-blue-600 mr-2" />
+                  <UserIcon className="h-5 w-5 text-blue-600 mr-2" />
                   <span className="font-medium">Professor:</span>
                 </div>
                 <span>{selectedClass?.coach}</span>
@@ -336,7 +285,7 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
                         </Avatar>
                         <span className="font-medium">{attendee.name}</span>
                       </div>
-                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <div className={`h-3 w-3 rounded-full ${attendee.status === 'confirmed' ? 'bg-green-500' : 'bg-red-500'}`}></div>
                     </div>
                   ))
                 ) : (

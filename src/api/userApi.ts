@@ -1,13 +1,13 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
+import { toast } from "sonner";
 
 // Função para buscar todos os usuários do Supabase
 export const fetchUsers = async (): Promise<User[]> => {
   try {
     console.log("Buscando usuários do Supabase...");
     
-    // Buscar diretamente da tabela profiles
     const { data: profiles, error } = await supabase
       .from('profiles')
       .select('*')
@@ -15,6 +15,7 @@ export const fetchUsers = async (): Promise<User[]> => {
     
     if (error) {
       console.error("Erro ao buscar usuários:", error);
+      toast.error("Erro ao carregar usuários");
       throw error;
     }
 
@@ -37,6 +38,7 @@ export const fetchUsers = async (): Promise<User[]> => {
     }));
   } catch (error) {
     console.error("Erro ao buscar usuários:", error);
+    toast.error("Erro ao carregar usuários");
     throw error;
   }
 };
@@ -57,11 +59,12 @@ export const updateUser = async (user: User): Promise<User> => {
         plan: user.plan
       })
       .eq('id', user.id)
-      .select()
+      .select('*')
       .single();
     
     if (error) {
       console.error("Erro ao atualizar usuário:", error);
+      toast.error("Erro ao atualizar usuário");
       throw error;
     }
     
@@ -78,6 +81,7 @@ export const updateUser = async (user: User): Promise<User> => {
     };
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);
+    toast.error("Erro ao atualizar usuário");
     throw error;
   }
 };
@@ -97,11 +101,12 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
         status: user.status || "Ativo",
         plan: user.plan || "Mensal"
       }])
-      .select()
+      .select('*')
       .single();
     
     if (error) {
       console.error("Erro ao criar usuário:", error);
+      toast.error("Erro ao criar usuário");
       throw error;
     }
     
@@ -118,6 +123,7 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
     };
   } catch (error) {
     console.error("Erro ao criar usuário:", error);
+    toast.error("Erro ao criar usuário");
     throw error;
   }
 };
@@ -134,12 +140,14 @@ export const deleteUser = async (userId: string): Promise<void> => {
     
     if (error) {
       console.error("Erro ao excluir usuário:", error);
+      toast.error("Erro ao excluir usuário");
       throw error;
     }
     
     console.log("Usuário excluído com sucesso");
   } catch (error) {
     console.error("Erro ao excluir usuário:", error);
+    toast.error("Erro ao excluir usuário");
     throw error;
   }
 };

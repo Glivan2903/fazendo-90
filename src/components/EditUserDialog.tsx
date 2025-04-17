@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { User } from "@/types";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface EditUserDialogProps {
   isOpen: boolean;
@@ -65,17 +66,14 @@ const EditUserDialog: React.FC<EditUserDialogProps> = ({ isOpen, onClose, user, 
   
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
-  };
-  
-  // Map role values to display text
-  const getRoleName = (role: string) => {
-    switch(role) {
-      case "admin": return "Administrador";
-      case "coach": return "Professor";
-      case "student": return "Aluno";
-      default: return role;
+    
+    // Validação básica
+    if (!formData.name || !formData.email) {
+      toast.error("Por favor, preencha os campos obrigatórios");
+      return;
     }
+    
+    onSave(formData);
   };
   
   return (
