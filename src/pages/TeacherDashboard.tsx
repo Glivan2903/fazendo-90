@@ -17,9 +17,9 @@ import { useIsMobile } from "@/hooks/use-mobile";
 // Import the component files
 import OverviewTab from "@/components/dashboard/OverviewTab";
 import ScheduleTab from "@/components/dashboard/ScheduleTab";
+import ProgramsTab from "@/components/dashboard/ProgramsTab";
 import UsersTab from "@/components/dashboard/UsersTab";
 import AttendanceTab from "@/components/dashboard/AttendanceTab";
-import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import { Button } from "@/components/ui/button";
 
@@ -197,6 +197,7 @@ const TeacherDashboard = () => {
             <h1 className="text-xl font-bold ml-2">
               {activeTab === "overview" && "Visão Geral"}
               {activeTab === "schedule" && "Grade Horária"}
+              {activeTab === "programs" && "Programas"}
               {activeTab === "users" && "Usuários"}
               {activeTab === "attendance" && "Controle de Presença"}
             </h1>
@@ -215,6 +216,10 @@ const TeacherDashboard = () => {
             
             {activeTab === "schedule" && !loading && (
               <ScheduleTab classes={scheduleClasses} />
+            )}
+
+            {activeTab === "programs" && (
+              <ProgramsTab />
             )}
             
             {activeTab === "users" && !loading && (

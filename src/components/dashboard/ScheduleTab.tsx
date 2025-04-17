@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Class } from "@/types";
 import { format, parseISO, startOfWeek, addDays, isValid } from "date-fns";
@@ -32,7 +31,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
   
   const [classes, setClasses] = useState<Class[]>(initialClasses);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">(isMobile ? "list" : "grid");
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [selectedClass, setSelectedClass] = useState<any>(null);
@@ -64,6 +63,12 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
     fetchPrograms();
     fetchCoaches();
   }, [selectedDate, viewMode, dateRange]);
+
+  useEffect(() => {
+    if (isMobile) {
+      setViewMode("list");
+    }
+  }, [isMobile]);
 
   const fetchWeeklySchedule = async () => {
     try {
@@ -540,14 +545,14 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
   const renderGridView = () => {
     return (
       <>
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+          <div className="flex items-center space-x-2 w-full sm:w-auto mb-2 sm:mb-0">
             <Button variant="outline" size="icon" onClick={handlePrevWeek}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div>
+            <div className="text-sm sm:text-base">
               <span className="font-medium">
-                {format(dateRange.start, "dd MMM. yyyy", { locale: ptBR })} - {format(dateRange.end, "dd MMM. yyyy", { locale: ptBR })}
+                {format(dateRange.start, "dd MMM.", { locale: ptBR })} - {format(dateRange.end, "dd MMM.", { locale: ptBR })}
               </span>
             </div>
             <Button variant="outline" size="icon" onClick={handleNextWeek}>
@@ -562,7 +567,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               <RotateCcw className="h-4 w-4" />
             </Button>
           </div>
-          <div className="text-sm text-gray-500">
+          <div className="text-sm text-gray-500 w-full sm:w-auto text-center sm:text-right">
             Total de {classes.length} classes
           </div>
         </div>
@@ -640,91 +645,122 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
   };
   
   const renderListView = () => {
-    // Group classes by time slot
-    const groupedClasses = classes.reduce((acc: Record<string, Class[]>, cls) => {
+    const classesByDay = classes.reduce((acc: { [key: string]: Class[] }, cls) => {
       try {
         if (!cls.startTime || !isValid(new Date(cls.startTime))) {
           return acc;
         }
         
-        const startTime = new Date(cls.startTime);
-        const endTime = new Date(cls.endTime);
+        const dateStr = format(new Date(cls.startTime), 'yyyy-MM-dd');
         
-        const timeSlot = `${format(startTime, "HH:mm")} - ${format(endTime, "HH:mm")}`;
-        
-        if (!acc[timeSlot]) {
-          acc[timeSlot] = [];
+        if (!acc[dateStr]) {
+          acc[dateStr] = [];
         }
         
-        acc[timeSlot].push(cls);
+        acc[dateStr].push(cls);
         return acc;
       } catch (error) {
-        console.error("Error grouping class:", error);
+        console.error("Error grouping class by day:", error);
         return acc;
       }
     }, {});
     
-    // Sort time slots
-    const sortedTimeSlots = Object.keys(groupedClasses).sort();
+    const sortedDates = Object.keys(classesByDay).sort();
     
     return (
       <div className="space-y-4">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Horário</TableHead>
-              <TableHead>Programa</TableHead>
-              <TableHead>Data de início</TableHead>
-              <TableHead>Data de término</TableHead>
-              <TableHead>Dias da semana</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sortedTimeSlots.map(timeSlot => (
-              <TableRow key={timeSlot}>
-                <TableCell className="font-medium">{timeSlot}</TableCell>
-                <TableCell>{groupedClasses[timeSlot][0].programName}</TableCell>
-                <TableCell>{format(new Date(groupedClasses[timeSlot][0].startTime), "dd/MM/yyyy")}</TableCell>
-                <TableCell>Não definido</TableCell>
-                <TableCell>
-                  <div className="flex space-x-1">
-                    {["D", "S", "T", "Q", "Q", "S", "S"].map((day, index) => (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+          <div className="flex items-center space-x-2 w-full sm:w-auto mb-2 sm:mb-0">
+            <Button variant="outline" size="icon" onClick={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setDate(newDate.getDate() - 1);
+              setSelectedDate(newDate);
+            }}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="text-sm sm:text-base">
+              <span className="font-medium">
+                {format(selectedDate, "d MMM yyyy", { locale: ptBR })}
+              </span>
+            </div>
+            <Button variant="outline" size="icon" onClick={() => {
+              const newDate = new Date(selectedDate);
+              newDate.setDate(newDate.getDate() + 1);
+              setSelectedDate(newDate);
+            }}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setSelectedDate(new Date())}>
+              <RotateCcw className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="text-sm text-gray-500 w-full sm:w-auto text-center sm:text-right">
+            Total de {classes.length} classes
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          {sortedDates.map(dateStr => {
+            const date = new Date(dateStr);
+            const dayClasses = classesByDay[dateStr];
+            
+            return (
+              <div key={dateStr} className="space-y-2">
+                <div className="text-center">
+                  <h3 className="text-lg font-bold text-blue-600">
+                    {format(date, "dd/MM", { locale: ptBR })}
+                  </h3>
+                  <p className="text-xs text-gray-500 uppercase">
+                    {format(date, "EEEE", { locale: ptBR })}
+                  </p>
+                </div>
+                
+                <div className="space-y-2">
+                  {dayClasses.map((cls, index) => {
+                    const startTime = new Date(cls.startTime);
+                    const endTime = new Date(cls.endTime);
+                    
+                    return (
                       <div 
-                        key={index}
-                        className={`w-6 h-6 rounded-full flex items-center justify-center text-xs
-                        ${index % 2 === 0 ? 'bg-gray-200 text-gray-600' : 'bg-blue-100 text-blue-600'}`}
+                        key={index} 
+                        className="border rounded-lg p-3 shadow-sm hover:shadow transition-all cursor-pointer"
+                        onClick={() => openEditDialog(cls)}
                       >
-                        {day}
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <div className="text-red-500 font-semibold">
+                              {format(startTime, "HH:mm", { locale: ptBR })} - {format(endTime, "HH:mm", { locale: ptBR })}
+                            </div>
+                            <div className="font-bold uppercase">{cls.programName}</div>
+                          </div>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="flex justify-between mt-2">
+                          <div className="text-sm text-gray-600">{cls.coachName}</div>
+                          <div className="text-sm font-medium">
+                            {cls.attendeeCount}/{cls.maxCapacity} vagas
+                          </div>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={() => openEditDialog(groupedClasses[timeSlot][0])}
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {sortedTimeSlots.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                  Nenhuma aula encontrada
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+          
+          {sortedDates.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Nenhuma aula encontrada para esta data.
+            </div>
+          )}
+        </div>
       </div>
     );
   };
   
-  // Dialog for adding/editing a class
   const renderClassDialog = (isNew: boolean) => {
     return (
       <Dialog 
@@ -948,14 +984,14 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <CardTitle>Grade Horária</CardTitle>
-          <div className="flex space-x-2">
-            <div className="border rounded-md flex overflow-hidden">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="border rounded-md flex overflow-hidden w-full sm:w-auto">
               <Button 
                 variant={viewMode === "grid" ? "secondary" : "ghost"}
                 size="sm"
-                className="rounded-none"
+                className="rounded-none flex-1"
                 onClick={() => setViewMode("grid")}
               >
                 <LayoutGrid className="h-4 w-4 mr-2" />
@@ -964,7 +1000,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               <Button 
                 variant={viewMode === "list" ? "secondary" : "ghost"}
                 size="sm"
-                className="rounded-none"
+                className="rounded-none flex-1"
                 onClick={() => setViewMode("list")}
               >
                 <List className="h-4 w-4 mr-2" />
@@ -972,7 +1008,11 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               </Button>
             </div>
             
-            <Button variant="default" onClick={openNewDialog}>
+            <Button 
+              variant="default" 
+              onClick={openNewDialog}
+              className="w-full sm:w-auto"
+            >
               <Plus className="h-4 w-4 mr-2" />
               Nova Aula
             </Button>
@@ -984,7 +1024,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
           ) : (
-            viewMode === "grid" ? renderGridView() : renderListView()
+            viewMode === "grid" && !isMobile ? renderGridView() : renderListView()
           )}
         </CardContent>
       </Card>
