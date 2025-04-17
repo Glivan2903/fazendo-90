@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -84,7 +83,6 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
       
       if (error) throw error;
       
-      // Transform data for display
       const transformedData = (data || []).map(cls => {
         const confirmedCheckIns = cls.checkins?.filter(ci => ci.status === 'confirmed') || [];
         const total = cls.max_capacity;
@@ -153,7 +151,6 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
 
       if (error) throw error;
       
-      // Transform data for display
       const transformedData = (data || []).map(checkin => ({
         id: checkin.profiles.id,
         name: checkin.profiles.name,
@@ -304,7 +301,8 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
                   {format(new Date(selectedClass.date), 'dd/MM/yyyy')} • {selectedClass.startTime.substring(0, 5)}-{selectedClass.endTime.substring(0, 5)} • {selectedClass.programName}
                 </div>
               )}
-            </DialogHeader>
+            </DialogDescription>
+          </DialogHeader>
 
           {attendeesLoading ? (
             <div className="flex justify-center items-center py-8">
