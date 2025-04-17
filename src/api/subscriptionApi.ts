@@ -99,12 +99,14 @@ export const createSubscription = async (userId: string, startDate?: Date) => {
             status: 'paid',
             payment_method: 'pix',
             due_date: end.toISOString().split('T')[0],
-            payment_date: new Date().toISOString().split('T')[0]
+            payment_date: new Date().toISOString().split('T')[0],
+            notes: `Pagamento inicial - ${userData?.plan || 'Mensal'}`
           }
         ]);
         
       if (paymentError) {
         console.error("Error creating payment:", paymentError);
+        throw paymentError;
       }
       
       // Update user status to active
@@ -115,9 +117,11 @@ export const createSubscription = async (userId: string, startDate?: Date) => {
         
       if (profileError) {
         console.error("Error updating profile status:", profileError);
+        throw profileError;
       }
     } catch (paymentError) {
       console.error("Exception in creating payment:", paymentError);
+      throw paymentError;
     }
 
     return data;
@@ -181,7 +185,7 @@ export const renewSubscription = async (userId: string) => {
 };
 
 // Helper function to get amount based on plan
-const getAmountByPlan = (plan: string): number => {
+export const getAmountByPlan = (plan: string): number => {
   switch (plan) {
     case 'Trimestral':
       return 270.00;

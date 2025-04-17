@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
@@ -38,8 +39,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CalendarIcon, Check, ChevronsUpDown } from "lucide-react";
 import { createSubscription } from "@/api/subscriptionApi";
 import { toast } from "sonner";
 import { fetchUsers } from "@/api/userApi";
@@ -65,6 +66,7 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
 }) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<FormData>({
     defaultValues: {
@@ -76,10 +78,13 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
   useEffect(() => {
     const loadUsers = async () => {
       try {
+        setError(null);
         const data = await fetchUsers();
         setUsers(data);
       } catch (error) {
+        console.error("Error loading users:", error);
         toast.error("Erro ao carregar usuários");
+        setError("Erro ao carregar usuários");
       }
     };
 
@@ -94,7 +99,15 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
+    setError(null);
+    
     try {
+      if (!data.userId) {
+        setError("Por favor, selecione um aluno");
+        setLoading(false);
+        return;
+      }
+      
       // First update the user's plan
       const { error: updateError } = await supabase
         .from('profiles')
@@ -102,7 +115,8 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
         .eq('id', data.userId);
         
       if (updateError) {
-        throw updateError;
+        console.error("Error updating user plan:", updateError);
+        throw new Error("Erro ao atualizar plano do usuário");
       }
       
       // Then create the subscription
@@ -111,6 +125,7 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
       onSuccess();
     } catch (error) {
       console.error("Error creating subscription:", error);
+      setError("Erro ao criar assinatura para o usuário");
       toast.error("Erro ao criar adesão");
     } finally {
       setLoading(false);
@@ -119,10 +134,17 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Nova Adesão</DialogTitle>
         </DialogHeader>
+
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -138,19 +160,16 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
                         <Button
                           variant="outline"
                           role="combobox"
-                          className={cn(
-                            "justify-between",
-                            !field.value && "text-muted-foreground"
-                          )}
+                          className={field.value ? "" : "text-muted-foreground"}
                         >
                           {field.value
-                            ? users.find((user) => user.id === field.value)?.name
+                            ? users.find((user) => user.id === field.value)?.name || "Selecione um aluno"
                             : "Selecione um aluno"}
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0">
+                    <PopoverContent className="p-0" align="start">
                       <Command>
                         <CommandInput placeholder="Buscar aluno..." />
                         <CommandEmpty>Nenhum aluno encontrado.</CommandEmpty>
@@ -164,12 +183,7 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
                               }}
                             >
                               <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  user.id === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
+                                className={user.id === field.value ? "opacity-100 mr-2 h-4 w-4" : "opacity-0 mr-2 h-4 w-4"}
                               />
                               {user.name}
                             </CommandItem>
@@ -220,10 +234,7 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
                       <FormControl>
                         <Button
                           variant={"outline"}
-                          className={cn(
-                            "pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
+                          className={field.value ? "" : "text-muted-foreground"}
                         >
                           {field.value ? (
                             format(field.value, "P", { locale: ptBR })
@@ -251,7 +262,7 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
               )}
             />
 
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -262,7 +273,7 @@ const NewSubscriptionDialog: React.FC<NewSubscriptionDialogProps> = ({
               <Button type="submit" disabled={loading}>
                 {loading ? "Criando..." : "Criar Adesão"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>

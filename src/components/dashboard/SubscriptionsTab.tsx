@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { fetchSubscriptions, renewSubscription } from "@/api/subscriptionApi";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -69,10 +70,12 @@ const SubscriptionsTab = () => {
   const [selectedSubscription, setSelectedSubscription] = useState<EnhancedSubscription | null>(null);
   const [paymentStatus, setPaymentStatus] = useState("paid");
   const [paymentMethod, setPaymentMethod] = useState("pix");
+  const [error, setError] = useState<string | null>(null);
 
   const loadSubscriptions = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await fetchSubscriptions();
       
       // Fetch all profiles to get plan information
@@ -82,6 +85,7 @@ const SubscriptionsTab = () => {
         
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
+        setError("Erro ao carregar perfis de usuários");
       }
       
       // Map profiles to user_id for quicker lookup
@@ -122,6 +126,7 @@ const SubscriptionsTab = () => {
     } catch (error) {
       console.error("Error fetching subscriptions:", error);
       toast.error("Erro ao carregar adesões");
+      setError("Erro ao carregar adesões");
       setSubscriptions([]);
     } finally {
       setLoading(false);
@@ -134,12 +139,14 @@ const SubscriptionsTab = () => {
 
   const handleRenewSubscription = async (userId: string) => {
     try {
+      setError(null);
       await renewSubscription(userId);
       toast.success("Adesão renovada com sucesso");
       loadSubscriptions();
     } catch (error) {
       console.error("Error renewing subscription:", error);
       toast.error("Erro ao renovar adesão");
+      setError("Erro ao renovar adesão");
     }
   };
 
@@ -147,6 +154,7 @@ const SubscriptionsTab = () => {
     if (!selectedSubscription) return;
     
     try {
+      setError(null);
       // Insert payment record
       const { error } = await supabase
         .from('payments')
@@ -158,7 +166,8 @@ const SubscriptionsTab = () => {
             status: paymentStatus,
             payment_method: paymentMethod,
             due_date: selectedSubscription.end_date,
-            payment_date: new Date().toISOString().split('T')[0]
+            payment_date: new Date().toISOString().split('T')[0],
+            notes: `Pagamento ${selectedSubscription.profiles?.plan || 'Mensal'}`
           }
         ]);
         
@@ -178,6 +187,7 @@ const SubscriptionsTab = () => {
     } catch (error) {
       console.error("Error processing payment:", error);
       toast.error("Erro ao processar pagamento");
+      setError("Erro ao processar pagamento");
     }
   };
   
@@ -263,6 +273,13 @@ const SubscriptionsTab = () => {
 
   return (
     <div className="space-y-4">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative">
@@ -286,7 +303,10 @@ const SubscriptionsTab = () => {
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={() => setShowNewDialog(true)}>
+        <Button onClick={() => {
+          setError(null);
+          setShowNewDialog(true);
+        }}>
           <Plus className="w-4 h-4 mr-2" />
           Nova Adesão
         </Button>
@@ -386,6 +406,13 @@ const SubscriptionsTab = () => {
             </DialogDescription>
           </DialogHeader>
           
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="grid gap-4 py-4">
             <div>
               <label className="block text-sm font-medium mb-1">Valor</label>
@@ -393,7 +420,7 @@ const SubscriptionsTab = () => {
                 <span className="absolute left-3 top-2">R$</span>
                 <Input 
                   className="pl-10" 
-                  value={selectedSubscription ? getAmountByPlan(selectedSubscription.profiles?.plan || 'Mensal').toFixed(2) : "0.00"} 
+                  value={selectedSubscription ? getAmountByPlan(selectedSubscription.profiles?.plan || 'Mensal').toFixed(2).replace('.', ',') : "0,00"} 
                   readOnly 
                 />
               </div>

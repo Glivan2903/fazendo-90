@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Plus, Search, Download, Edit, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Plus, Search, Download, Edit, ChevronLeft, ChevronRight, X, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -26,12 +27,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getAmountByPlan } from "@/api/subscriptionApi";
 
 interface Payment {
   id: string;
@@ -46,6 +54,7 @@ interface Payment {
   profiles: {
     name: string;
     email: string;
+    plan?: string;
   } | null;
 }
 
@@ -80,11 +89,12 @@ const FinancesTab = () => {
   const [showNewReceiptDialog, setShowNewReceiptDialog] = useState(false);
   const [showEditPaymentDialog, setShowEditPaymentDialog] = useState(false);
   const [showOnlyActive, setShowOnlyActive] = useState(false);
-  const [users, setUsers] = useState<{id: string, name: string}[]>([]);
+  const [users, setUsers] = useState<{id: string, name: string, plan?: string}[]>([]);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [categories, setCategories] = useState([
-    "Selecione", "Adesões", "Drop-in", "Vendas", "Transferência", 
-    "Patrocinadores", "Aluguel (sublocação)", "Internet (Novidades em breve)"
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [categories] = useState([
+    "Adesões", "Drop-in", "Vendas", "Transferência", 
+    "Patrocinadores", "Aluguel (sublocação)", "Internet"
   ]);
   
   const [newPayment, setNewPayment] = useState<NewPaymentData>({
@@ -117,28 +127,32 @@ const FinancesTab = () => {
 
   const loadUsers = async () => {
     try {
+      setErrorMessage(null);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name')
+        .select('id, name, plan')
         .order('name');
       
       if (error) throw error;
       setUsers(data || []);
     } catch (error) {
       console.error("Error loading users:", error);
+      setErrorMessage("Erro ao carregar usuários");
     }
   };
 
   const loadPayments = async () => {
     try {
       setLoading(true);
+      setErrorMessage(null);
       const { data, error } = await supabase
         .from('payments')
         .select(`
           *,
           profiles:user_id (
             name,
-            email
+            email,
+            plan
           )
         `)
         .order('due_date', { ascending: false });
@@ -159,6 +173,7 @@ const FinancesTab = () => {
     } catch (error) {
       console.error("Error loading payments:", error);
       toast.error("Erro ao carregar pagamentos");
+      setErrorMessage("Erro ao carregar pagamentos");
     } finally {
       setLoading(false);
     }
@@ -185,6 +200,7 @@ const FinancesTab = () => {
 
   const handleUserActivation = async (userId: string) => {
     try {
+      setErrorMessage(null);
       // Atualizar status do usuário para ativo
       const { error } = await supabase
         .from('profiles')
@@ -198,113 +214,116 @@ const FinancesTab = () => {
     } catch (error) {
       console.error("Erro ao ativar usuário:", error);
       toast.error("Erro ao ativar usuário");
+      setErrorMessage("Erro ao ativar usuário");
     }
   };
 
   const handleSavePayment = async () => {
     try {
-      if (!newPayment.client || !newPayment.amount || newPayment.amount === "0,00") {
-        toast.error("Cliente e valor são obrigatórios");
+      setErrorMessage(null);
+      
+      if (!newPayment.client || !newPayment.user_id) {
+        toast.error("Cliente é obrigatório");
+        setErrorMessage("Cliente é obrigatório");
         return;
       }
 
-      const selectedUserId = newPayment.user_id;
-      if (!selectedUserId) {
-        toast.error("Selecione um cliente válido");
+      if (!newPayment.amount || newPayment.amount === "0,00") {
+        toast.error("Valor é obrigatório");
+        setErrorMessage("Valor é obrigatório");
         return;
       }
 
-      // Encontrar a assinatura mais recente do usuário
+      // Find the user's plan
+      const selectedUser = users.find(u => u.id === newPayment.user_id);
+      if (!selectedUser) {
+        toast.error("Usuário não encontrado");
+        setErrorMessage("Usuário não encontrado");
+        return;
+      }
+
+      // Find the most recent subscription for the user
       const { data: subscriptionData, error: subError } = await supabase
         .from('subscriptions')
         .select('id')
-        .eq('user_id', selectedUserId)
+        .eq('user_id', newPayment.user_id)
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
 
-      if (subError) {
-        // Se não encontrar assinatura, criar uma nova
+      let subscriptionId;
+      
+      if (subError || !subscriptionData || subscriptionData.length === 0) {
+        // If no subscription found, create a new one
         const start = new Date();
-        const end = new Date();
-        end.setMonth(end.getMonth() + 1);
+        let end;
+        
+        // Calculate end date based on plan
+        switch (selectedUser.plan) {
+          case 'Trimestral':
+            end = new Date(start);
+            end.setMonth(end.getMonth() + 3);
+            break;
+          case 'Anual':
+            end = new Date(start);
+            end.setMonth(end.getMonth() + 12);
+            break;
+          default: // Mensal
+            end = new Date(start);
+            end.setMonth(end.getMonth() + 1);
+            break;
+        }
         
         const { data: newSub, error: newSubError } = await supabase
           .from('subscriptions')
           .insert([{
-            user_id: selectedUserId,
+            user_id: newPayment.user_id,
             start_date: start.toISOString().split('T')[0],
             end_date: end.toISOString().split('T')[0]
           }])
-          .select()
-          .single();
+          .select();
           
-        if (newSubError) {
+        if (newSubError || !newSub || newSub.length === 0) {
           toast.error("Erro ao criar assinatura para o usuário");
+          setErrorMessage("Erro ao criar assinatura para o usuário");
           return;
         }
         
-        const subscriptionId = newSub.id;
-        
-        // Converter montante para número
-        const amountValue = Number(newPayment.amount.replace(/\./g, '').replace(',', '.'));
-        
-        // Criar novo pagamento
-        const { error: paymentError } = await supabase
-          .from('payments')
-          .insert([{
-            subscription_id: subscriptionId,
-            user_id: selectedUserId,
-            amount: amountValue,
-            payment_date: newPayment.received ? newPayment.payment_date : null,
-            due_date: newPayment.due_date,
-            status: newPayment.received ? 'paid' : 'pending',
-            payment_method: newPayment.payment_method,
-            notes: newPayment.notes
-          }]);
-
-        if (paymentError) throw paymentError;
-        
-        // Se recebido, ativar usuário
-        if (newPayment.received) {
-          await handleUserActivation(selectedUserId);
-        }
-        
-        toast.success("Pagamento registrado com sucesso!");
-        setShowNewReceiptDialog(false);
-        loadPayments();
+        subscriptionId = newSub[0].id;
       } else {
-        // Usar a assinatura existente
-        const subscriptionId = subscriptionData.id;
-        
-        // Converter montante para número
-        const amountValue = Number(newPayment.amount.replace(/\./g, '').replace(',', '.'));
-        
-        // Criar novo pagamento
-        const { error: paymentError } = await supabase
-          .from('payments')
-          .insert([{
-            subscription_id: subscriptionId,
-            user_id: selectedUserId,
-            amount: amountValue,
-            payment_date: newPayment.received ? newPayment.payment_date : null,
-            due_date: newPayment.due_date,
-            status: newPayment.received ? 'paid' : 'pending',
-            payment_method: newPayment.payment_method,
-            notes: newPayment.notes
-          }]);
-
-        if (paymentError) throw paymentError;
-        
-        // Se recebido, ativar usuário
-        if (newPayment.received) {
-          await handleUserActivation(selectedUserId);
-        }
-        
-        toast.success("Pagamento registrado com sucesso!");
-        setShowNewReceiptDialog(false);
-        loadPayments();
+        subscriptionId = subscriptionData[0].id;
       }
+      
+      // Convert amount to number from Brazilian format
+      const amountValue = parseFloat(newPayment.amount.replace(/\./g, '').replace(',', '.'));
+      
+      // Create payment record
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert([{
+          subscription_id: subscriptionId,
+          user_id: newPayment.user_id,
+          amount: amountValue,
+          payment_date: newPayment.received ? newPayment.payment_date : null,
+          due_date: newPayment.due_date,
+          status: newPayment.received ? 'paid' : 'pending',
+          payment_method: newPayment.payment_method,
+          notes: newPayment.notes
+        }]);
+
+      if (paymentError) {
+        toast.error("Erro ao registrar pagamento");
+        setErrorMessage("Erro ao registrar pagamento");
+        return;
+      }
+      
+      // If payment is received, activate the user
+      if (newPayment.received) {
+        await handleUserActivation(newPayment.user_id);
+      }
+      
+      toast.success("Pagamento registrado com sucesso!");
+      setShowNewReceiptDialog(false);
+      loadPayments();
       
       // Reset form
       setNewPayment({
@@ -328,11 +347,13 @@ const FinancesTab = () => {
     } catch (error) {
       console.error("Erro ao registrar pagamento:", error);
       toast.error("Erro ao registrar pagamento");
+      setErrorMessage("Erro ao registrar pagamento");
     }
   };
 
   const handleMarkAsPaid = async (payment: Payment) => {
     try {
+      setErrorMessage(null);
       const { error } = await supabase
         .from('payments')
         .update({ 
@@ -351,6 +372,7 @@ const FinancesTab = () => {
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
       toast.error("Erro ao atualizar pagamento");
+      setErrorMessage("Erro ao atualizar pagamento");
     }
   };
 
@@ -363,6 +385,7 @@ const FinancesTab = () => {
     if (!selectedPayment) return;
     
     try {
+      setErrorMessage(null);
       const { error } = await supabase
         .from('payments')
         .update({
@@ -382,6 +405,7 @@ const FinancesTab = () => {
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
       toast.error("Erro ao atualizar pagamento");
+      setErrorMessage("Erro ao atualizar pagamento");
     }
   };
 
@@ -403,6 +427,13 @@ const FinancesTab = () => {
         </div>
       </div>
 
+      {errorMessage && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{errorMessage}</AlertDescription>
+        </Alert>
+      )}
+
       <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
         <TabsList className="grid grid-cols-4 max-w-md">
           <TabsTrigger value="extrato">Extrato</TabsTrigger>
@@ -413,7 +444,11 @@ const FinancesTab = () => {
         
         <div className="mt-4 flex justify-between">
           <div className="flex gap-2">
-            <Button onClick={() => setShowNewReceiptDialog(true)} className="bg-green-500 hover:bg-green-600 text-white">
+            <Button onClick={() => {
+              setErrorMessage(null);
+              setShowNewReceiptDialog(true);
+            }} 
+            className="bg-green-500 hover:bg-green-600 text-white">
               <Plus className="w-4 h-4 mr-2" />
               Novo recebimento
             </Button>
@@ -570,7 +605,7 @@ const FinancesTab = () => {
                       </TableCell>
                       <TableCell>
                         <Badge className="bg-sky-100 text-sky-800">
-                          Vendas
+                          {payment.notes || "Vendas"}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
@@ -654,7 +689,7 @@ const FinancesTab = () => {
                       </TableCell>
                       <TableCell>
                         <Badge className="bg-sky-100 text-sky-800">
-                          Vendas
+                          {payment.notes || "Vendas"}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-medium">
@@ -710,10 +745,20 @@ const FinancesTab = () => {
             </DialogTitle>
           </DialogHeader>
           
+          {errorMessage && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="grid grid-cols-2 gap-4 pt-2">
             <div className="space-y-2">
               <label className="text-sm font-medium">Categorias</label>
-              <Select value={newPayment.category} onValueChange={(value) => setNewPayment({...newPayment, category: value})}>
+              <Select
+                value={newPayment.category}
+                onValueChange={(value) => setNewPayment({...newPayment, category: value})}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
@@ -740,10 +785,15 @@ const FinancesTab = () => {
                 value={newPayment.user_id || ""}
                 onValueChange={(value) => {
                   const user = users.find(u => u.id === value);
+                  const plan = user?.plan || 'Mensal';
+                  const amount = getAmountByPlan(plan).toFixed(2).replace('.', ',');
+                  
                   setNewPayment({
                     ...newPayment, 
                     user_id: value,
-                    client: user?.name || ""
+                    client: user?.name || "",
+                    amount: amount,
+                    value_to_receive: amount
                   });
                 }}
               >
@@ -760,7 +810,10 @@ const FinancesTab = () => {
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Conta</label>
-              <Select value={newPayment.account} onValueChange={(value) => setNewPayment({...newPayment, account: value})}>
+              <Select
+                value={newPayment.account}
+                onValueChange={(value) => setNewPayment({...newPayment, account: value})}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a conta" />
                 </SelectTrigger>
@@ -798,7 +851,7 @@ const FinancesTab = () => {
                     ...newPayment, 
                     amount: value,
                     value_to_receive: value // Atualizar também o valor a receber
-                  })
+                  });
                 }}
                 placeholder="0,00"
               />
@@ -890,11 +943,6 @@ const FinancesTab = () => {
                     onChange={(e) => setNewPayment({...newPayment, value_to_receive: e.target.value})}
                     placeholder="0,00"
                   />
-                  {parseFloat(newPayment.value_to_receive.replace(',', '.')) === 0 && (
-                    <p className="text-red-500 text-xs">
-                      "Valor" não pode ficar em branco.
-                    </p>
-                  )}
                 </div>
               </>
             )}
@@ -923,24 +971,32 @@ const FinancesTab = () => {
             </DialogTitle>
           </DialogHeader>
           
+          {errorMessage && (
+            <Alert variant="destructive" className="mt-2">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{errorMessage}</AlertDescription>
+            </Alert>
+          )}
+          
           {selectedPayment && (
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Categorias</label>
-                <Select defaultValue="Vendas">
+                <Select defaultValue="Adesões">
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a categoria" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Vendas">Vendas</SelectItem>
-                    <SelectItem value="Adesões">Adesões</SelectItem>
+                    {categories.map((category, index) => (
+                      <SelectItem key={index} value={category}>{category}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               
               <div className="space-y-2">
                 <label className="text-sm font-medium">Descrição</label>
-                <Input defaultValue={`Venda ${selectedPayment.id.substring(0, 4)}`} />
+                <Input defaultValue={`Pagamento ${selectedPayment.id.substring(0, 4)}`} />
               </div>
               
               <div className="space-y-2">
@@ -1042,10 +1098,6 @@ const FinancesTab = () => {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Valor a receber</label>
                 <Input defaultValue={selectedPayment.amount.toFixed(2).replace('.', ',')} />
-              </div>
-              
-              <div className="col-span-2 text-xs text-gray-500 mt-4">
-                Criado em: {selectedPayment.payment_date ? format(new Date(selectedPayment.payment_date), "dd/MM/yyyy HH:mm") : "N/A"} por: Cross Box Fênix
               </div>
             </div>
           )}
