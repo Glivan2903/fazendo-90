@@ -6,13 +6,21 @@ import { ptBR } from "date-fns/locale";
 import { ChevronLeft, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { checkInToClass, cancelCheckIn, fetchClassDetails } from "../api/classApi";
+import { 
+  checkInToClass, 
+  cancelCheckIn, 
+  fetchClassDetails, 
+  checkConflictingCheckins, 
+  changeCheckIn
+} from "../api/classApi";
 import ClassHeader from "../components/ClassHeader";
 import ClassCoachInfo from "../components/ClassCoachInfo";
 import ClassCapacityInfo from "../components/ClassCapacityInfo";
 import ClassCheckInButton from "../components/ClassCheckInButton";
 import AttendeeList from "../components/AttendeeList";
 import LoadingSpinner from "../components/LoadingSpinner";
+import CheckInSuccessModal from "../components/CheckInSuccessModal";
+import ChangeCheckInModal from "../components/ChangeCheckInModal";
 import { ClassDetail as ClassDetailType, Attendee } from "../types";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,14 +33,20 @@ const ClassDetail = () => {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [hasConflict, setHasConflict] = useState(false);
+  const [conflictClassDetails, setConflictClassDetails] = useState<{id: string; name: string; time: string} | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showChangeModal, setShowChangeModal] = useState(false);
   const { user, userRole, signOut } = useAuth();
 
+  // Fetch class details and check for conflicts
   useEffect(() => {
     const fetchDetails = async () => {
       if (!classId) return;
 
       setLoading(true);
       try {
+        // Fetch class details
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
         setClassDetail(details);
         setAttendees(attendeesList);
@@ -43,6 +57,15 @@ const ClassDetail = () => {
             (attendee) => attendee.id === user.id
           );
           setIsCheckedIn(isUserCheckedIn);
+        }
+
+        // Check for conflicting check-ins
+        if (!isCheckedIn && user) {
+          const conflictResult = await checkConflictingCheckins(classId);
+          setHasConflict(conflictResult.hasConflict);
+          if (conflictResult.hasConflict && conflictResult.conflictClass) {
+            setConflictClassDetails(conflictResult.conflictClass);
+          }
         }
       } catch (error) {
         console.error("Error fetching class details:", error);
@@ -64,12 +87,24 @@ const ClassDetail = () => {
 
     setProcessing(true);
     try {
-      const success = await checkInToClass(classId);
-      if (success) {
-        toast.success("Check-in realizado com sucesso!");
+      const result = await checkInToClass(classId);
+      
+      // If we got a conflict result
+      if (result && typeof result === 'object' && result.hasConflict) {
+        setHasConflict(true);
+        if (result.conflictClass) {
+          setConflictClassDetails(result.conflictClass);
+        }
+        setProcessing(false);
+        return;
+      }
+      
+      if (result === true) {
+        setShowSuccessModal(true);
         setIsCheckedIn(true);
+        setHasConflict(false);
         
-        // If successful, refresh attendee list and class details
+        // Refresh attendee list and class details
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
         setClassDetail(details);
         setAttendees(attendeesList);
@@ -94,7 +129,14 @@ const ClassDetail = () => {
         toast.success("Check-in cancelado com sucesso!");
         setIsCheckedIn(false);
         
-        // If successful, refresh attendee list and class details
+        // Also check if there are conflicts after canceling
+        const conflictResult = await checkConflictingCheckins(classId);
+        setHasConflict(conflictResult.hasConflict);
+        if (conflictResult.hasConflict && conflictResult.conflictClass) {
+          setConflictClassDetails(conflictResult.conflictClass);
+        }
+        
+        // Refresh attendee list and class details
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
         setClassDetail(details);
         setAttendees(attendeesList);
@@ -104,6 +146,38 @@ const ClassDetail = () => {
     } catch (error) {
       console.error("Error cancelling check-in:", error);
       toast.error("Erro ao cancelar check-in");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleShowChangeModal = () => {
+    setShowChangeModal(true);
+  };
+
+  const handleConfirmChangeCheckIn = async () => {
+    if (!classId || !conflictClassDetails) return;
+
+    setProcessing(true);
+    try {
+      const success = await changeCheckIn(conflictClassDetails.id, classId);
+      if (success) {
+        setShowChangeModal(false);
+        setShowSuccessModal(true);
+        setIsCheckedIn(true);
+        setHasConflict(false);
+        setConflictClassDetails(null);
+        
+        // Refresh attendee list and class details
+        const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
+        setClassDetail(details);
+        setAttendees(attendeesList);
+      } else {
+        toast.error("Erro ao alterar check-in");
+      }
+    } catch (error) {
+      console.error("Error changing check-in:", error);
+      toast.error("Erro ao alterar check-in");
     } finally {
       setProcessing(false);
     }
@@ -197,12 +271,29 @@ const ClassDetail = () => {
           isCheckedIn={isCheckedIn}
           canCheckIn={canCheckIn}
           processing={processing}
+          hasConflict={hasConflict}
           onCheckIn={handleCheckIn}
           onCancelCheckIn={handleCancelCheckIn}
+          onChangeCheckIn={handleShowChangeModal}
         />
 
         <AttendeeList attendees={attendees} />
       </div>
+      
+      {/* Success Modal */}
+      <CheckInSuccessModal
+        open={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+      />
+      
+      {/* Change Check-in Confirmation Modal */}
+      <ChangeCheckInModal
+        open={showChangeModal}
+        onClose={() => setShowChangeModal(false)}
+        onConfirm={handleConfirmChangeCheckIn}
+        conflictClassName={conflictClassDetails?.name}
+        conflictTime={conflictClassDetails?.time}
+      />
     </div>
   );
 };

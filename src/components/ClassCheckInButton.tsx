@@ -6,16 +6,20 @@ interface ClassCheckInButtonProps {
   isCheckedIn: boolean;
   canCheckIn: boolean;
   processing: boolean;
+  hasConflict: boolean;
   onCheckIn: () => void;
   onCancelCheckIn: () => void;
+  onChangeCheckIn: () => void;
 }
 
 const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
   isCheckedIn,
   canCheckIn,
   processing,
+  hasConflict,
   onCheckIn,
   onCancelCheckIn,
+  onChangeCheckIn,
 }) => {
   return (
     <div className="mb-8">
@@ -28,6 +32,14 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
         >
           {processing ? "Cancelando..." : "Cancelar Check-in"}
         </Button>
+      ) : hasConflict ? (
+        <Button
+          className="w-full py-6 text-base"
+          disabled={processing}
+          onClick={onChangeCheckIn}
+        >
+          {processing ? "Processando..." : "Alterar Check-in"}
+        </Button>
       ) : (
         <Button
           className="w-full py-6 text-base"
@@ -38,7 +50,7 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
         </Button>
       )}
 
-      {!canCheckIn && !isCheckedIn && (
+      {!canCheckIn && !isCheckedIn && !hasConflict && (
         <p className="text-center text-red-500 text-sm mt-2">
           Esta aula está lotada.
         </p>

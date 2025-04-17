@@ -6,13 +6,12 @@ export interface Class {
   coach_id?: string;
   start_time?: string;
   end_time?: string;
+  program_id?: string;
   date?: string;
-  max_capacity?: number;
   created_at?: string;
-  updated_at?: string;
-  users?: User[];
-  coach?: User;
-  // Additional properties being used in the codebase
+  max_capacity?: number;
+  
+  // For frontend display
   startTime: Date;
   endTime: Date;
   programName: string;
@@ -22,30 +21,15 @@ export interface Class {
   attendeeCount: number;
   spotsLeft: number;
   isCheckedIn: boolean;
-  program?: Program;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  avatar_url?: string;
-  avatarUrl?: string; // Alternative property name used in some files
-  box_id?: string;
-  created_at: string;
-  phone?: string;
-  birth_date?: string;
-  // Additional properties being used
-  plan?: string;
-  status?: string;
-}
-
-export interface Program {
-  id: string;
-  name: string;
-  description?: string;
-  color?: string;
+  program?: {
+    id: string;
+    name: string;
+  };
+  coach?: {
+    id: string;
+    name: string;
+    avatar_url?: string;
+  };
 }
 
 export interface ClassDetail {
@@ -70,3 +54,19 @@ export interface Attendee {
   name: string;
   avatarUrl?: string;
 }
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  avatar_url?: string;
+  created_at: string;
+  box_id?: string;
+  plan?: string;
+  status?: string;
+  phone?: string;
+  birth_date?: string;
+}
+
+// Add any other existing types here
