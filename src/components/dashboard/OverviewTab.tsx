@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Class, User } from "@/types";
 import { format, startOfMonth, subMonths } from "date-fns";
@@ -33,7 +32,9 @@ const StatCard = ({ title, value, subtitle, icon, trend }: StatCardProps) => (
       {icon}
     </CardHeader>
     <CardContent>
-      <div className="text-2xl font-bold">{value}</div>
+      <div className="text-2xl font-bold">
+        {typeof value === 'string' || typeof value === 'number' ? value : ''}
+      </div>
       <div className="flex items-center justify-between">
         <p className="text-xs text-muted-foreground">{subtitle}</p>
         {trend && (
@@ -66,13 +67,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ classes, loading }) => {
         const firstDayOfMonth = startOfMonth(currentDate);
         const firstDayOfPrevMonth = startOfMonth(subMonths(currentDate, 1));
         
-        const usersWithCheckIns = activeUsers.filter(u => u.lastCheckInDate && new Date(u.lastCheckInDate) >= firstDayOfMonth);
+        // Only use lastCheckInDate if it exists in our data
+        const usersWithCheckIns = activeUsers.filter(u => 
+          u.lastCheckInDate && new Date(u.lastCheckInDate) >= firstDayOfMonth
+        );
         setActiveStudents(usersWithCheckIns.length);
         
         // Calculate previous month for trend
-        const prevMonthUsers = activeUsers.filter(u => u.registrationDate && 
+        // Only use registrationDate if it exists in our data
+        const prevMonthUsers = activeUsers.filter(u => 
+          u.registrationDate && 
           new Date(u.registrationDate) >= firstDayOfPrevMonth && 
-          new Date(u.registrationDate) < firstDayOfMonth);
+          new Date(u.registrationDate) < firstDayOfMonth
+        );
           
         setPreviousMonthStudents(prevMonthUsers.length);
       } catch (error) {
@@ -113,7 +120,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ classes, loading }) => {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total de Alunos"
-          value={studentsLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : totalStudents}
+          value={studentsLoading ? "..." : totalStudents}
           subtitle={`${studentGrowthPercentage > 0 ? '+' : ''}${studentGrowthPercentage}% em relação ao mês anterior`}
           icon={<Users className="h-4 w-4 text-blue-500" />}
           trend={{

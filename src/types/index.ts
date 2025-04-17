@@ -45,4 +45,6 @@ export interface User {
   status: string;
   phone?: string;
   birth_date?: string;
+  lastCheckInDate?: string; // Add this property
+  registrationDate?: string; // Add this property
 }
