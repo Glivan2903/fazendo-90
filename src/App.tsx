@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import CheckIn from "./pages/CheckIn";
 import ClassDetail from "./pages/ClassDetail";
-import ClassDetailRedirect from "./pages/ClassDetailRedirect";
 import NotFound from "./pages/NotFound";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import Auth from "./pages/Auth";
@@ -15,7 +13,6 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import React from "react";
 import UserProfile from "./pages/UserProfile";
 
-// Create a new QueryClient instance outside of component to ensure it's only created once
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -34,8 +31,11 @@ const App = () => (
             <Toaster />
             <Sonner position="top-center" />
             <Routes>
-              <Route path="/" element={<Navigate to="/check-in" replace />} />
               <Route path="/auth" element={<Auth />} />
+              <Route 
+                path="/" 
+                element={<Navigate to="/check-in" replace />} 
+              />
               <Route 
                 path="/check-in" 
                 element={
@@ -49,14 +49,6 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <ClassDetail />
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/class/:classId/:uuid" 
-                element={
-                  <ProtectedRoute>
-                    <Navigate to="/class/:classId" replace />
                   </ProtectedRoute>
                 } 
               />

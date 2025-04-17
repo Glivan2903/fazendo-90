@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -18,14 +17,17 @@ const Auth: React.FC = () => {
   const [registerPassword, setRegisterPassword] = useState("");
   const navigate = useNavigate();
   
-  const { signIn, signUp, isLoading, user } = useAuth();
+  const { signIn, signUp, isLoading, user, userRole } = useAuth();
 
-  // Redirect to check-in if already logged in
   useEffect(() => {
     if (user) {
-      navigate("/check-in");
+      if (userRole === "admin" || userRole === "coach") {
+        navigate("/teacher-dashboard");
+      } else {
+        navigate("/check-in");
+      }
     }
-  }, [user, navigate]);
+  }, [user, userRole, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
