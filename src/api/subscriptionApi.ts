@@ -8,7 +8,7 @@ export interface Subscription {
   start_date: string;
   end_date: string;
   created_at?: string;
-  user?: {
+  profiles?: {
     name: string;
     email: string;
   };
