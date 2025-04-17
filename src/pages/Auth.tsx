@@ -7,6 +7,8 @@ import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -27,6 +29,17 @@ const Auth = () => {
     }
   };
 
+  const getPlanPrice = () => {
+    switch (plan) {
+      case "Trimestral":
+        return "R$ 270,00";
+      case "Anual":
+        return "R$ 960,00";
+      default: // Mensal
+        return "R$ 100,00";
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
       <Card className="w-full max-w-md p-6 space-y-6 bg-white">
@@ -40,6 +53,16 @@ const Auth = () => {
               : "Preencha os dados para criar sua conta"}
           </p>
         </div>
+
+        {!isLogin && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Importante</AlertTitle>
+            <AlertDescription>
+              Sua conta será ativada somente após confirmação do pagamento da assinatura.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {!isLogin && (
@@ -81,15 +104,15 @@ const Auth = () => {
 
           {!isLogin && (
             <div className="space-y-2">
-              <Label htmlFor="plan">Plano</Label>
+              <Label htmlFor="plan">Plano {getPlanPrice()}</Label>
               <Select value={plan} onValueChange={setPlan}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o plano" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Mensal">Mensal</SelectItem>
-                  <SelectItem value="Trimestral">Trimestral</SelectItem>
-                  <SelectItem value="Anual">Anual</SelectItem>
+                  <SelectItem value="Mensal">Mensal - R$ 100,00</SelectItem>
+                  <SelectItem value="Trimestral">Trimestral - R$ 270,00</SelectItem>
+                  <SelectItem value="Anual">Anual - R$ 960,00</SelectItem>
                 </SelectContent>
               </Select>
             </div>

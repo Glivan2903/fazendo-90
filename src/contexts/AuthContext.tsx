@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { Session, User } from "@supabase/supabase-js";
@@ -12,6 +13,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string, plan: string) => Promise<void>;
   signOut: () => Promise<void>;
+  hasActiveSubscription: boolean;
+  checkSubscriptionStatus: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,38 +24,97 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const navigate = useNavigate();
+
+  // Check if the user has an active subscription
+  const checkSubscriptionStatus = async (userId?: string) => {
+    try {
+      const id = userId || user?.id;
+      if (!id) return false;
+
+      // Check for active subscription with valid payment
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select(`
+          id,
+          end_date,
+          payments (
+            status
+          )
+        `)
+        .eq('user_id', id)
+        .gte('end_date', today)
+        .order('end_date', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error("Error checking subscription:", error);
+        return false;
+      }
+
+      if (!data) {
+        console.log("No active subscription found");
+        return false;
+      }
+
+      // Check if the subscription has at least one payment with status 'paid'
+      const hasPaidPayment = data.payments && 
+        Array.isArray(data.payments) && 
+        data.payments.some(p => p.status === 'paid');
+
+      console.log("Subscription check result:", { 
+        subscriptionId: data.id, 
+        endDate: data.end_date, 
+        hasPaidPayment 
+      });
+
+      setHasActiveSubscription(hasPaidPayment);
+      return hasPaidPayment;
+    } catch (error) {
+      console.error("Exception checking subscription:", error);
+      setHasActiveSubscription(false);
+      return false;
+    }
+  };
 
   useEffect(() => {
     console.log("AuthProvider: Setting up auth listener");
     
     // Set up auth state listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
         console.log("Auth state changed:", event, !!currentSession);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
         
         // Fetch user role after auth state changes, but defer it
         if (currentSession?.user) {
-          setTimeout(() => {
-            fetchUserRole(currentSession.user.id);
+          setTimeout(async () => {
+            await fetchUserRole(currentSession.user.id);
+            // Check subscription status after fetching role
+            await checkSubscriptionStatus(currentSession.user.id);
           }, 0);
         } else {
           setUserRole(null);
+          setHasActiveSubscription(false);
           setIsLoading(false);
         }
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+    supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
       console.log("Initial session check:", !!currentSession);
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       
       if (currentSession?.user) {
-        fetchUserRole(currentSession.user.id);
+        await fetchUserRole(currentSession.user.id);
+        // Check subscription status after initial session check
+        await checkSubscriptionStatus(currentSession.user.id);
       } else {
         setIsLoading(false);
       }
@@ -77,7 +139,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Query the profiles table
       const { data, error } = await supabase
         .from("profiles")
-        .select("role")
+        .select("role, status")
         .eq("id", userId)
         .single();
       
@@ -90,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("User exists in auth, but no profile. Creating profile.");
           
           // Create profile for user with default role
-          const defaultRole = 'admin'; // Temporarily setting as admin for diagnosis
+          const defaultRole = 'student'; // Using student as default role
           
           const { error: insertError } = await supabase
             .from("profiles")
@@ -99,7 +161,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 id: userId,
                 name: authUser.user.user_metadata?.name || 'User',
                 email: authUser.user.email,
-                role: defaultRole
+                role: defaultRole,
+                status: 'Inativo' // Default to inactive until subscription is verified
               }
             ]);
             
@@ -111,8 +174,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } else if (data) {
-        console.log("Profile found, role:", data.role);
+        console.log("Profile found, role:", data.role, "status:", data.status);
         setUserRole(data.role);
+        
+        // If user status is Inativo, force check subscription
+        if (data.status === 'Inativo') {
+          const isActive = await checkSubscriptionStatus(userId);
+          
+          // Update user status if subscription is active
+          if (isActive) {
+            await supabase
+              .from("profiles")
+              .update({ status: 'Ativo' })
+              .eq('id', userId);
+          }
+        }
       }
     } catch (error) {
       console.error("Exception when fetching user role:", error);
@@ -124,9 +200,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signIn = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error, data } = await supabase.auth.signInWithPassword({ email, password });
       
       if (error) throw error;
+      
+      // Check if user has active subscription
+      const isActive = await checkSubscriptionStatus(data.user.id);
+      
+      if (!isActive && data.user.email !== "matheusprograming@gmail.com") {
+        // Automatically log out if subscription is not active
+        await supabase.auth.signOut();
+        toast.error("Sua assinatura não está ativa. Entre em contato com o administrador.");
+        setUser(null);
+        setSession(null);
+        return;
+      }
       
       toast.success("Login realizado com sucesso!");
       navigate("/check-in");
@@ -162,7 +250,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name,
               email,
               role: "student",
-              plan
+              plan,
+              status: 'Ativo' // Initially active when subscription is created
             }
           ]);
           
@@ -225,7 +314,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         signIn,
         signUp,
-        signOut
+        signOut,
+        hasActiveSubscription,
+        checkSubscriptionStatus
       }}
     >
       {children}
