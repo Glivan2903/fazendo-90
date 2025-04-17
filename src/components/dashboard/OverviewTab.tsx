@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Class, User } from "@/types";
 import { format, startOfMonth, subMonths } from "date-fns";
@@ -103,7 +104,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ classes, loading }) => {
   
   const attendanceRate = classes.length > 0 
     ? Math.round((classes.reduce((sum, c) => sum + c.attendeeCount, 0) / 
-        (classes.reduce((sum, c) => sum + c.maxCapacity, 0)) * 100))
+        (classes.reduce((sum, c) => sum + (c.maxCapacity || c.max_capacity), 0)) * 100))
     : 0;
     
   const nextClass = classes.find(c => new Date(c.startTime) > new Date());
@@ -163,7 +164,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ classes, loading }) => {
             {classes.slice(0, 6).map((cls) => {
               const startTime = format(new Date(cls.startTime), "HH:mm", { locale: ptBR });
               const endTime = format(new Date(cls.endTime), "HH:mm", { locale: ptBR });
-              const occupancyRate = Math.round((cls.attendeeCount / cls.maxCapacity) * 100);
+              const occupancyRate = Math.round((cls.attendeeCount / (cls.maxCapacity || cls.max_capacity)) * 100);
               
               return (
                 <div key={cls.id} className="space-y-1">
@@ -172,7 +173,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ classes, loading }) => {
                       <span className="font-medium">{cls.programName}</span>
                       <span className="text-gray-500 text-xs">{startTime} - {endTime}</span>
                     </div>
-                    <span className="text-sm font-medium">{cls.attendeeCount}/{cls.maxCapacity}</span>
+                    <span className="text-sm font-medium">{cls.attendeeCount}/{cls.maxCapacity || cls.max_capacity}</span>
                   </div>
                   <Progress 
                     value={occupancyRate} 
@@ -237,7 +238,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({ classes, loading }) => {
                       </TableCell>
                       <TableCell>{cls.programName}</TableCell>
                       <TableCell>{cls.coachName}</TableCell>
-                      <TableCell>{cls.attendeeCount}/{cls.maxCapacity}</TableCell>
+                      <TableCell>{cls.attendeeCount}/{cls.maxCapacity || cls.max_capacity}</TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs ${statusClass}`}>
                           {status}

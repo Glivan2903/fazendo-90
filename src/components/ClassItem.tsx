@@ -17,7 +17,7 @@ const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
   };
   
   const timeSlot = `${formatTime(classData.startTime)} - ${formatTime(classData.endTime)}`;
-  const isFull = classData.attendeeCount >= classData.maxCapacity;
+  const isFull = classData.attendeeCount >= (classData.maxCapacity || classData.max_capacity);
   const isCheckedIn = classData.isCheckedIn;
   
   const getCoachInitials = () => {
@@ -65,7 +65,7 @@ const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
             "text-sm font-medium",
             isFull ? "text-red-500" : "text-gray-500"
           )}>
-            {classData.attendeeCount}/{classData.maxCapacity}
+            {classData.attendeeCount}/{classData.maxCapacity || classData.max_capacity}
           </div>
           
           {isCheckedIn && (

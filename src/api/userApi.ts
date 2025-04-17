@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { toast } from "sonner";
@@ -117,7 +118,7 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
         email: user.email,
         role: user.role || "student",
         status: user.status || "Ativo",
-        plan: user.plan || "Mensal"
+        plano_id: user.plano_id || null
       }])
       .select('*')
       .single();
@@ -137,8 +138,8 @@ export const createUser = async (user: Partial<User>): Promise<User> => {
       email: data.email || "",
       avatarUrl: data.avatar_url,
       role: data.role,
-      plan: data.plan || "Mensal",
-      status: data.status
+      status: data.status,
+      plano_id: data.plano_id
     };
   } catch (error) {
     console.error("Erro ao criar usuário:", error);

@@ -34,6 +34,11 @@ export type Class = {
   attendeeCount: number;
   spotsLeft: number;
   isCheckedIn: boolean;
+  
+  // Optional properties used in some components
+  program?: { id: string; name: string };
+  coach?: { id: string; name: string; avatar_url?: string };
+  maxCapacity?: number; // Alias for max_capacity for frontend use
 };
 
 export type ClassDetail = {
