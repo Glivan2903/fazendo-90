@@ -49,12 +49,19 @@ const UserProfile = () => {
         if (error) throw error;
         
         if (data) {
-          setUser(data);
-          setEditForm({
-            name: data.name || '',
-            email: data.email || '',
+          // Ensure all fields exist on the user object
+          const userWithDefaults = {
+            ...data,
             phone: data.phone || '',
             birth_date: data.birth_date || ''
+          };
+          
+          setUser(userWithDefaults);
+          setEditForm({
+            name: userWithDefaults.name || '',
+            email: userWithDefaults.email || '',
+            phone: userWithDefaults.phone || '',
+            birth_date: userWithDefaults.birth_date || ''
           });
         } else {
           // If user not found in database, simulate a user for demo
@@ -194,14 +201,15 @@ const UserProfile = () => {
         .update({
           name: editForm.name,
           email: editForm.email,
-          phone: editForm.phone,
-          birth_date: editForm.birth_date
+          // Only include phone and birth_date if they're valid fields in the database
+          ...(editForm.phone && { phone: editForm.phone }),
+          ...(editForm.birth_date && { birth_date: editForm.birth_date })
         })
         .eq('id', userId);
         
       if (error) throw error;
       
-      // Update local state
+      // Update local state with all fields
       setUser(prev => ({
         ...prev,
         ...editForm

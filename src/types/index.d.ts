@@ -1,3 +1,4 @@
+
 export interface Class {
   id: string;
   startTime: Date;
@@ -42,4 +43,6 @@ export interface User {
   avatar_url?: string;
   status: string;
   plan?: string;
+  phone?: string;
+  birth_date?: string;
 }

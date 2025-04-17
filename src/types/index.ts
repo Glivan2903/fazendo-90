@@ -43,4 +43,6 @@ export interface User {
   role: string;
   plan?: string;
   status: string;
+  phone?: string;
+  birth_date?: string;
 }
