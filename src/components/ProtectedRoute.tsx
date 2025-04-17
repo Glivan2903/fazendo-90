@@ -42,9 +42,34 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
+  // Verificamos se o usuário tem papel admin para permitir acesso direto
+  // Isso evitará problemas enquanto estamos corrigindo o sistema
+  if (userRole === 'admin') {
+    console.log("Acesso permitido para admin em qualquer rota");
+    return <>{children}</>;
+  }
+
   if (allowedRoles && allowedRoles.length > 0 && userRole) {
-    console.log(`Verificando se o papel '${userRole}' está entre os permitidos:`, allowedRoles);
-    if (!allowedRoles.includes(userRole)) {
+    // Lógica de mapeamento para compatibilidade entre formatos de papel antigos e novos
+    const normalizedUserRole = userRole.toLowerCase();
+    const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase());
+    
+    // Mapeamento de equivalências
+    const roleEquivalents: Record<string, string[]> = {
+      'admin': ['admin', 'administrador'],
+      'coach': ['coach', 'professor'],
+      'student': ['student', 'aluno'],
+    };
+    
+    // Verificar se o papel normalizado do usuário está nas funções permitidas
+    const hasDirectAccess = normalizedAllowedRoles.includes(normalizedUserRole);
+    
+    // Verificar se há uma equivalência do papel do usuário que corresponde às funções permitidas
+    const hasEquivalentAccess = Object.entries(roleEquivalents).some(([role, equivalents]) => {
+      return equivalents.includes(normalizedUserRole) && normalizedAllowedRoles.includes(role);
+    });
+    
+    if (!hasDirectAccess && !hasEquivalentAccess) {
       console.log(`Acesso negado: usuário com papel '${userRole}' tentando acessar rota que requer ${allowedRoles.join(', ')}`);
       toast.error("Você não tem permissão para acessar esta página");
       return <Navigate to="/check-in" replace />;

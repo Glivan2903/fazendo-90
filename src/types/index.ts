@@ -12,6 +12,10 @@ export interface User {
   birth_date?: string;  // Added optional birth_date property
   plan?: string;
   status?: string;
+  weight?: number;
+  gender?: string;
+  address?: string;
+  membership_date?: string;
 }
 
 export interface Class {

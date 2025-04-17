@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 
@@ -22,6 +23,10 @@ export const fetchUsers = async (): Promise<User[]> => {
       created_at: profile.created_at,
       phone: profile.phone || undefined,
       birth_date: profile.birth_date || undefined,
+      weight: profile.weight || undefined,
+      gender: profile.gender || undefined,
+      address: profile.address || undefined,
+      membership_date: profile.membership_date || undefined,
       plan: 'Mensal',
       status: profile.role === 'admin' ? 'Ativo' : Math.random() > 0.2 ? 'Ativo' : 'Inativo'
     }));
@@ -54,7 +59,11 @@ export const updateUser = async (user: User): Promise<User> => {
         avatar_url: user.avatarUrl,
         role: user.role,
         phone: user.phone,
-        birth_date: user.birth_date
+        birth_date: user.birth_date,
+        weight: user.weight,
+        gender: user.gender,
+        address: user.address,
+        membership_date: user.membership_date
       })
       .eq('id', user.id)
       .select()
@@ -74,6 +83,10 @@ export const updateUser = async (user: User): Promise<User> => {
       created_at: data.created_at,
       phone: data.phone,
       birth_date: data.birth_date,
+      weight: data.weight,
+      gender: data.gender,
+      address: data.address,
+      membership_date: data.membership_date,
       plan: user.plan,
       status: user.status
     };
