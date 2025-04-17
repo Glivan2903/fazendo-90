@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -75,6 +76,28 @@ const ClassDetail = () => {
     } catch (error) {
       console.error("Error checking in:", error);
       toast.error("Erro ao realizar check-in");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  // Add the missing handleCancelCheckIn function
+  const handleCancelCheckIn = async () => {
+    if (!classId) return;
+
+    setProcessing(true);
+    try {
+      const success = await cancelCheckIn(classId);
+      if (success) {
+        setIsCheckedIn(false);
+        const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
+        setClassDetail(details);
+        setAttendees(attendeesList);
+        toast.success("Check-in cancelado com sucesso");
+      }
+    } catch (error) {
+      console.error("Error canceling check-in:", error);
+      toast.error("Erro ao cancelar check-in");
     } finally {
       setProcessing(false);
     }
