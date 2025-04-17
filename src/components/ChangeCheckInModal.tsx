@@ -22,28 +22,33 @@ const ChangeCheckInModal: React.FC<ChangeCheckInModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
-        <div className="flex flex-col items-center justify-center py-6">
-          <div className="rounded-full bg-yellow-100 p-3 mb-4">
-            <AlertTriangle className="h-10 w-10 text-yellow-600" />
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="rounded-full bg-amber-100 p-4 mb-6">
+            <AlertTriangle className="h-12 w-12 text-amber-600" />
           </div>
           
           <DialogHeader className="text-center">
-            <h3 className="text-xl font-bold">Alterar check-in</h3>
-            <p className="text-gray-600 mt-2">
-              Você tem certeza que deseja alterar o check-in? 
+            <h3 className="text-2xl font-bold mb-2">Alterar check-in</h3>
+            <div className="text-gray-600 mt-2 space-y-2">
+              <p className="text-lg">
+                Você tem certeza que deseja alterar o check-in?
+              </p>
               {conflictTime && (
-                <span className="block mt-1 text-sm font-medium">
-                  Você já possui check-in em {conflictClassName} às {conflictTime}
-                </span>
+                <p className="text-base font-medium text-amber-700 bg-amber-50 py-2 px-4 rounded-md">
+                  Você já possui check-in em <span className="font-bold">{conflictClassName}</span> às <span className="font-bold">{conflictTime}</span>
+                </p>
               )}
-            </p>
+              <p className="text-sm mt-2">
+                Seu check-in atual será cancelado automaticamente.
+              </p>
+            </div>
           </DialogHeader>
           
-          <DialogFooter className="mt-6 w-full flex justify-between gap-4">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+          <DialogFooter className="mt-8 w-full flex justify-between gap-4">
+            <Button variant="outline" onClick={onClose} className="flex-1 py-2">
               CANCELAR
             </Button>
-            <Button onClick={onConfirm} className="flex-1">
+            <Button onClick={onConfirm} className="flex-1 bg-blue-600 hover:bg-blue-700 py-2">
               CONFIRMAR
             </Button>
           </DialogFooter>
