@@ -275,7 +275,7 @@ const fetchMockClassDetails = async (classId: string): Promise<{classDetail: Cla
   }
 };
 
-export const checkInToClass = async (classId: string): Promise<boolean> => {
+export const checkInToClass = async (classId: string): Promise<boolean | string> => {
   try {
     console.log("Realizando check-in para a aula:", classId);
     
@@ -303,6 +303,7 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       .from('checkins')
       .select(`
         id,
+        class_id,
         classes!inner (
           id,
           date,
@@ -319,20 +320,14 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       return false;
     }
 
-    const hasConflict = existingCheckins?.some(checkin => {
-      const existingClass = checkin.classes;
-      if (existingClass.id === classId) return false;
-      
-      const newStart = new Date(`${classData.date}T${classData.start_time}`);
-      const newEnd = new Date(`${classData.date}T${classData.end_time}`);
-      const existingStart = new Date(`${existingClass.date}T${existingClass.start_time}`);
-      const existingEnd = new Date(`${existingClass.date}T${existingClass.end_time}`);
+    const existingCheckIn = existingCheckins?.find(checkin => checkin.class_id === classId);
+    if (existingCheckIn) {
+      return true;
+    }
 
-      return (newStart < existingEnd && newEnd > existingStart);
-    });
-
-    if (hasConflict) {
-      return false;
+    const conflictingCheckIn = existingCheckins?.find(checkin => checkin.class_id !== classId);
+    if (conflictingCheckIn) {
+      return conflictingCheckIn.class_id;
     }
 
     const { data: checkins } = await supabase
@@ -363,7 +358,6 @@ export const checkInToClass = async (classId: string): Promise<boolean> => {
       return false;
     }
 
-    toast.success("Check-in realizado com sucesso!");
     return true;
   } catch (error) {
     console.error("Exception during check-in:", error);

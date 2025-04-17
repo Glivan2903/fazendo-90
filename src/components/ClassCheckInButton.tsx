@@ -41,10 +41,10 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
           <Button 
             variant="outline" 
             className="w-full py-6 text-base border-gray-300"
-            onClick={onCheckIn}
+            onClick={onCancelCheckIn}
             disabled={processing}
           >
-            Alterar Check-in
+            {processing ? "Cancelando..." : "Cancelar Check-in"}
           </Button>
         ) : (
           <Button
@@ -65,7 +65,7 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
             </div>
             <AlertDialogTitle className="text-center">Alterar check-in</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
-              Você tem certeza que deseja alterar o check-in?
+              Você já está inscrito em outra aula neste dia. Deseja cancelar o check-in anterior e confirmar para esta aula?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
