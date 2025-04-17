@@ -66,9 +66,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Fetching user role for:", userId);
       
-      // Abordagem direta de consulta SQL para evitar problemas RLS
+      // Use type assertion for the RPC function
       const { data, error } = await supabase
-        .rpc('get_user_role', { user_id: userId });
+        .rpc('get_user_role', { user_id: userId }) as { data: string | null, error: any };
       
       if (error) {
         console.error("Erro ao buscar papel do usuário via RPC:", error);
@@ -115,7 +115,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } else {
         console.log("Papel obtido via RPC:", data);
-        setUserRole(data);
+        if (typeof data === 'string') {
+          setUserRole(data);
+        } else if (data === null) {
+          setUserRole(null);
+        } else {
+          // Converting unexpected types to string
+          console.warn("Unexpected data type from RPC:", typeof data);
+          setUserRole(String(data));
+        }
       }
     } catch (error) {
       console.error("Exceção ao buscar papel do usuário:", error);
