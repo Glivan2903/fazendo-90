@@ -1,46 +1,38 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
-import { Loader2, Menu } from "lucide-react";
-import { fetchClasses } from "../api/classApi";
-import { fetchUsers, updateUser } from "@/api/userApi";
-import { fetchAttendance } from "@/api/attendanceApi";
-import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import EditUserDialog from "@/components/EditUserDialog";
-import { Class, User } from "../types";
-import { addDays } from "date-fns";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { User } from "../types";
 import { useIsMobile } from "@/hooks/use-mobile";
-import OverviewTab from "@/components/dashboard/OverviewTab";
-import ScheduleTab from "@/components/dashboard/ScheduleTab";
-import ProgramsTab from "@/components/dashboard/ProgramsTab";
-import UsersTab from "@/components/dashboard/UsersTab";
-import AttendanceTab from "@/components/dashboard/AttendanceTab";
+import { updateUser } from "@/api/userApi";
+import { toast } from "sonner";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
-import { Button } from "@/components/ui/button";
+import MobileMenu from "@/components/dashboard/MobileMenu";
+import DashboardContent from "@/components/dashboard/DashboardContent";
+import { useDashboardData } from "@/hooks/useDashboardData";
 
 const TeacherDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
-  const [todayClasses, setTodayClasses] = useState<Class[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<User[]>([]);
-  const [attendance, setAttendance] = useState<any[]>([]);
-  const [scheduleClasses, setScheduleClasses] = useState<Class[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userEditLoading, setUserEditLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [loadingRetries, setLoadingRetries] = useState(0);
   const navigate = useNavigate();
   const { signOut, userRole, user } = useAuth();
   const isMobile = useIsMobile();
   
-  useEffect(() => {
-    console.log("Tentando conectar ao Supabase...");
-  }, []);
+  const {
+    todayClasses,
+    loading,
+    users,
+    attendance,
+    scheduleClasses,
+    setUsers
+  } = useDashboardData(activeTab);
   
-  useEffect(() => {
+  React.useEffect(() => {
     if (!user) {
       navigate("/auth");
       return;
@@ -54,128 +46,6 @@ const TeacherDashboard = () => {
       navigate("/check-in");
     }
   }, [userRole, navigate, user]);
-  
-  const fetchDataWithRetry = async (fetchFunction: Function, errorMessage: string, retryCount: number = 3) => {
-    let retries = 0;
-    
-    while (retries < retryCount) {
-      try {
-        const data = await fetchFunction();
-        return data;
-      } catch (error) {
-        console.error(`Error fetching data (attempt ${retries + 1}/${retryCount}):`, error);
-        retries++;
-        
-        if (retries === retryCount) {
-          toast.error(errorMessage);
-          return [];
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, 1000 * retries));
-      }
-    }
-    
-    return [];
-  };
-  
-  useEffect(() => {
-    const fetchTodayClasses = async () => {
-      setLoading(true);
-      try {
-        const today = new Date();
-        const classes = await fetchDataWithRetry(
-          () => fetchClasses(today), 
-          "Erro ao carregar aulas de hoje"
-        );
-        setTodayClasses(classes);
-      } catch (error) {
-        console.error("Error fetching classes:", error);
-        toast.error("Erro ao carregar aulas de hoje");
-        setTodayClasses([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTodayClasses();
-  }, []);
-  
-  useEffect(() => {
-    if (activeTab === "schedule") {
-      const fetchWeeklySchedule = async () => {
-        setLoading(true);
-        try {
-          const today = new Date();
-          let allClasses: Class[] = [];
-          
-          for (let i = 0; i < 7; i++) {
-            const date = addDays(today, i);
-            const classes = await fetchClasses(date);
-            allClasses = [...allClasses, ...classes];
-          }
-          
-          setScheduleClasses(allClasses);
-        } catch (error) {
-          console.error("Error fetching weekly schedule:", error);
-          toast.error("Erro ao carregar grade horária");
-          setScheduleClasses([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      fetchWeeklySchedule();
-    }
-  }, [activeTab]);
-  
-  useEffect(() => {
-    if (activeTab === "users") {
-      const loadUsers = async () => {
-        setLoading(true);
-        try {
-          console.log("Carregando usuários do Supabase");
-          const userData = await fetchUsers();
-          console.log("Usuários carregados:", userData);
-          setUsers(userData);
-          if (userData.length > 0) {
-            setLoadingRetries(0);
-          } else if (loadingRetries < 3) {
-            setLoadingRetries(prev => prev + 1);
-            setTimeout(() => loadUsers(), 1000);
-          }
-        } catch (error) {
-          console.error("Error fetching users:", error);
-          toast.error("Erro ao carregar usuários");
-          setUsers([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      loadUsers();
-    }
-  }, [activeTab, loadingRetries]);
-  
-  useEffect(() => {
-    if (activeTab === "attendance") {
-      const loadAttendance = async () => {
-        setLoading(true);
-        try {
-          const attendanceData = await fetchAttendance();
-          console.log("Dados de presença carregados:", attendanceData);
-          setAttendance(attendanceData);
-        } catch (error) {
-          console.error("Error fetching attendance:", error);
-          toast.error("Erro ao carregar dados de presença");
-          setAttendance([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-      
-      loadAttendance();
-    }
-  }, [activeTab]);
   
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
@@ -199,26 +69,6 @@ const TeacherDashboard = () => {
     }
   };
   
-  const MobileMenu = () => (
-    <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden">
-          <Menu />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-[240px] p-0">
-        <DashboardSidebar 
-          activeTab={activeTab} 
-          setActiveTab={(tab) => {
-            setActiveTab(tab);
-            setMenuOpen(false);
-          }}
-          signOut={signOut}
-        />
-      </SheetContent>
-    </Sheet>
-  );
-  
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-gray-50">
@@ -232,7 +82,15 @@ const TeacherDashboard = () => {
         
         <main className="flex-1 overflow-auto">
           <div className="flex items-center p-4 border-b bg-white">
-            {isMobile && <MobileMenu />}
+            {isMobile && (
+              <MobileMenu
+                menuOpen={menuOpen}
+                setMenuOpen={setMenuOpen}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                signOut={signOut}
+              />
+            )}
             <h1 className="text-xl font-bold ml-2">
               {activeTab === "overview" && "Visão Geral"}
               {activeTab === "schedule" && "Grade Horária"}
@@ -243,31 +101,15 @@ const TeacherDashboard = () => {
           </div>
           
           <div className="p-4">
-            {loading && activeTab !== "overview" && (
-              <div className="flex justify-center items-center h-64">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-              </div>
-            )}
-            
-            {activeTab === "overview" && (
-              <OverviewTab classes={todayClasses} loading={loading} />
-            )}
-            
-            {activeTab === "schedule" && !loading && (
-              <ScheduleTab classes={scheduleClasses} />
-            )}
-
-            {activeTab === "programs" && (
-              <ProgramsTab />
-            )}
-            
-            {activeTab === "users" && !loading && (
-              <UsersTab users={users} onEditUser={handleEditUser} />
-            )}
-            
-            {activeTab === "attendance" && !loading && (
-              <AttendanceTab attendanceData={attendance} />
-            )}
+            <DashboardContent
+              activeTab={activeTab}
+              loading={loading}
+              todayClasses={todayClasses}
+              scheduleClasses={scheduleClasses}
+              users={users}
+              attendance={attendance}
+              onEditUser={handleEditUser}
+            />
           </div>
         </main>
         
