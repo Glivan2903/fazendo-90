@@ -1,4 +1,5 @@
 
+// Export the CheckInResult type for the application
 export type CheckInResult = 
   | boolean 
   | { 

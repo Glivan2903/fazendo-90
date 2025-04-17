@@ -8,6 +8,6 @@ export {
   checkInToClass, 
   cancelCheckIn, 
   checkConflictingCheckins, 
-  changeCheckIn,
-  CheckInResult 
+  changeCheckIn 
 } from './checkinApi';
+export type { CheckInResult } from './checkinApi';
