@@ -66,69 +66,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Fetching user role for:", userId);
       
-      // Use a more generic approach with a cast to avoid TypeScript errors
-      const { data, error } = await supabase.rpc(
-        'get_user_role', 
-        { user_id: userId }
-      ) as unknown as { data: string | null, error: any };
+      // Instead of using RPC, directly query the profiles table
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .single();
       
       if (error) {
-        console.error("Erro ao buscar papel do usuário via RPC:", error);
+        console.error("Error fetching user role:", error);
         
-        // Fallback para consulta direta à tabela profiles
-        const { data: profileData, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", userId)
-          .single();
-        
-        if (profileError) {
-          console.error("Erro ao buscar perfil do usuário:", profileError);
+        // Verify if the user exists but doesn't have a profile
+        const { data: authUser } = await supabase.auth.getUser();
+        if (authUser?.user) {
+          console.log("User exists in auth, but no profile. Creating profile.");
           
-          // Verificar se o usuário existe mas não tem perfil
-          const { data: authUser } = await supabase.auth.getUser();
-          if (authUser?.user) {
-            console.log("Usuário existe na auth, mas sem perfil. Criando perfil.");
+          // Create profile for user with default role
+          const defaultRole = 'admin'; // Temporarily setting as admin for diagnosis
+          
+          const { error: insertError } = await supabase
+            .from("profiles")
+            .insert([
+              {
+                id: userId,
+                name: authUser.user.user_metadata?.name || 'User',
+                email: authUser.user.email,
+                role: defaultRole
+              }
+            ]);
             
-            // Criar perfil para o usuário com role padrão
-            const defaultRole = 'admin'; // Temporariamente definindo como admin para diagnóstico
-            
-            const { error: insertError } = await supabase
-              .from("profiles")
-              .insert([
-                {
-                  id: userId,
-                  name: authUser.user.user_metadata?.name || 'Usuário',
-                  email: authUser.user.email,
-                  role: defaultRole
-                }
-              ]);
-              
-            if (insertError) {
-              console.error("Erro ao criar perfil do usuário:", insertError);
-            } else {
-              console.log(`Perfil criado com sucesso como '${defaultRole}'`);
-              setUserRole(defaultRole);
-            }
+          if (insertError) {
+            console.error("Error creating user profile:", insertError);
+          } else {
+            console.log(`Profile created successfully with role '${defaultRole}'`);
+            setUserRole(defaultRole);
           }
-        } else if (profileData) {
-          console.log("Perfil encontrado, papel:", profileData.role);
-          setUserRole(profileData.role);
         }
-      } else {
-        console.log("Papel obtido via RPC:", data);
-        if (typeof data === 'string') {
-          setUserRole(data);
-        } else if (data === null) {
-          setUserRole(null);
-        } else {
-          // Converting unexpected types to string
-          console.warn("Unexpected data type from RPC:", typeof data);
-          setUserRole(String(data));
-        }
+      } else if (data) {
+        console.log("Profile found, role:", data.role);
+        setUserRole(data.role);
       }
     } catch (error) {
-      console.error("Exceção ao buscar papel do usuário:", error);
+      console.error("Exception when fetching user role:", error);
     } finally {
       setIsLoading(false);
     }
@@ -174,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               id: data.user.id,
               name,
               email,
-              role: "admin" // Temporariamente definindo todos novos usuários como admin
+              role: "admin" // Temporarily setting all new users as admin
             }
           ]);
           
