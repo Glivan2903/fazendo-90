@@ -23,6 +23,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       allowedRoles,
       path: location.pathname
     });
+    
+    if (user && !userRole && !isLoading) {
+      console.warn("Usuário autenticado mas sem papel definido!");
+    }
   }, [user, userRole, isLoading, allowedRoles, location]);
 
   if (isLoading) {
@@ -33,41 +37,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     );
   }
 
-  // Se não houver usuário autenticado, redirecionar para login
   if (!user) {
     console.log("Usuário não autenticado, redirecionando para /auth");
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Admin sempre tem acesso a todas as rotas
-  if (userRole === 'admin') {
-    console.log("Acesso permitido para admin em qualquer rota");
-    return <>{children}</>;
-  }
-
-  // Se papéis específicos são necessários, verificar permissões
   if (allowedRoles && allowedRoles.length > 0 && userRole) {
-    // Normalizar papéis para comparação sem distinção entre maiúsculas/minúsculas
-    const normalizedUserRole = userRole.toLowerCase();
-    const normalizedAllowedRoles = allowedRoles.map(role => role.toLowerCase());
-    
-    // Mapeamento de equivalência de papéis para compatibilidade retroativa
-    const roleEquivalents: Record<string, string[]> = {
-      'admin': ['admin', 'administrador'],
-      'coach': ['coach', 'professor'],
-      'student': ['student', 'aluno'],
-    };
-    
-    // Verificar se o papel do usuário é diretamente permitido
-    const hasDirectAccess = normalizedAllowedRoles.includes(normalizedUserRole);
-    
-    // Verificar se o papel do usuário tem um equivalente que é permitido
-    const hasEquivalentAccess = Object.entries(roleEquivalents).some(([role, equivalents]) => {
-      return equivalents.includes(normalizedUserRole) && normalizedAllowedRoles.includes(role);
-    });
-    
-    // Negar acesso se nem acesso direto nem equivalente for concedido
-    if (!hasDirectAccess && !hasEquivalentAccess) {
+    console.log(`Verificando se o papel '${userRole}' está entre os permitidos:`, allowedRoles);
+    if (!allowedRoles.includes(userRole)) {
       console.log(`Acesso negado: usuário com papel '${userRole}' tentando acessar rota que requer ${allowedRoles.join(', ')}`);
       toast.error("Você não tem permissão para acessar esta página");
       return <Navigate to="/check-in" replace />;

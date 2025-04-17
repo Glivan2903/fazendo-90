@@ -1,40 +1,22 @@
 
 import React from "react";
 import { User } from "@/types";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import UserStatusBadge from "./UserStatusBadge";
-import UserRoleBadge from "./UserRoleBadge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
 
 interface UserTableProps {
   users: User[];
   onEditUser: (user: User) => void;
-  onDeleteUser: (userId: string) => void;
-  error?: string;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ users, onEditUser, onDeleteUser, error }) => {
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Erro ao carregar usuários: {error}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (!users || users.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <p className="text-gray-500">Nenhum usuário cadastrado</p>
-      </div>
-    );
-  }
-
+const UserTable = ({ users, onEditUser }: UserTableProps) => {
   return (
     <Table>
       <TableHeader>
@@ -47,36 +29,65 @@ const UserTable: React.FC<UserTableProps> = ({ users, onEditUser, onDeleteUser, 
         </TableRow>
       </TableHeader>
       <TableBody>
-        {users.map((user) => (
-          <TableRow key={user.id}>
-            <TableCell className="font-medium">{user.name}</TableCell>
-            <TableCell>{user.email}</TableCell>
-            <TableCell>
-              <UserRoleBadge role={user.role} />
-            </TableCell>
-            <TableCell>
-              <UserStatusBadge status={user.status} />
-            </TableCell>
-            <TableCell className="text-right">
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  variant="ghost" 
-                  className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                  onClick={() => onEditUser(user)}
+        {users.length > 0 ? (
+          users.map((user) => (
+            <TableRow key={user.id}>
+              <TableCell className="font-medium">{user.name}</TableCell>
+              <TableCell>{user.email}</TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    user.role === "admin"
+                      ? "bg-purple-100 text-purple-800"
+                      : user.role === "coach"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-green-100 text-green-800"
+                  }`}
                 >
-                  Editar
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="h-8 text-red-600 hover:text-red-800 hover:bg-red-50"
-                  onClick={() => onDeleteUser(user.id)}
+                  {user.role === "admin"
+                    ? "Administrador"
+                    : user.role === "coach"
+                    ? "Professor"
+                    : "Aluno"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span
+                  className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    user.status === "Ativo"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-gray-100 text-gray-800"
+                  }`}
                 >
-                  Excluir
-                </Button>
-              </div>
+                  {user.status}
+                </span>
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="ghost"
+                    className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                    onClick={() => onEditUser(user)}
+                  >
+                    Editar
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="h-8 text-red-600 hover:text-red-800 hover:bg-red-50"
+                  >
+                    Excluir
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))
+        ) : (
+          <TableRow>
+            <TableCell colSpan={5} className="text-center py-6">
+              Nenhum usuário encontrado
             </TableCell>
           </TableRow>
-        ))}
+        )}
       </TableBody>
     </Table>
   );
