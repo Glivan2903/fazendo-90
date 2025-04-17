@@ -35,15 +35,21 @@ const TeacherDashboard = () => {
   const [userEditLoading, setUserEditLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { signOut, userRole } = useAuth();
+  const { signOut, userRole, user } = useAuth();
   const isMobile = useIsMobile();
   
   useEffect(() => {
+    // Redirect if not admin or coach
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    
     if (userRole !== "admin" && userRole !== "coach") {
       toast.error("Você não tem permissão para acessar essa página");
       navigate("/check-in");
     }
-  }, [userRole, navigate]);
+  }, [userRole, navigate, user]);
   
   useEffect(() => {
     const fetchTodayClasses = async () => {
@@ -96,13 +102,7 @@ const TeacherDashboard = () => {
         setLoading(true);
         try {
           const userData = await fetchUsers();
-          const updatedUsers = userData.map(user => ({
-            ...user,
-            role: user.role === "Aluno" ? "student" : 
-                 user.role === "Professor" ? "coach" : 
-                 user.role === "Admin" ? "admin" : user.role
-          }));
-          setUsers(updatedUsers);
+          setUsers(userData);
         } catch (error) {
           console.error("Error fetching users:", error);
           toast.error("Erro ao carregar usuários");
@@ -144,11 +144,7 @@ const TeacherDashboard = () => {
     
     setUserEditLoading(true);
     try {
-      const apiUserData = {
-        ...userData
-      };
-      
-      await updateUser(apiUserData);
+      await updateUser(userData);
       setUsers(users.map(u => u.id === userData.id ? userData : u));
       toast.success("Usuário atualizado com sucesso!");
       setIsDialogOpen(false);

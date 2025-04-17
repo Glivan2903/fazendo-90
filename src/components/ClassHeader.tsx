@@ -14,11 +14,12 @@ interface ClassHeaderProps {
 const ClassHeader: React.FC<ClassHeaderProps> = ({ classData, className }) => {
   const navigate = useNavigate();
   
-  const formattedDate = format(classData.startTime, "d 'de' MMMM", {
+  const formattedDate = format(new Date(classData.startTime), "d 'de' MMMM", {
     locale: ptBR,
   });
-  const startTimeFormatted = format(classData.startTime, "HH:mm");
-  const endTimeFormatted = format(classData.endTime, "HH:mm");
+  
+  const startTimeFormatted = format(new Date(classData.startTime), "HH:mm");
+  const endTimeFormatted = format(new Date(classData.endTime), "HH:mm");
 
   return (
     <header className={`py-4 ${className || ''}`}>

@@ -13,7 +13,7 @@ const ClassCoachInfo: React.FC<ClassCoachInfoProps> = ({ classData, className })
   return (
     <div className={`mb-4 ${className || ''}`}>
       <h2 className="text-sm font-medium text-gray-500 mb-2">Professor</h2>
-      <Link to="/teacher-dashboard" className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors">
+      <Link to={`/profile/${classData.coach.id}`} className="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-md transition-colors">
         <Avatar
           url={classData.coach.avatarUrl}
           name={classData.coach.name}

@@ -29,10 +29,10 @@ const UserStats = ({ stats }: UserStatsProps) => {
         <CardTitle>Estatísticas</CardTitle>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-4">
-        <StatBlock value={stats.checkinsThisMonth} label="Check-ins este mês" />
-        <StatBlock value={`${stats.attendanceRate}%`} label="Taxa de Frequência" />
-        <StatBlock value={stats.workoutsPerWeek} label="Treinos por semana" />
-        <StatBlock value={stats.totalCheckins} label="Total de check-ins" />
+        <StatBlock value={stats.checkinsThisMonth || 0} label="Check-ins este mês" />
+        <StatBlock value={`${stats.attendanceRate || 0}%`} label="Taxa de Frequência" />
+        <StatBlock value={stats.workoutsPerWeek || 0} label="Treinos por semana" />
+        <StatBlock value={stats.totalCheckins || 0} label="Total de check-ins" />
       </CardContent>
     </Card>
   );

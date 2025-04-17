@@ -3,9 +3,9 @@ import { Mail, Phone, Calendar } from "lucide-react";
 
 interface UserInfoProps {
   email: string;
-  phone: string;
-  birthDate: string;
-  formatDate: (date: string) => string;
+  phone: string | null;
+  birthDate: string | null;
+  formatDate: (date: string | null) => string;
 }
 
 const UserInfo = ({ email, phone, birthDate, formatDate }: UserInfoProps) => {
@@ -23,7 +23,7 @@ const UserInfo = ({ email, phone, birthDate, formatDate }: UserInfoProps) => {
         <Phone className="h-5 w-5 text-gray-500 mr-4" />
         <div>
           <div className="text-sm text-gray-500">Telefone</div>
-          <div>{phone}</div>
+          <div>{phone || "Não informado"}</div>
         </div>
       </div>
       
@@ -31,7 +31,7 @@ const UserInfo = ({ email, phone, birthDate, formatDate }: UserInfoProps) => {
         <Calendar className="h-5 w-5 text-gray-500 mr-4" />
         <div>
           <div className="text-sm text-gray-500">Data de Nascimento</div>
-          <div>{formatDate(birthDate)}</div>
+          <div>{birthDate ? formatDate(birthDate) : "Não informada"}</div>
         </div>
       </div>
     </div>

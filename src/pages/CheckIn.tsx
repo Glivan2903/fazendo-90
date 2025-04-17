@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,11 +9,36 @@ import DashboardTab from "../components/tabs/DashboardTab";
 import ClassesTab from "../components/tabs/ClassesTab";
 import TrainingTab from "../components/tabs/TrainingTab";
 import ProfileTab from "../components/tabs/ProfileTab";
+import { fetchClasses } from "@/api/classApi";
+import { Class } from "@/types";
+import { toast } from "sonner";
 
 const CheckIn = () => {
   const [activeTab, setActiveTab] = useState("aulas");
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
+  
+  useEffect(() => {
+    const loadTodayClasses = async () => {
+      if (activeTab === "inicio") {
+        setLoading(true);
+        try {
+          const today = new Date();
+          const fetchedClasses = await fetchClasses(today);
+          setClasses(fetchedClasses);
+        } catch (error) {
+          console.error("Error fetching today's classes:", error);
+          toast.error("Erro ao carregar aulas de hoje");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    loadTodayClasses();
+  }, [activeTab]);
   
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -22,6 +47,11 @@ const CheckIn = () => {
   const handleClassClick = (classId: string) => {
     navigate(`/class/${classId}`);
   };
+  
+  if (!user) {
+    navigate("/auth");
+    return null;
+  }
   
   return (
     <div className="max-w-md mx-auto px-4 pb-20">
@@ -34,7 +64,7 @@ const CheckIn = () => {
       <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsContent value="inicio">
           <DashboardTab 
-            classes={[]} // This will be populated in ClassesTab and passed here
+            classes={classes}
             onTabChange={handleTabChange}
             onClassClick={handleClassClick}
           />

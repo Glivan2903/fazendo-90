@@ -7,6 +7,7 @@ import ClassItem from "../ClassItem";
 import LoadingSpinner from "../LoadingSpinner";
 import { Class } from "@/types";
 import { fetchClasses } from "@/api/classApi";
+import { toast } from "sonner";
 
 interface ClassesTabProps {
   onClassClick: (classId: string) => void;
@@ -31,6 +32,7 @@ const ClassesTab: React.FC<ClassesTabProps> = ({ onClassClick }) => {
         setClasses(validClasses);
       } catch (error) {
         console.error("Error fetching classes:", error);
+        toast.error("Erro ao carregar aulas");
       } finally {
         setLoading(false);
       }
@@ -56,7 +58,9 @@ const ClassesTab: React.FC<ClassesTabProps> = ({ onClassClick }) => {
       
       <div className="space-y-4">
         {loading ? (
-          <LoadingSpinner />
+          <div className="flex justify-center items-center py-12">
+            <LoadingSpinner />
+          </div>
         ) : classes.length > 0 ? (
           classes.map(cls => (
             <ClassItem key={cls.id} classData={cls} onClick={() => onClassClick(cls.id)} />
