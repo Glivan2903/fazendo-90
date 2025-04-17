@@ -1,7 +1,7 @@
 
 import React from "react";
 import { format } from "date-fns";
-import { CheckCircle, User } from "lucide-react";
+import { CheckCircle, User, MapPin } from "lucide-react";
 import { Class } from "../types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -38,16 +38,25 @@ const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
       onClick={onClick}
     >
       <div className="flex items-center justify-between">
-        <div>
-          <div className="text-lg font-bold">{timeSlot}</div>
-          <div className="text-gray-700">{classData.programName}</div>
+        <div className="flex-1">
+          <div className="flex items-center">
+            <div className="h-2 w-2 rounded-full bg-red-500 mr-2"></div>
+            <div className="text-lg font-bold">{timeSlot}</div>
+          </div>
           
-          <div className="flex items-center mt-1">
-            <Avatar className="h-6 w-6 mr-2">
+          <div className="text-gray-700 font-medium mt-1">{classData.programName}</div>
+          
+          <div className="flex items-center mt-2 text-gray-600">
+            <Avatar className="h-5 w-5 mr-2">
               <AvatarImage src={classData.coachAvatar} />
-              <AvatarFallback>{getCoachInitials()}</AvatarFallback>
+              <AvatarFallback className="text-xs">{getCoachInitials()}</AvatarFallback>
             </Avatar>
-            <span className="text-sm text-gray-600">{classData.coachName}</span>
+            <span className="text-sm">{classData.coachName}</span>
+          </div>
+          
+          <div className="flex items-center mt-1 text-gray-600">
+            <MapPin className="h-4 w-4 mr-1" />
+            <span className="text-xs">Cross Box Fênix</span>
           </div>
         </div>
         
@@ -56,19 +65,24 @@ const ClassItem: React.FC<ClassItemProps> = ({ classData, onClick }) => {
             "text-sm font-medium",
             isFull ? "text-red-500" : "text-gray-500"
           )}>
-            {classData.attendeeCount}/{classData.maxCapacity} vagas
+            {classData.attendeeCount}/{classData.maxCapacity}
           </div>
           
           {isCheckedIn && (
             <div className="flex items-center justify-end text-green-600 mt-2">
-              <CheckCircle className="h-5 w-5 mr-1" />
-              <span className="text-sm">Check-in feito</span>
+              <CheckCircle className="h-5 w-5" />
             </div>
           )}
           
           {isFull && !isCheckedIn && (
-            <div className="text-red-500 text-sm font-medium mt-2">
+            <div className="mt-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full whitespace-nowrap">
               Lotado
+            </div>
+          )}
+          
+          {!isFull && !isCheckedIn && (
+            <div className="mt-2 px-2 py-1 bg-blue-100 text-blue-600 text-xs rounded-full whitespace-nowrap">
+              Check-in
             </div>
           )}
         </div>

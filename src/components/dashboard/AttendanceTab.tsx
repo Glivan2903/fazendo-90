@@ -12,8 +12,16 @@ import { toast } from "sonner";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Eye } from "lucide-react";
+import { CalendarIcon, Eye, CheckCircle, XCircle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription
+} from "@/components/ui/dialog";
 
 interface AttendanceTabProps {
   attendanceData: any[];
@@ -25,6 +33,10 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
   const [programs, setPrograms] = useState<any[]>([]);
   const [attendanceData, setAttendanceData] = useState<any[]>(initialData);
   const [loading, setLoading] = useState<boolean>(false);
+  const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
+  const [selectedClass, setSelectedClass] = useState<any>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const [attendeesLoading, setAttendeesLoading] = useState<boolean>(false);
   
   useEffect(() => {
     fetchPrograms();
@@ -83,12 +95,15 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
         return {
           id: cls.id,
           date: cls.date,
+          startTime: cls.start_time,
+          endTime: cls.end_time,
           class: `${cls.start_time.substring(0, 5)} - ${cls.programs?.name || 'CrossFit'}`,
           coach: cls.profiles?.name || 'Não atribuído',
           present,
           absent,
           total,
-          rate
+          rate,
+          programName: cls.programs?.name || 'CrossFit'
         };
       });
       
@@ -114,9 +129,55 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
     fetchAttendanceData(selectedDate, value);
   };
   
-  const handleViewDetails = (classId: string) => {
-    // Navigate to class detail page
-    window.open(`/class/${classId}`, '_blank');
+  const handleViewDetails = async (classItem: any) => {
+    setSelectedClass(classItem);
+    setIsDialogOpen(true);
+    await fetchClassAttendees(classItem.id);
+  };
+
+  const fetchClassAttendees = async (classId: string) => {
+    setAttendeesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('checkins')
+        .select(`
+          id,
+          status,
+          profiles!user_id (
+            id,
+            name,
+            avatar_url
+          )
+        `)
+        .eq('class_id', classId);
+
+      if (error) throw error;
+      
+      // Transform data for display
+      const transformedData = (data || []).map(checkin => ({
+        id: checkin.profiles.id,
+        name: checkin.profiles.name,
+        avatarUrl: checkin.profiles.avatar_url,
+        status: checkin.status
+      }));
+      
+      setAttendees(transformedData);
+    } catch (error) {
+      console.error("Erro ao buscar alunos:", error);
+      toast.error("Erro ao buscar alunos");
+      setAttendees([]);
+    } finally {
+      setAttendeesLoading(false);
+    }
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    return name.split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
   };
   
   return (
@@ -196,12 +257,22 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
                       <TableCell>{item.coach}</TableCell>
                       <TableCell>{item.present}</TableCell>
                       <TableCell>{item.absent}</TableCell>
-                      <TableCell>{item.rate}%</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <div className="w-12 bg-gray-200 rounded-full h-2 mr-2">
+                            <div 
+                              className={`h-2 rounded-full ${item.rate > 70 ? 'bg-green-500' : item.rate > 30 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                              style={{ width: `${item.rate}%` }}
+                            />
+                          </div>
+                          <span>{item.rate}%</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Button 
                           size="sm" 
                           variant="ghost"
-                          onClick={() => handleViewDetails(item.id)}
+                          onClick={() => handleViewDetails(item)}
                           className="text-blue-600 hover:text-blue-800"
                         >
                           <Eye className="h-4 w-4 mr-1" />
@@ -222,6 +293,64 @@ const AttendanceTab: React.FC<AttendanceTabProps> = ({ attendanceData: initialDa
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Detalhes da Aula</DialogTitle>
+            <DialogDescription>
+              {selectedClass && (
+                <div className="text-foreground font-medium py-2">
+                  {format(new Date(selectedClass.date), 'dd/MM/yyyy')} • {selectedClass.startTime.substring(0, 5)}-{selectedClass.endTime.substring(0, 5)} • {selectedClass.programName}
+                </div>
+              )}
+            </DialogHeader>
+
+          {attendeesLoading ? (
+            <div className="flex justify-center items-center py-8">
+              <LoadingSpinner />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between bg-blue-50 p-3 rounded-md">
+                <div className="flex items-center">
+                  <User className="h-5 w-5 text-blue-600 mr-2" />
+                  <span className="font-medium">Professor:</span>
+                </div>
+                <span>{selectedClass?.coach}</span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <h3 className="font-medium text-lg">Alunos</h3>
+                <div className="bg-blue-50 px-2 py-1 rounded">
+                  {selectedClass?.present}/{selectedClass?.total} presentes
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                {attendees.length > 0 ? (
+                  attendees.map((attendee) => (
+                    <div key={attendee.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center">
+                        <Avatar className="h-8 w-8 mr-2">
+                          <AvatarImage src={attendee.avatarUrl} />
+                          <AvatarFallback>{getInitials(attendee.name)}</AvatarFallback>
+                        </Avatar>
+                        <span className="font-medium">{attendee.name}</span>
+                      </div>
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-6 text-gray-500">
+                    Nenhum aluno confirmou presença ainda.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
