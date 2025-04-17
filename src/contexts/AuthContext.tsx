@@ -66,7 +66,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Fetching user role for:", userId);
       
-      // Instead of using RPC, directly query the profiles table
+      // Special case for admin email
+      const { data: userEmail } = await supabase.auth.getUser();
+      if (userEmail?.user?.email === "matheusprograming@gmail.com") {
+        console.log("Admin email detected, setting role as admin");
+        setUserRole("admin");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Query the profiles table
       const { data, error } = await supabase
         .from("profiles")
         .select("role")

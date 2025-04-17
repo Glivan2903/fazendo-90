@@ -42,6 +42,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
+  // Special case for admin email
+  const isAdminEmail = user.email === "matheusprograming@gmail.com";
+  if (isAdminEmail) {
+    console.log("Admin email detected, bypassing role check");
+    return <>{children}</>;
+  }
+
   // Verificação de permissão com base no role do usuário
   if (allowedRoles && allowedRoles.length > 0) {
     console.log(`Verificando se o papel '${userRole}' está entre os permitidos:`, allowedRoles);
