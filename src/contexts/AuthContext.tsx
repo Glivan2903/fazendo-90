@@ -66,9 +66,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Fetching user role for:", userId);
       
-      // Use type assertion for the RPC function
-      const { data, error } = await supabase
-        .rpc('get_user_role', { user_id: userId }) as { data: string | null, error: any };
+      // Use a more generic approach with a cast to avoid TypeScript errors
+      const { data, error } = await supabase.rpc(
+        'get_user_role', 
+        { user_id: userId }
+      ) as unknown as { data: string | null, error: any };
       
       if (error) {
         console.error("Erro ao buscar papel do usuário via RPC:", error);
