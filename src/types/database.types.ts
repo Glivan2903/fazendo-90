@@ -43,7 +43,6 @@ export type Tables = {
     avatar_url?: string;
     role: string;
     status: string;
-    plan?: string;
     phone?: string;
     birth_date?: string;
     created_at?: string;
@@ -75,43 +74,5 @@ export type Tables = {
       end_time: string;
       program_id: string;
     };
-  };
-
-  payments: {
-    id: string;
-    subscription_id: string;
-    user_id: string;
-    amount: number;
-    status: string;
-    payment_method?: string;
-    due_date: string;
-    payment_date?: string;
-    notes?: string;
-    created_at?: string;
-    updated_at?: string;
-    profiles?: {
-      id: string;
-      name: string;
-      email: string;
-      plan?: string;
-    };
-  };
-
-  subscriptions: {
-    id: string;
-    user_id: string;
-    start_date: string;
-    end_date: string;
-    created_at?: string;
-    profiles?: {
-      id: string;
-      name: string;
-      email: string;
-      plan?: string;
-    };
-    payments?: Array<{
-      id: string;
-      status: string;
-    }>;
   };
 };

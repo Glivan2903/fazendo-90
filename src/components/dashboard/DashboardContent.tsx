@@ -6,8 +6,6 @@ import ScheduleTab from "./ScheduleTab";
 import ProgramsTab from "./ProgramsTab";
 import UsersTab from "./UsersTab";
 import AttendanceTab from "./AttendanceTab";
-import SubscriptionsTab from "./SubscriptionsTab";
-import FinancesTab from "./FinancesTab";
 import { User } from "@/types";
 
 interface DashboardContentProps {
@@ -29,7 +27,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   attendance,
   onEditUser,
 }) => {
-  if (loading && activeTab !== "overview" && activeTab !== "subscriptions" && activeTab !== "finances") {
+  if (loading && activeTab !== "overview") {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
@@ -48,10 +46,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
       return <UsersTab users={users} onEditUser={onEditUser} />;
     case "attendance":
       return <AttendanceTab attendanceData={attendance} />;
-    case "subscriptions":
-      return <SubscriptionsTab />;
-    case "finances":
-      return <FinancesTab />;
     default:
       return null;
   }
