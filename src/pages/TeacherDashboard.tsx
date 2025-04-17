@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
 import { Loader2, Menu } from "lucide-react";
 import { fetchClasses } from "../api/classApi";
-import { fetchUsers } from "@/api/userApi";
+import { fetchUsers, updateUser } from "@/api/userApi";
 import { fetchAttendance } from "@/api/attendanceApi";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,8 +12,6 @@ import { Class, User } from "../types";
 import { addDays } from "date-fns";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-// Import the component files
 import OverviewTab from "@/components/dashboard/OverviewTab";
 import ScheduleTab from "@/components/dashboard/ScheduleTab";
 import ProgramsTab from "@/components/dashboard/ProgramsTab";
@@ -39,13 +36,11 @@ const TeacherDashboard = () => {
   const { signOut, userRole, user } = useAuth();
   const isMobile = useIsMobile();
   
-  // Log Supabase connection details for debugging
   useEffect(() => {
     console.log("Tentando conectar ao Supabase...");
   }, []);
   
   useEffect(() => {
-    // Redirect if not admin or coach
     if (!user) {
       navigate("/auth");
       return;
@@ -53,7 +48,6 @@ const TeacherDashboard = () => {
     
     console.log("TeacherDashboard: Current user role:", userRole);
     
-    // Verificamos se o userRole está definido e não é admin ou coach
     if (userRole !== null && userRole !== "admin" && userRole !== "coach") {
       console.log(`Usuário com role ${userRole} tentando acessar o dashboard`);
       toast.error("Você não tem permissão para acessar essa página");
@@ -72,13 +66,11 @@ const TeacherDashboard = () => {
         console.error(`Error fetching data (attempt ${retries + 1}/${retryCount}):`, error);
         retries++;
         
-        // Last attempt
         if (retries === retryCount) {
           toast.error(errorMessage);
           return [];
         }
         
-        // Wait before retry (exponential backoff)
         await new Promise(resolve => setTimeout(resolve, 1000 * retries));
       }
     }
@@ -146,10 +138,8 @@ const TeacherDashboard = () => {
           console.log("Usuários carregados:", userData);
           setUsers(userData);
           if (userData.length > 0) {
-            // Reset retries on successful load
             setLoadingRetries(0);
           } else if (loadingRetries < 3) {
-            // Retry if no users found
             setLoadingRetries(prev => prev + 1);
             setTimeout(() => loadUsers(), 1000);
           }
@@ -200,8 +190,10 @@ const TeacherDashboard = () => {
       const updatedUser = await updateUser(userData);
       setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
       setIsDialogOpen(false);
+      toast.success("Usuário atualizado com sucesso!");
     } catch (error) {
       console.error("Error updating user:", error);
+      toast.error("Erro ao atualizar usuário");
     } finally {
       setUserEditLoading(false);
     }
