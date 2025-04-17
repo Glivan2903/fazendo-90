@@ -1,17 +1,19 @@
-
 export interface User {
   id: string;
   name: string;
   email: string;
   role: string;
-  avatar_url?: string;
-  avatarUrl?: string; // Alternative property name used in some files
-  box_id?: string;
+  status?: string;
+  plan?: string;
   created_at: string;
   phone?: string;
   birth_date?: string;
-  plan?: string;
-  status?: string;
+  weight?: number;
+  gender?: string;
+  address?: string;
+  membership_date?: string;
+  avatar_url?: string;
+  avatarUrl?: string;
 }
 
 export interface Class {
