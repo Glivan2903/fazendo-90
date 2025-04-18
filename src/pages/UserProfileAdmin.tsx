@@ -77,6 +77,11 @@ const UserProfileAdmin = () => {
 
   const handleSave = async (updatedProfile: Partial<UserProfile>) => {
     try {
+      // Handle empty birth_date to prevent PostgreSQL date format errors
+      if (updatedProfile.birth_date === '') {
+        updatedProfile.birth_date = null;
+      }
+      
       const { error } = await supabase
         .from('profiles')
         .update(updatedProfile)

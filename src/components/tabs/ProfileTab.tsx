@@ -36,6 +36,14 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
     totalCheckins: 0
   };
 
+  // Create user info object with proper typing
+  const userInfoData = {
+    name: user?.user_metadata?.name,
+    email: user?.email,
+    phone: user?.user_metadata?.phone || null,
+    birth_date: user?.user_metadata?.birth_date || null
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center space-y-4">
@@ -51,7 +59,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
         </div>
       </div>
 
-      <UserInfo user={user?.user_metadata || {}} />
+      <UserInfo user={userInfoData} />
       <UserStats stats={stats} />
 
       <Button

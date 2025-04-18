@@ -37,6 +37,7 @@ const UserProfileSystemInfo: React.FC<UserProfileSystemInfoProps> = ({
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
+              value={field.value}
             >
               <FormControl>
                 <SelectTrigger>
@@ -64,6 +65,7 @@ const UserProfileSystemInfo: React.FC<UserProfileSystemInfoProps> = ({
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
+              value={field.value}
             >
               <FormControl>
                 <SelectTrigger>
@@ -90,6 +92,7 @@ const UserProfileSystemInfo: React.FC<UserProfileSystemInfoProps> = ({
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
+              value={field.value}
             >
               <FormControl>
                 <SelectTrigger>
