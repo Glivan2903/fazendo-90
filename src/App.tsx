@@ -13,8 +13,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import React from "react";
 import UserProfile from "./pages/UserProfile";
+import FinancialDashboard from "./pages/FinancialDashboard";
 
-// Create query client outside of component to avoid recreation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -64,6 +64,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <UserProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/financial"
+                element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
+                    <FinancialDashboard />
                   </ProtectedRoute>
                 }
               />

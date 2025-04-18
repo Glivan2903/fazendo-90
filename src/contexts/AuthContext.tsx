@@ -1,3 +1,4 @@
+
 import React, {
   createContext,
   useState,
@@ -33,10 +34,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const navigate = useNavigate();
 
-  console.log("AuthProvider initialized");
-
   useEffect(() => {
-    console.log("AuthProvider: Loading session...");
     const loadSession = async () => {
       setIsLoading(true);
       try {
@@ -44,7 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: { session: initialSession },
         } = await supabase.auth.getSession();
 
-        console.log("Session loaded:", !!initialSession);
         setSession(initialSession);
         setUser(initialSession?.user || null);
 
@@ -62,14 +59,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     loadSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
-      console.log("Auth state changed:", event, !!currentSession);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user || null);
 
       if (currentSession?.user) {
-        await fetchUserRole(currentSession.user.id);
-        await checkSubscriptionStatus(currentSession.user.id);
+        fetchUserRole(currentSession.user.id);
+        checkSubscriptionStatus(currentSession.user.id);
       } else {
         setUserRole(null);
         setHasActiveSubscription(false);
@@ -77,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -190,6 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) {
         console.error("Erro ao criar perfil, mas usuário foi criado:", profileError);
+        // Não lançamos erro aqui, pois o usuário já foi criado na autenticação
         toast.warning("Conta criada, mas houve um problema ao configurar seu perfil. Entre em contato com o suporte.");
       } else {
         toast.success("Conta criada com sucesso!");
@@ -233,13 +230,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
   };
-
-  console.log("AuthProvider rendering with value:", { 
-    hasUser: !!user, 
-    hasSession: !!session, 
-    userRole, 
-    isLoading 
-  });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
