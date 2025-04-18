@@ -36,6 +36,7 @@ export const useCashFlow = () => {
       }));
       
       setTransactions(formattedData);
+      setFilteredTransactions(formattedData);
     } catch (error) {
       console.error('Error fetching transactions:', error);
     } finally {
@@ -45,6 +46,7 @@ export const useCashFlow = () => {
 
   const fetchSuppliers = async () => {
     try {
+      // Since we don't have a suppliers table, we'll use users with supplier role
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name')
