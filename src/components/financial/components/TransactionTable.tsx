@@ -1,11 +1,11 @@
 
 import React from 'react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowUp, ArrowDown, Edit2, Trash2 } from 'lucide-react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ArrowDown, ArrowUp, Edit2, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Transaction } from '../types';
 
 interface TransactionTableProps {
@@ -28,6 +28,18 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
     }).format(value);
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isValid(date)) {
+        return format(date, 'dd/MM/yyyy', { locale: ptBR });
+      }
+      return 'Data inválida';
+    } catch (error) {
+      return 'Data inválida';
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'paid':
@@ -46,18 +58,6 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       return <ArrowUp className="h-4 w-4 text-green-600" />;
     } else {
       return <ArrowDown className="h-4 w-4 text-red-600" />;
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isValid(date)) {
-        return format(date, 'dd/MM/yyyy', { locale: ptBR });
-      }
-      return 'Data inválida';
-    } catch (error) {
-      return 'Data inválida';
     }
   };
 

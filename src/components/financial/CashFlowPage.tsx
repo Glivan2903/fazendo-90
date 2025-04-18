@@ -9,23 +9,21 @@ import { SummaryCards } from './components/SummaryCards';
 import { TransactionFilters } from './components/TransactionFilters';
 import { NewIncomeDialog } from './components/dialogs/NewIncomeDialog';
 import { NewExpenseDialog } from './components/dialogs/NewExpenseDialog';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Edit2, Trash2, Calendar } from "lucide-react";
-import { Transaction } from '../types';
+import { Transaction } from './types';
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const CashFlowPage = () => {
   const [activeTab, setActiveTab] = useState("extract");

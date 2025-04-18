@@ -45,8 +45,6 @@ export const useCashFlow = () => {
 
   const fetchSuppliers = async () => {
     try {
-      // Create a custom table for suppliers if it doesn't exist
-      // This is a temporary solution - in a production app, you'd want to create proper tables
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name')
@@ -59,7 +57,11 @@ export const useCashFlow = () => {
         return;
       }
       
-      setSuppliers(data || []);
+      if (data) {
+        setSuppliers(data);
+      } else {
+        setSuppliers([]);
+      }
     } catch (error) {
       console.error('Error fetching suppliers:', error);
       setSuppliers([]);
@@ -74,7 +76,11 @@ export const useCashFlow = () => {
         .order('name');
         
       if (error) throw error;
-      setUsers(data || []);
+      if (data) {
+        setUsers(data);
+      } else {
+        setUsers([]);
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
