@@ -20,6 +20,8 @@ const PaymentHistory = () => {
     setSearchTerm,
     dateRange,
     setDateRange,
+    statusFilter,
+    setStatusFilter,
     refetch
   } = usePaymentHistory();
 
@@ -40,10 +42,19 @@ const PaymentHistory = () => {
     );
   }
 
+  const paymentCount = payments?.length || 0;
+  const pendingCount = payments?.filter(p => p.status === 'pending' || p.status === 'overdue').length || 0;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Histórico de Pagamentos</h2>
+        <div>
+          <h2 className="text-xl font-semibold">Histórico de Pagamentos</h2>
+          <p className="text-sm text-gray-500">
+            {paymentCount} pagamentos encontrados 
+            {pendingCount > 0 && ` • ${pendingCount} pendentes`}
+          </p>
+        </div>
         <div className="flex space-x-2">
           <Button variant="outline" className="flex items-center">
             <CalendarRange className="h-4 w-4 mr-2" />
@@ -62,6 +73,8 @@ const PaymentHistory = () => {
             onSearchChange={setSearchTerm}
             dateRange={dateRange}
             onDateRangeChange={setDateRange}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
           />
           <PaymentTable payments={payments} />
         </CardContent>
