@@ -48,13 +48,15 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Instead of calling a non-existent functions_invoke table or trying to call an RPC
-      // that doesn't match our types, let's just fetch updated users
+      // Instead of using RPC with catch, let's use a try-catch properly
       // We'll manually check subscriptions by querying the subscriptions table
-      await supabase.rpc('get_user_role', { user_id: 'system' }).catch(() => {
-        // This is just to trigger a connection to the database
-        // The actual call might fail but that's fine
-      });
+      try {
+        await supabase.rpc('get_user_role', { user_id: 'system' });
+        // The actual call might fail but that's fine, it's just to trigger a connection
+      } catch (rpcError) {
+        // Ignore this error, it's expected
+        console.log("RPC call failed, but that's okay:", rpcError);
+      }
       
       // Fetch updated users
       const { data, error } = await supabase
