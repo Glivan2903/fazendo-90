@@ -59,13 +59,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     loadSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      console.log("Auth state changed:", event, !!currentSession);
       setSession(currentSession);
       setUser(currentSession?.user || null);
 
       if (currentSession?.user) {
-        fetchUserRole(currentSession.user.id);
-        checkSubscriptionStatus(currentSession.user.id);
+        await fetchUserRole(currentSession.user.id);
+        await checkSubscriptionStatus(currentSession.user.id);
       } else {
         setUserRole(null);
         setHasActiveSubscription(false);
@@ -73,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
-      subscription.unsubscribe();
+      subscription?.unsubscribe();
     };
   }, []);
 
