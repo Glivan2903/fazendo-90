@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { User } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { createUser, deleteUser } from "@/api/userApi";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useNavigate } from "react-router-dom";
+import UsersProfileView from "./UsersProfileView";
 
 interface UsersTabProps {
   users: User[];
@@ -26,7 +25,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const navigate = useNavigate();
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: "",
@@ -110,9 +109,9 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
       setIsDeleting(false);
     }
   };
-  
+
   const handleUserProfileClick = (userId: string) => {
-    navigate(`/admin/perfil-usuario/${userId}`);
+    setSelectedUserId(userId);
   };
   
   const getRoleDisplay = (role: string | undefined) => {
@@ -127,6 +126,16 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
         return { text: role || "Desconhecido", classes: "bg-gray-100 text-gray-800" };
     }
   };
+  
+  // Show profile view if a user is selected
+  if (selectedUserId) {
+    return (
+      <UsersProfileView 
+        userId={selectedUserId}
+        onClose={() => setSelectedUserId(null)}
+      />
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -192,24 +201,6 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
                         }`}>
                           {user.status}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end space-x-2">
-                          <Button 
-                            variant="ghost" 
-                            className="h-8 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-                            onClick={() => onEditUser(user)}
-                          >
-                            Editar
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            className="h-8 text-red-600 hover:text-red-800 hover:bg-red-50"
-                            onClick={() => handleDeleteClick(user)}
-                          >
-                            Excluir
-                          </Button>
-                        </div>
                       </TableCell>
                     </TableRow>
                   );
