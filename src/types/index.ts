@@ -64,3 +64,6 @@ export type Attendee = {
   name: string;
   avatarUrl?: string;
 };
+
+export type PaymentStatus = 'paid' | 'pending' | 'overdue' | 'canceled';
+export type SubscriptionStatus = 'active' | 'expired' | 'canceled';

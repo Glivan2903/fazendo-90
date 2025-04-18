@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format, isPast, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { PaymentStatus, SubscriptionStatus } from '@/types';
 
 export interface Subscription {
   id: string;
@@ -11,7 +12,7 @@ export interface Subscription {
   plan_id: string;
   start_date: string;
   end_date: string;
-  status: 'active' | 'expired' | 'canceled';
+  status: SubscriptionStatus;
   created_at: string;
   updated_at: string;
   plans?: {
@@ -29,7 +30,7 @@ export interface Payment {
   user_id: string;
   subscription_id: string;
   amount: number;
-  status: 'paid' | 'pending' | 'overdue' | 'canceled';
+  status: PaymentStatus;
   payment_date: string | null;
   due_date: string;
 }
@@ -80,20 +81,25 @@ export const useSubscriptionStatus = (userId?: string) => {
       if (!subscription) return null;
       
       // Get payments for this subscription
-      const { data: payments, error: paymentsError } = await supabase
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select('*')
         .eq('subscription_id', subscription.id)
         .order('due_date', { ascending: true });
         
       if (paymentsError) throw paymentsError;
+
+      // Transform the data to match our types
+      const payments = paymentsData ? paymentsData.map(payment => ({
+        ...payment,
+        status: payment.status as PaymentStatus
+      })) : [];
       
-      // Convert subscription.status to the correct type before returning
+      // Ensure subscription status is one of the allowed types
       return {
         ...subscription,
-        // Ensure status is one of the allowed types
-        status: subscription.status as 'active' | 'expired' | 'canceled',
-        payments: payments || []
+        status: (subscription.status as SubscriptionStatus),
+        payments
       };
     },
     enabled: !!userId,
