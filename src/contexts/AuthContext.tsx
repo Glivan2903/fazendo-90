@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -139,8 +138,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) throw error;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id)
+        .single();
       
-      navigate("/check-in");
+      if (profile?.role === 'admin') {
+        navigate("/teacher-dashboard");
+      } else {
+        navigate("/check-in");
+      }
+      
       toast.success("Login realizado com sucesso!");
     } catch (error: any) {
       console.error("Erro ao fazer login:", error.message);

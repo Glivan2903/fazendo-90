@@ -14,6 +14,7 @@ import React from "react";
 import UserProfile from "./pages/UserProfile";
 import FinancialDashboard from "./pages/FinancialDashboard";
 import UserProfileAdmin from "./pages/UserProfileAdmin";
+import SidebarLayout from "./components/SidebarLayout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,7 +40,9 @@ const App = () => (
                 path="/check-in"
                 element={
                   <ProtectedRoute>
-                    <CheckIn />
+                    <SidebarLayout>
+                      <CheckIn />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
@@ -47,7 +50,9 @@ const App = () => (
                 path="/class/:classId"
                 element={
                   <ProtectedRoute>
-                    <ClassDetail />
+                    <SidebarLayout>
+                      <ClassDetail />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
@@ -55,7 +60,9 @@ const App = () => (
                 path="/teacher-dashboard"
                 element={
                   <ProtectedRoute allowedRoles={["admin", "coach"]}>
-                    <TeacherDashboard />
+                    <SidebarLayout>
+                      <TeacherDashboard />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
@@ -63,7 +70,9 @@ const App = () => (
                 path="/profile/:userId"
                 element={
                   <ProtectedRoute>
-                    <UserProfile />
+                    <SidebarLayout>
+                      <UserProfile />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
@@ -71,7 +80,9 @@ const App = () => (
                 path="/financial"
                 element={
                   <ProtectedRoute allowedRoles={["admin"]}>
-                    <FinancialDashboard />
+                    <SidebarLayout>
+                      <FinancialDashboard />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
@@ -79,7 +90,9 @@ const App = () => (
                 path="/admin/perfil-usuario/:userId"
                 element={
                   <ProtectedRoute allowedRoles={["admin", "coach"]}>
-                    <UserProfileAdmin />
+                    <SidebarLayout>
+                      <UserProfileAdmin />
+                    </SidebarLayout>
                   </ProtectedRoute>
                 }
               />
