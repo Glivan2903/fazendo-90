@@ -6,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PlansManagement from "@/components/financial/PlansManagement";
 import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
 import PaymentHistory from "@/components/financial/PaymentHistory";
-import { CreditCard, BarChart2, FileText, UsersRound } from "lucide-react";
+import { CreditCard, BarChart2, FileText, UsersRound, ArrowUpDown } from "lucide-react";
 import SubscriptionsManagement from "@/components/financial/SubscriptionsManagement";
+import CashFlowPage from "@/components/financial/CashFlowPage";
 
 const FinancialDashboard = () => {
   const { user, userRole } = useAuth();
@@ -41,6 +42,10 @@ const FinancialDashboard = () => {
             <CreditCard className="w-4 h-4 mr-2" />
             <span>Pagamentos</span>
           </TabsTrigger>
+          <TabsTrigger value="cashflow" className="flex items-center">
+            <ArrowUpDown className="w-4 h-4 mr-2" />
+            <span>Entradas e Saídas</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -57,6 +62,10 @@ const FinancialDashboard = () => {
 
         <TabsContent value="payments" className="space-y-4">
           <PaymentHistory />
+        </TabsContent>
+        
+        <TabsContent value="cashflow" className="space-y-4">
+          <CashFlowPage />
         </TabsContent>
       </Tabs>
     </div>

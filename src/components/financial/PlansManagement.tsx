@@ -135,7 +135,7 @@ const PlansManagement: React.FC = () => {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={plan.active ? "success" : "secondary"}>
+                    <Badge variant={plan.active ? "default" : "secondary"} className={plan.active ? "bg-green-100 text-green-800" : ""}>
                       {plan.active ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </TableCell>

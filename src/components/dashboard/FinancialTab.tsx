@@ -6,8 +6,9 @@ import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview"
 import PaymentHistory from "@/components/financial/PaymentHistory";
 import SubscriptionsManagement from "@/components/financial/SubscriptionsManagement";
 import { Button } from "@/components/ui/button";
-import { CreditCard, BarChart2, FileText, UsersRound, Plus } from "lucide-react";
+import { CreditCard, BarChart2, FileText, UsersRound, Plus, ArrowUpDown } from "lucide-react";
 import NewPaymentDialog from "@/components/financial/NewPaymentDialog";
+import CashFlowPage from "@/components/financial/CashFlowPage";
 
 const FinancialTab = () => {
   const [isNewPaymentDialogOpen, setIsNewPaymentDialogOpen] = useState(false);
@@ -48,6 +49,10 @@ const FinancialTab = () => {
             <CreditCard className="w-4 h-4 mr-2" />
             <span>Pagamentos</span>
           </TabsTrigger>
+          <TabsTrigger value="cashflow" className="flex items-center">
+            <ArrowUpDown className="w-4 h-4 mr-2" />
+            <span>Entradas e Saídas</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
@@ -64,6 +69,10 @@ const FinancialTab = () => {
 
         <TabsContent value="payments" className="space-y-4">
           <PaymentHistory />
+        </TabsContent>
+        
+        <TabsContent value="cashflow" className="space-y-4">
+          <CashFlowPage />
         </TabsContent>
       </Tabs>
       
