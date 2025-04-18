@@ -201,6 +201,7 @@ export type Database = {
           plan: string | null
           role: string
           status: string
+          subscription_id: string | null
         }
         Insert: {
           avatar_url?: string | null
@@ -213,6 +214,7 @@ export type Database = {
           plan?: string | null
           role?: string
           status?: string
+          subscription_id?: string | null
         }
         Update: {
           avatar_url?: string | null
@@ -225,8 +227,17 @@ export type Database = {
           plan?: string | null
           role?: string
           status?: string
+          subscription_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       programs: {
         Row: {

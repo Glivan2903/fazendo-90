@@ -42,12 +42,13 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
   const form = useForm<PaymentFormData>();
   const { toast } = useToast();
 
+  // Fetch active users with their subscriptions
   const { data: users } = useQuery({
-    queryKey: ['users'],
+    queryKey: ['users-with-subscriptions'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email')
+        .select('id, name, email, subscription_id')
         .eq('status', 'Ativo')
         .order('name');
       
@@ -56,13 +57,13 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
     }
   });
 
-  // Get subscriptions for users
+  // Fetch active subscriptions 
   const { data: subscriptions } = useQuery({
-    queryKey: ['subscriptions'],
+    queryKey: ['active-subscriptions'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('id, user_id')
+        .select('id, user_id, plan_id, plans(name, amount)')
         .eq('status', 'active');
       
       if (error) throw error;
@@ -72,10 +73,10 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
 
   const onSubmit = async (data: PaymentFormData) => {
     try {
-      // Find the user's active subscription
-      const userSubscription = subscriptions?.find(sub => sub.user_id === data.user_id);
+      // Find the user's subscription
+      const user = users?.find(u => u.id === data.user_id);
       
-      if (!userSubscription) {
+      if (!user?.subscription_id) {
         toast({
           title: "Erro",
           description: "Este usuário não possui assinatura ativa",
@@ -88,7 +89,7 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
         .from('payments')
         .insert({
           user_id: data.user_id,
-          subscription_id: userSubscription.id, // Add the subscription_id here
+          subscription_id: user.subscription_id,
           amount: data.amount,
           due_date: data.due_date,
           payment_date: data.payment_date,
@@ -115,6 +116,29 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
     }
   };
 
+  // Find users with active subscriptions
+  const usersWithSubscriptions = users?.filter(user => 
+    user.subscription_id !== null
+  );
+
+  // For a selected user, get the subscription amount
+  const getUserSubscriptionAmount = (userId: string) => {
+    const user = users?.find(u => u.id === userId);
+    if (!user?.subscription_id) return 0;
+    
+    const subscription = subscriptions?.find(s => s.id === user.subscription_id);
+    return subscription?.plans?.amount || 0;
+  };
+
+  // Set the amount when user is selected
+  const handleUserChange = (userId: string) => {
+    form.setValue('user_id', userId);
+    const amount = getUserSubscriptionAmount(userId);
+    if (amount) {
+      form.setValue('amount', amount);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -130,14 +154,17 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Cliente</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select 
+                    onValueChange={(value) => handleUserChange(value)} 
+                    defaultValue={field.value}
+                  >
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um cliente" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {users?.map((user) => (
+                      {usersWithSubscriptions?.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name}
                         </SelectItem>
