@@ -47,6 +47,16 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
         .from('avatars')
         .getPublicUrl(filePath);
 
+      // Update user profile with the new avatar URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', userId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
       onAvatarUpdate(publicUrl);
       toast.success('Foto atualizada com sucesso!');
 
@@ -73,7 +83,11 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
           disabled={uploading}
           onClick={() => document.getElementById('avatar-upload')?.click()}
         >
-          <Camera className="h-4 w-4" />
+          {uploading ? (
+            <div className="h-4 w-4 border-2 border-primary rounded-full animate-spin border-t-transparent"></div>
+          ) : (
+            <Camera className="h-4 w-4" />
+          )}
         </Button>
         <input
           id="avatar-upload"

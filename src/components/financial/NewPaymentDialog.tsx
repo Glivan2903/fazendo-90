@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,7 @@ export default function NewPaymentDialog({
   const [dueDatePopoverOpen, setDueDatePopoverOpen] = useState(false);
   const [paymentDatePopoverOpen, setPaymentDatePopoverOpen] = useState(false);
   const [monthlyPaymentExists, setMonthlyPaymentExists] = useState(false);
+  const [bankAccounts, setBankAccounts] = useState(["Nubank", "Bradesco"]);
   const [form, setForm] = useState({
     userId: userId || '',
     subscriptionId: '',
@@ -60,7 +62,8 @@ export default function NewPaymentDialog({
     paymentDate: null as Date | null,
     status: 'pending',
     paymentMethod: '',
-    notes: ''
+    notes: '',
+    bankAccount: 'Nubank'
   });
 
   // Fetch users
@@ -226,6 +229,7 @@ export default function NewPaymentDialog({
         return;
       }
       
+      // Create the payment record
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert([
@@ -259,7 +263,10 @@ export default function NewPaymentDialog({
               status: form.status,
               buyer_name: users.find(u => u.id === form.userId)?.name || 'Cliente',
               payment_method: form.paymentMethod || null,
-              invoice_number: await generateInvoiceNumber()
+              invoice_number: await generateInvoiceNumber(),
+              bank_account: form.bankAccount,
+              transaction_type: 'income',
+              category: 'Mensalidade'
             }
           ]);
         
@@ -267,6 +274,11 @@ export default function NewPaymentDialog({
           console.error("Erro ao criar fatura:", invoiceError);
           toast.error("Pagamento criado, mas houve um erro ao gerar a fatura");
         }
+      }
+      
+      // Update user status if payment is marked as paid
+      if (form.status === 'paid') {
+        await updateUserAndSubscriptionStatus(form.userId);
       }
       
       toast.success("Pagamento criado com sucesso!");
@@ -280,7 +292,8 @@ export default function NewPaymentDialog({
         paymentDate: null,
         status: 'pending',
         paymentMethod: '',
-        notes: ''
+        notes: '',
+        bankAccount: 'Nubank'
       });
       
       // Invalidate queries to refresh data
@@ -298,6 +311,39 @@ export default function NewPaymentDialog({
       toast.error(`Erro ao criar pagamento: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateUserAndSubscriptionStatus = async (userId: string) => {
+    try {
+      // Update the user's status to active
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ status: 'Ativo' })
+        .eq('id', userId);
+
+      if (profileError) {
+        console.error("Error updating profile status:", profileError);
+        throw profileError;
+      }
+
+      // Update the subscription status if it exists
+      const { error: subError } = await supabase
+        .from('subscriptions')
+        .update({ status: 'active' })
+        .eq('user_id', userId)
+        .eq('status', 'expired');
+
+      if (subError && subError.code !== 'PGRST116') { // No rows updated is not an error
+        console.error("Error updating subscription status:", subError);
+        throw subError;
+      }
+      
+      console.log("User and subscription status updated successfully");
+    } catch (error) {
+      console.error("Error updating status:", error);
+      // We don't want to fail the payment creation if status update fails
+      toast.error("Pagamento criado, mas houve um erro ao atualizar o status do usuário");
     }
   };
   
@@ -498,6 +544,24 @@ export default function NewPaymentDialog({
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          {/* Conta bancária */}
+          <div className="space-y-2">
+            <Label htmlFor="bankAccount">Conta</Label>
+            <Select 
+              value={form.bankAccount} 
+              onValueChange={value => setForm({ ...form, bankAccount: value })}
+              disabled={loading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a conta" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Nubank">Nubank</SelectItem>
+                <SelectItem value="Bradesco">Bradesco</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           
           {/* Observações */}

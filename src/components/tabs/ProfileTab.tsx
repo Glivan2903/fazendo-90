@@ -2,16 +2,19 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { LogOut, AlertCircle } from 'lucide-react';
+import { LogOut, AlertCircle, Edit, Save, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AvatarUpload from '@/components/profile/AvatarUpload';
 import UserStats from '@/components/profile/UserStats';
 import UserInfo from '@/components/profile/UserInfo';
+import ProfileForm from '@/components/profile/ProfileForm';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ProfileTabProps {
   onSignOut: () => void;
@@ -20,7 +23,49 @@ interface ProfileTabProps {
 const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
   const { user } = useAuth();
   const [avatarUrl, setAvatarUrl] = useState(user?.user_metadata?.avatar_url);
+  const [isEditing, setIsEditing] = useState(false);
   const { subscription, isLoading: loadingSubscription } = useSubscriptionStatus(user?.id);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [editForm, setEditForm] = useState({
+    name: user?.user_metadata?.name || '',
+    email: user?.email || '',
+    phone: '',
+    birth_date: ''
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchUserProfile();
+    }
+  }, [user]);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+
+      setUserProfile(data);
+      setAvatarUrl(data.avatar_url);
+      setEditForm({
+        name: data.name || user?.user_metadata?.name || '',
+        email: data.email || user?.email || '',
+        phone: data.phone || '',
+        birth_date: data.birth_date || ''
+      });
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      toast.error('Erro ao carregar dados do perfil');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const memberSince = format(
     new Date(user?.created_at || new Date()),
@@ -41,12 +86,44 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
     totalCheckins: 0
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: editForm.name,
+          email: editForm.email,
+          phone: editForm.phone || null,
+          birth_date: editForm.birth_date || null
+        })
+        .eq('id', user?.id);
+
+      if (error) throw error;
+
+      toast.success('Perfil atualizado com sucesso!');
+      setIsEditing(false);
+      fetchUserProfile();
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Erro ao atualizar perfil');
+    }
+  };
+
   // Create user info object with proper typing
   const userInfoData = {
-    name: user?.user_metadata?.name,
-    email: user?.email,
-    phone: user?.user_metadata?.phone || null,
-    birth_date: user?.user_metadata?.birth_date || null
+    name: userProfile?.name || user?.user_metadata?.name,
+    email: userProfile?.email || user?.email,
+    phone: userProfile?.phone || null,
+    birth_date: userProfile?.birth_date || null
   };
 
   return (
@@ -59,9 +136,24 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
           onAvatarUpdate={setAvatarUrl}
         />
         <div className="text-center">
-          <h2 className="text-xl font-bold">{user?.user_metadata?.name || 'Usuário'}</h2>
+          <h2 className="text-xl font-bold">{userProfile?.name || user?.user_metadata?.name || 'Usuário'}</h2>
           <p className="text-sm text-gray-500">Membro desde {memberSince}</p>
         </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setIsEditing(!isEditing)}
+        >
+          {isEditing ? (
+            <>
+              <X className="h-4 w-4 mr-2" /> Cancelar
+            </>
+          ) : (
+            <>
+              <Edit className="h-4 w-4 mr-2" /> Editar Perfil
+            </>
+          )}
+        </Button>
       </div>
 
       {subscription?.isExpired && (
@@ -112,7 +204,16 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
         </Card>
       )}
 
-      <UserInfo user={userInfoData} />
+      {isEditing ? (
+        <ProfileForm 
+          editForm={editForm}
+          handleInputChange={handleInputChange}
+          handleSubmit={handleSubmit}
+        />
+      ) : (
+        <UserInfo user={userInfoData} />
+      )}
+      
       <UserStats stats={stats} />
 
       <Button

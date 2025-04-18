@@ -1,7 +1,9 @@
 
+import React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
+import { format } from 'date-fns';
 
 interface ProfileFormProps {
   editForm: {
@@ -15,6 +17,26 @@ interface ProfileFormProps {
 }
 
 const ProfileForm = ({ editForm, handleInputChange, handleSubmit }: ProfileFormProps) => {
+  // Formatar data para o formato esperado pelo input type="date"
+  const formatDateForInput = (dateString: string) => {
+    if (!dateString) return '';
+    
+    try {
+      // Se já estiver no formato YYYY-MM-DD, retorne como está
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+        return dateString;
+      }
+      
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      
+      return format(date, 'yyyy-MM-dd');
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return '';
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-lg shadow-sm p-4">
       <div className="space-y-2">
@@ -56,7 +78,7 @@ const ProfileForm = ({ editForm, handleInputChange, handleSubmit }: ProfileFormP
           id="birth_date"
           name="birth_date"
           type="date"
-          value={editForm.birth_date}
+          value={formatDateForInput(editForm.birth_date)}
           onChange={handleInputChange}
         />
       </div>

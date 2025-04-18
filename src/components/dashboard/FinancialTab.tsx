@@ -5,30 +5,16 @@ import PlansManagement from "@/components/financial/PlansManagement";
 import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
 import PaymentHistory from "@/components/financial/PaymentHistory";
 import SubscriptionsManagement from "@/components/financial/SubscriptionsManagement";
-import { Button } from "@/components/ui/button";
-import { CreditCard, BarChart2, FileText, UsersRound, Plus, ArrowUpDown } from "lucide-react";
-import NewPaymentDialog from "@/components/financial/NewPaymentDialog";
+import { CreditCard, BarChart2, FileText, UsersRound, ArrowUpDown } from "lucide-react";
 import CashFlowPage from "@/components/financial/CashFlowPage";
 
 const FinancialTab = () => {
-  const [isNewPaymentDialogOpen, setIsNewPaymentDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("overview");
-
-  const handlePaymentCreated = () => {
-    // Atualizar dados após criar um novo pagamento
-    if (activeTab === "payments") {
-      // Forçar atualização do PaymentHistory - poderá ser implementado através de um ref
-    }
-  };
 
   return (
     <div className="container mx-auto">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Gestão Financeira</h1>
-        <Button onClick={() => setIsNewPaymentDialogOpen(true)} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Novo Pagamento
-        </Button>
       </div>
       
       <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -75,12 +61,6 @@ const FinancialTab = () => {
           <CashFlowPage />
         </TabsContent>
       </Tabs>
-      
-      <NewPaymentDialog
-        open={isNewPaymentDialogOpen}
-        onOpenChange={setIsNewPaymentDialogOpen}
-        onPaymentCreated={handlePaymentCreated}
-      />
     </div>
   );
 };
