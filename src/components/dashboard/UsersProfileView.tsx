@@ -2,16 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Mail, Phone, MapPin, Calendar, User2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
+import { Button } from '../ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import UserProfileForm from '@/components/profile/admin/UserProfileForm';
 import UserProfileActions from '@/components/profile/admin/UserProfileActions';
 import UserProfileNotes from '@/components/profile/admin/UserProfileNotes';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Button } from '../ui/button';
 
 interface UserProfileViewProps {
   userId: string | null;
@@ -70,12 +69,22 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
 
   const handleSave = async (updatedProfile: any) => {
     try {
+      console.log('Updating profile with:', updatedProfile);
+
+      // Handle empty birth_date to prevent PostgreSQL date format errors
+      if (updatedProfile.birth_date === '') {
+        updatedProfile.birth_date = null;
+      }
+
       const { error } = await supabase
         .from('profiles')
         .update(updatedProfile)
         .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
 
       setProfile(prev => ({ ...prev, ...updatedProfile }));
       setIsEditing(false);
@@ -90,7 +99,10 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
     return null;
   }
 
-  const memberSince = format(new Date(profile.created_at), "dd/MM/yyyy", { locale: ptBR });
+  const memberSince = profile.created_at ? 
+    format(new Date(profile.created_at), "dd/MM/yyyy", { locale: ptBR }) : 
+    "N/A";
+    
   const initials = profile.name
     .split(' ')
     .map((n: string) => n[0])

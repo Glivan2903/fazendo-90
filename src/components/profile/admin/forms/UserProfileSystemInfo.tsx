@@ -37,7 +37,7 @@ const UserProfileSystemInfo: React.FC<UserProfileSystemInfoProps> = ({
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
-              value={field.value}
+              value={field.value || 'Outro'}
             >
               <FormControl>
                 <SelectTrigger>
@@ -65,7 +65,7 @@ const UserProfileSystemInfo: React.FC<UserProfileSystemInfoProps> = ({
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
-              value={field.value}
+              value={field.value || 'Ativo'}
             >
               <FormControl>
                 <SelectTrigger>
@@ -92,14 +92,14 @@ const UserProfileSystemInfo: React.FC<UserProfileSystemInfoProps> = ({
               disabled={!isEditing}
               onValueChange={field.onChange}
               defaultValue={field.value}
-              value={field.value}
+              value={field.value || 'student'}
             >
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a função" />
                 </SelectTrigger>
               </FormControl>
-              <SelectContent>
+              <SelectContent className="bg-white">
                 <SelectItem value="admin">Administrador</SelectItem>
                 <SelectItem value="coach">Professor</SelectItem>
                 <SelectItem value="student">Aluno</SelectItem>

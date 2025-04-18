@@ -42,11 +42,11 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
       email: profile.email,
       phone: profile.phone || '',
       birth_date: profile.birth_date || '',
-      gender: profile.gender,
+      gender: profile.gender || 'Outro',
       address: profile.address || '',
       plan: profile.plan || '',
-      status: profile.status,
-      role: profile.role,
+      status: profile.status || 'Ativo',
+      role: profile.role || 'student',
       avatar_url: profile.avatar_url,
     },
   });
@@ -56,6 +56,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
   };
 
   const onSubmit = (data: any) => {
+    console.log('Form submitted with data:', data);
     onSave(data);
   };
 

@@ -77,6 +77,8 @@ const UserProfileAdmin = () => {
 
   const handleSave = async (updatedProfile: Partial<UserProfile>) => {
     try {
+      console.log('Updating profile with:', updatedProfile);
+      
       // Handle empty birth_date to prevent PostgreSQL date format errors
       if (updatedProfile.birth_date === '') {
         updatedProfile.birth_date = null;
@@ -87,7 +89,10 @@ const UserProfileAdmin = () => {
         .update(updatedProfile)
         .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase update error:', error);
+        throw error;
+      }
 
       setProfile(prev => prev ? { ...prev, ...updatedProfile } : null);
       setIsEditing(false);
