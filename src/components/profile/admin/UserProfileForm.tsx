@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
@@ -19,9 +18,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Save } from 'lucide-react';
+import AvatarUpload from '@/components/profile/AvatarUpload';
 
 interface UserProfileFormProps {
   profile: {
+    id: string;
     name: string;
     email: string;
     phone: string | null;
@@ -30,6 +31,8 @@ interface UserProfileFormProps {
     address: string | null;
     plan: string | null;
     status: string;
+    role: string;
+    avatar_url: string | null;
   };
   isEditing: boolean;
   onSave: (data: any) => void;
@@ -52,16 +55,37 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
       address: profile.address || '',
       plan: profile.plan || '',
       status: profile.status,
+      role: profile.role,
+      avatar_url: profile.avatar_url,
     },
   });
+
+  const handleAvatarUpdate = (url: string) => {
+    form.setValue('avatar_url', url);
+  };
 
   const onSubmit = (data: any) => {
     onSave(data);
   };
 
+  const userInitials = profile.name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase();
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex justify-center mb-6">
+          <AvatarUpload
+            avatarUrl={profile.avatar_url}
+            userId={profile.id}
+            userInitials={userInitials}
+            onAvatarUpdate={handleAvatarUpdate}
+          />
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
@@ -165,6 +189,33 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
                   <SelectContent>
                     <SelectItem value="Ativo">Ativo</SelectItem>
                     <SelectItem value="Inativo">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="role"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Função</FormLabel>
+                <Select
+                  disabled={!isEditing}
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a função" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="coach">Professor</SelectItem>
+                    <SelectItem value="student">Aluno</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
