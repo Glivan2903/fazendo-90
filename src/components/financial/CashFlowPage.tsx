@@ -46,6 +46,7 @@ const CashFlowPage = () => {
     suppliers,
     users,
     fetchTransactions,
+    fetchSuppliers,
     setTransactions
   } = useCashFlow();
 
@@ -419,6 +420,7 @@ const CashFlowPage = () => {
         suppliers={suppliers}
         calendarOpen={calendarOpen}
         setCalendarOpen={setCalendarOpen}
+        fetchSuppliers={fetchSuppliers}
       />
       
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>

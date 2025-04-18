@@ -47,21 +47,35 @@ export const useCashFlow = () => {
 
   const fetchSuppliers = async () => {
     try {
-      // Since we don't have a suppliers table, we'll use users with supplier role
-      const { data, error } = await supabase
-        .from('profiles')
+      // First try to fetch from the suppliers table
+      const { data: suppliersData, error: suppliersError } = await supabase
+        .from('suppliers')
         .select('id, name')
-        .eq('role', 'supplier')
         .order('name');
       
-      if (error) {
-        console.error('Error fetching suppliers:', error);
-        setSuppliers([]);
-        return;
-      }
-      
-      if (data) {
-        setSuppliers(data);
+      if (suppliersError) {
+        console.error('Error fetching suppliers:', suppliersError);
+        
+        // Fallback to using profiles with supplier role
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, name')
+          .eq('role', 'supplier')
+          .order('name');
+        
+        if (profilesError) {
+          console.error('Error fetching supplier profiles:', profilesError);
+          setSuppliers([]);
+          return;
+        }
+        
+        if (profilesData) {
+          setSuppliers(profilesData);
+        } else {
+          setSuppliers([]);
+        }
+      } else if (suppliersData) {
+        setSuppliers(suppliersData);
       } else {
         setSuppliers([]);
       }
@@ -104,6 +118,7 @@ export const useCashFlow = () => {
     suppliers,
     users,
     fetchTransactions,
+    fetchSuppliers,
     setTransactions
   };
 };
