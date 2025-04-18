@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Calendar, FileEdit, FilePlus, Eye, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import SalesDetailDialog from '@/components/financial/SalesDetailDialog';
 
 interface PaymentMovement {
   id: string;
@@ -33,6 +33,8 @@ interface UserFinancialMovementsProps {
 const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId }) => {
   const [movements, setMovements] = useState<PaymentMovement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSale, setSelectedSale] = useState<PaymentMovement | null>(null);
+  const [isSalesDialogOpen, setIsSalesDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchMovements();
@@ -51,12 +53,11 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
 
       if (error) throw error;
       
-      // Transformar os dados para o formato esperado pelo componente
       const transformedData = data?.map(payment => ({
         ...payment,
         valor_bruto: payment.amount,
-        valor_taxa: 0, // Não temos essa informação no banco, então vamos assumir 0
-        valor_liquido: payment.amount, // Sem taxa, o líquido é igual ao bruto
+        valor_taxa: 0,
+        valor_liquido: payment.amount,
         description: payment.reference || `Pagamento ${payment.id.substring(0, 8)}`
       }));
       
@@ -98,6 +99,11 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
       default:
         return <Badge variant="outline">{status.toUpperCase()}</Badge>;
     }
+  };
+
+  const handleOpenSalesDetail = (movement: PaymentMovement) => {
+    setSelectedSale(movement);
+    setIsSalesDialogOpen(true);
   };
 
   return (
@@ -181,7 +187,12 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
                       <TableCell>{getStatusBadge(movement.status)}</TableCell>
                       <TableCell>
                         <div className="flex space-x-1">
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="h-8 w-8"
+                            onClick={() => handleOpenSalesDetail(movement)}
+                          >
                             <FileEdit className="h-4 w-4" />
                           </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -203,6 +214,14 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
           </div>
         )}
       </CardContent>
+
+      {selectedSale && (
+        <SalesDetailDialog 
+          open={isSalesDialogOpen}
+          onOpenChange={setIsSalesDialogOpen}
+          salesData={selectedSale}
+        />
+      )}
     </Card>
   );
 };

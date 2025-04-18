@@ -183,7 +183,11 @@ export type Database = {
       plans: {
         Row: {
           active: boolean | null
+          allows_suspension: boolean | null
           amount: number
+          auto_renewal: boolean | null
+          check_in_limit_qty: number | null
+          check_in_limit_type: string | null
           created_at: string | null
           days_validity: number | null
           description: string | null
@@ -191,11 +195,17 @@ export type Database = {
           id: string
           name: string
           periodicity: string
+          single_checkin_per_day: boolean | null
+          suspension_days: number | null
           updated_at: string | null
         }
         Insert: {
           active?: boolean | null
+          allows_suspension?: boolean | null
           amount: number
+          auto_renewal?: boolean | null
+          check_in_limit_qty?: number | null
+          check_in_limit_type?: string | null
           created_at?: string | null
           days_validity?: number | null
           description?: string | null
@@ -203,11 +213,17 @@ export type Database = {
           id?: string
           name: string
           periodicity: string
+          single_checkin_per_day?: boolean | null
+          suspension_days?: number | null
           updated_at?: string | null
         }
         Update: {
           active?: boolean | null
+          allows_suspension?: boolean | null
           amount?: number
+          auto_renewal?: boolean | null
+          check_in_limit_qty?: number | null
+          check_in_limit_type?: string | null
           created_at?: string | null
           days_validity?: number | null
           description?: string | null
@@ -215,6 +231,8 @@ export type Database = {
           id?: string
           name?: string
           periodicity?: string
+          single_checkin_per_day?: boolean | null
+          suspension_days?: number | null
           updated_at?: string | null
         }
         Relationships: []
