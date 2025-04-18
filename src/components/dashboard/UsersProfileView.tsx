@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -176,163 +175,163 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
             <TabsTrigger value="checkins">Check-ins</TabsTrigger>
             <TabsTrigger value="movements">Movimentações</TabsTrigger>
           </TabsList>
-        </Tabs>
-      </div>
 
-      <TabsContent value="profile" className="mt-0 space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left column - Profile info */}
-          <div className="space-y-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <Avatar className="w-32 h-32 mx-auto mb-4">
-                    <AvatarImage src={profile.avatar_url} alt={profile.name} />
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
+          <TabsContent value="profile" className="mt-0 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left column - Profile info */}
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <Avatar className="w-32 h-32 mx-auto mb-4">
+                        <AvatarImage src={profile.avatar_url} alt={profile.name} />
+                        <AvatarFallback>{initials}</AvatarFallback>
+                      </Avatar>
 
-                  <h2 className="text-2xl font-bold mb-2">{profile.name}</h2>
-                  <Badge 
-                    className={`mb-4 ${
-                      profile.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {profile.status}
-                  </Badge>
+                      <h2 className="text-2xl font-bold mb-2">{profile.name}</h2>
+                      <Badge 
+                        className={`mb-4 ${
+                          profile.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {profile.status}
+                      </Badge>
 
-                  <div className="text-sm text-gray-500 mb-6">
-                    Membro desde {memberSince}
-                  </div>
-
-                  <Button
-                    variant={isEditing ? 'destructive' : 'default'}
-                    onClick={() => setIsEditing(!isEditing)}
-                    className="w-full"
-                  >
-                    {isEditing ? 'Cancelar Edição' : 'Editar Perfil'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardContent className="pt-6">
-                <UserProfileActions userId={userId} />
-              </CardContent>
-            </Card>
-
-            {/* Subscription Status Card */}
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-medium mb-3">Assinatura</h3>
-                
-                {subscriptionLoading ? (
-                  <div className="text-center py-3">Carregando dados da assinatura...</div>
-                ) : subscription ? (
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Plano atual</p>
-                        <p className="font-semibold">{subscription.plans?.name || "N/A"}</p>
+                      <div className="text-sm text-gray-500 mb-6">
+                        Membro desde {memberSince}
                       </div>
-                      
-                      {subscription.isExpired ? (
-                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
-                          <CalendarX className="w-3.5 h-3.5 mr-1" />
-                          Vencido
-                        </Badge>
-                      ) : subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 7 ? (
-                        <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
-                          <Clock className="w-3.5 h-3.5 mr-1" />
-                          {subscription.daysUntilExpiration} dias
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
-                          Ativo
-                        </Badge>
-                      )}
+
+                      <Button
+                        variant={isEditing ? 'destructive' : 'default'}
+                        onClick={() => setIsEditing(!isEditing)}
+                        className="w-full"
+                      >
+                        {isEditing ? 'Cancelar Edição' : 'Editar Perfil'}
+                      </Button>
                     </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <UserProfileActions userId={userId} />
+                  </CardContent>
+                </Card>
+
+                {/* Subscription Status Card */}
+                <Card>
+                  <CardContent className="pt-6">
+                    <h3 className="text-lg font-medium mb-3">Assinatura</h3>
                     
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <p className="text-muted-foreground">Início</p>
-                        <p>{subscription.formattedStartDate}</p>
+                    {subscriptionLoading ? (
+                      <div className="text-center py-3">Carregando dados da assinatura...</div>
+                    ) : subscription ? (
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-sm text-muted-foreground">Plano atual</p>
+                            <p className="font-semibold">{subscription.plans?.name || "N/A"}</p>
+                          </div>
+                          
+                          {subscription.isExpired ? (
+                            <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                              <CalendarX className="w-3.5 h-3.5 mr-1" />
+                              Vencido
+                            </Badge>
+                          ) : subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 7 ? (
+                            <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                              <Clock className="w-3.5 h-3.5 mr-1" />
+                              {subscription.daysUntilExpiration} dias
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                              Ativo
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-muted-foreground">Início</p>
+                            <p>{subscription.formattedStartDate}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Término</p>
+                            <p>{subscription.formattedEndDate}</p>
+                          </div>
+                        </div>
+                        
+                        {subscription.hasUnpaidPayments && (
+                          <div className="flex items-center bg-amber-50 text-amber-800 p-2 rounded-md text-sm mt-2">
+                            <AlertTriangle className="w-4 h-4 mr-2" />
+                            <span>Possui pagamentos pendentes</span>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-muted-foreground">Término</p>
-                        <p>{subscription.formattedEndDate}</p>
-                      </div>
-                    </div>
-                    
-                    {subscription.hasUnpaidPayments && (
-                      <div className="flex items-center bg-amber-50 text-amber-800 p-2 rounded-md text-sm mt-2">
-                        <AlertTriangle className="w-4 h-4 mr-2" />
-                        <span>Possui pagamentos pendentes</span>
+                    ) : (
+                      <div className="text-center py-3 text-muted-foreground">
+                        Sem assinatura ativa
                       </div>
                     )}
-                  </div>
-                ) : (
-                  <div className="text-center py-3 text-muted-foreground">
-                    Sem assinatura ativa
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">{checkinsCount}</div>
-                  <div className="text-sm text-gray-600">Total de check-ins</div>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardContent className="p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-600">{memberSince}</div>
-                  <div className="text-sm text-gray-600">Membro desde</div>
-                </CardContent>
-              </Card>
+                <div className="grid grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">{checkinsCount}</div>
+                      <div className="text-sm text-gray-600">Total de check-ins</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-4 text-center">
+                      <div className="text-2xl font-bold text-blue-600">{memberSince}</div>
+                      <div className="text-sm text-gray-600">Membro desde</div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {/* Right column - Form and Notes */}
+              <div className="lg:col-span-2 space-y-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <UserProfileForm
+                      profile={profile}
+                      isEditing={isEditing}
+                      onSave={handleSave}
+                      onCancel={() => setIsEditing(false)}
+                    />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="pt-6">
+                    <UserProfileNotes
+                      notes={profile.notes}
+                      isEditing={isEditing}
+                      onSave={(notes) => handleSave({ notes })}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-          </div>
+          </TabsContent>
 
-          {/* Right column - Form and Notes */}
-          <div className="lg:col-span-2 space-y-6">
-            <Card>
-              <CardContent className="pt-6">
-                <UserProfileForm
-                  profile={profile}
-                  isEditing={isEditing}
-                  onSave={handleSave}
-                  onCancel={() => setIsEditing(false)}
-                />
-              </CardContent>
-            </Card>
+          <TabsContent value="bank-invoices" className="mt-0">
+            <UserBankInvoices userId={userId} />
+          </TabsContent>
 
-            <Card>
-              <CardContent className="pt-6">
-                <UserProfileNotes
-                  notes={profile.notes}
-                  isEditing={isEditing}
-                  onSave={(notes) => handleSave({ notes })}
-                />
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </TabsContent>
+          <TabsContent value="checkins" className="mt-0">
+            <UserCheckinHistory userId={userId} checkins={userCheckinHistory} />
+          </TabsContent>
 
-      <TabsContent value="bank-invoices" className="mt-0">
-        <UserBankInvoices userId={userId} />
-      </TabsContent>
-
-      <TabsContent value="checkins" className="mt-0">
-        <UserCheckinHistory userId={userId} checkins={userCheckinHistory} />
-      </TabsContent>
-
-      <TabsContent value="movements" className="mt-0">
-        <UserFinancialMovements userId={userId} />
-      </TabsContent>
+          <TabsContent value="movements" className="mt-0">
+            <UserFinancialMovements userId={userId} />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
