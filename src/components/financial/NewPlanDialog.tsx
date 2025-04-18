@@ -24,7 +24,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Checkbox } from '@/components/ui/checkbox';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
@@ -52,6 +51,7 @@ interface NewPlanDialogProps {
 const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange }) => {
   const queryClient = useQueryClient();
   const [showLimitOptions, setShowLimitOptions] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -78,34 +78,47 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange }) => 
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      const { error } = await supabase
+      setIsSubmitting(true);
+      
+      // Prepare data for insert
+      const planData = {
+        name: values.name,
+        description: values.description || null,
+        amount: parseFloat(values.amount),
+        enrollment_fee: parseFloat(values.enrollment_fee || '0'),
+        periodicity: values.periodicity,
+        days_validity: parseInt(values.days_validity || '30'),
+        check_in_limit_type: values.check_in_limit_type,
+        check_in_limit_qty: values.check_in_limit_qty ? parseInt(values.check_in_limit_qty) : null,
+        single_checkin_per_day: values.single_checkin_per_day,
+        auto_renewal: values.auto_renewal,
+        allows_suspension: values.allows_suspension,
+        suspension_days: values.suspension_days ? parseInt(values.suspension_days) : null,
+        active: true, // Ensure new plans are active by default
+      };
+      
+      console.log("Submitting plan data:", planData);
+      
+      const { data, error } = await supabase
         .from('plans')
-        .insert([
-          {
-            name: values.name,
-            description: values.description,
-            amount: parseFloat(values.amount),
-            enrollment_fee: parseFloat(values.enrollment_fee || '0'),
-            periodicity: values.periodicity,
-            days_validity: parseInt(values.days_validity || '30'),
-            check_in_limit_type: values.check_in_limit_type,
-            check_in_limit_qty: values.check_in_limit_qty ? parseInt(values.check_in_limit_qty) : null,
-            single_checkin_per_day: values.single_checkin_per_day,
-            auto_renewal: values.auto_renewal,
-            allows_suspension: values.allows_suspension,
-            suspension_days: values.suspension_days ? parseInt(values.suspension_days) : null,
-          },
-        ]);
+        .insert([planData])
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error inserting plan:", error);
+        throw error;
+      }
 
+      console.log("Plan created successfully:", data);
       toast.success('Plano criado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['plans'] });
       form.reset();
       onOpenChange(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar plano:', error);
-      toast.error('Erro ao criar plano');
+      toast.error(`Erro ao criar plano: ${error.message || 'Erro desconhecido'}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -357,8 +370,12 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange }) => 
               )}
             </div>
 
-            <Button type="submit" className="w-full">
-              Criar Plano
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>Criando Plano...</>
+              ) : (
+                <>Criar Plano</>
+              )}
             </Button>
           </form>
         </Form>

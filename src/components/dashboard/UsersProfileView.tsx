@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import UserProfileForm from '@/components/profile/admin/UserProfileForm';
 import UserProfileActions from '@/components/profile/admin/UserProfileActions';
 import UserProfileNotes from '@/components/profile/admin/UserProfileNotes';
+import { CalendarX, Clock, AlertTriangle } from 'lucide-react';
+import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 
 interface UserProfileViewProps {
   userId: string | null;
@@ -22,6 +24,7 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [checkinsCount, setCheckinsCount] = useState<number>(0);
+  const { subscription, isLoading: subscriptionLoading } = useSubscriptionStatus(userId || undefined);
 
   useEffect(() => {
     if (userId) {
@@ -95,6 +98,10 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
     }
   };
 
+  if (loading) {
+    return null;
+  }
+
   if (!profile) {
     return null;
   }
@@ -128,7 +135,11 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
                 </Avatar>
 
                 <h2 className="text-2xl font-bold mb-2">{profile.name}</h2>
-                <Badge variant={profile.status === 'Ativo' ? 'default' : 'secondary'} className="mb-4">
+                <Badge 
+                  className={`mb-4 ${
+                    profile.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                  }`}
+                >
                   {profile.status}
                 </Badge>
 
@@ -150,6 +161,64 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
           <Card>
             <CardContent className="pt-6">
               <UserProfileActions userId={userId} />
+            </CardContent>
+          </Card>
+
+          {/* Subscription Status Card */}
+          <Card>
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-medium mb-3">Assinatura</h3>
+              
+              {subscriptionLoading ? (
+                <div className="text-center py-3">Carregando dados da assinatura...</div>
+              ) : subscription ? (
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Plano atual</p>
+                      <p className="font-semibold">{subscription.plans?.name || "N/A"}</p>
+                    </div>
+                    
+                    {subscription.isExpired ? (
+                      <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                        <CalendarX className="w-3.5 h-3.5 mr-1" />
+                        Vencido
+                      </Badge>
+                    ) : subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 7 ? (
+                      <Badge variant="outline" className="bg-amber-100 text-amber-800 border-amber-200">
+                        <Clock className="w-3.5 h-3.5 mr-1" />
+                        {subscription.daysUntilExpiration} dias
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                        Ativo
+                      </Badge>
+                    )}
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-muted-foreground">Início</p>
+                      <p>{subscription.formattedStartDate}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Término</p>
+                      <p>{subscription.formattedEndDate}</p>
+                    </div>
+                  </div>
+                  
+                  {subscription.hasUnpaidPayments && (
+                    <div className="flex items-center bg-amber-50 text-amber-800 p-2 rounded-md text-sm mt-2">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      <span>Possui pagamentos pendentes</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-3 text-muted-foreground">
+                  Sem assinatura ativa
+                </div>
+              )}
             </CardContent>
           </Card>
 

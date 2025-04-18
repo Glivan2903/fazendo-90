@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
 } from '@/components/ui/form';
-import { Save } from 'lucide-react';
+import { Save, AlertTriangle } from 'lucide-react';
+import { toast } from 'sonner';
 import AvatarUpload from '@/components/profile/AvatarUpload';
 import UserProfilePersonalInfo from './forms/UserProfilePersonalInfo';
 import UserProfileSystemInfo from './forms/UserProfileSystemInfo';
@@ -13,6 +14,7 @@ import UserProfileAddressInfo from './forms/UserProfileAddressInfo';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import UserProfileSubscription from './forms/UserProfileSubscription';
+import { format, addDays } from 'date-fns';
 
 interface UserProfileFormProps {
   profile: {
@@ -43,8 +45,9 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [subscriptionDates, setSubscriptionDates] = useState({
     start_date: new Date().toISOString().split('T')[0],
-    end_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+    end_date: addDays(new Date(), 30).toISOString().split('T')[0],
   });
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm({
     defaultValues: {
@@ -115,51 +118,102 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
       if (plan) {
         // Calculate end date based on plan days_validity
         const startDate = new Date();
-        const endDate = new Date();
-        endDate.setDate(startDate.getDate() + (plan.days_validity || 30));
+        const endDate = addDays(startDate, plan.days_validity || 30);
         
         setSubscriptionDates({
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(endDate, 'yyyy-MM-dd'),
         });
       }
     }
   };
 
+  const createPayment = async (userId: string, subscriptionId: string, planData: any) => {
+    try {
+      // Get the plan price
+      const amount = planData.amount;
+      const dueDate = new Date();
+      
+      const paymentData = {
+        user_id: userId,
+        subscription_id: subscriptionId,
+        amount: amount,
+        status: 'pending',
+        due_date: format(dueDate, 'yyyy-MM-dd'),
+        payment_date: null,
+        payment_method: null,
+        notes: `Pagamento automático - Plano ${planData.name}`
+      };
+      
+      const { error } = await supabase
+        .from('payments')
+        .insert([paymentData]);
+        
+      if (error) throw error;
+      
+      console.log("Payment created for subscription", subscriptionId);
+    } catch (error) {
+      console.error("Error creating payment:", error);
+      toast.error("Erro ao criar pagamento para a assinatura");
+    }
+  };
+
   const onSubmit = async (data: any) => {
     try {
+      setIsProcessing(true);
       let updatedData = { ...data };
       
       // If a new plan was selected, create a subscription
       if (selectedPlan) {
+        const selectedPlanData = plans?.find(p => p.id === selectedPlan);
+        
+        if (!selectedPlanData) {
+          toast.error("Plano selecionado não encontrado");
+          setIsProcessing(false);
+          return;
+        }
+        
+        console.log("Creating new subscription with plan:", selectedPlanData);
+        console.log("Subscription dates:", subscriptionDates);
+        
         const { data: newSubscription, error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert([{
             user_id: profile.id,
             plan_id: selectedPlan,
-            start_date: new Date(subscriptionDates.start_date).toISOString(),
-            end_date: new Date(subscriptionDates.end_date).toISOString(),
+            start_date: subscriptionDates.start_date,
+            end_date: subscriptionDates.end_date,
             status: 'active'
           }])
           .select('id')
           .single();
           
-        if (subscriptionError) throw subscriptionError;
+        if (subscriptionError) {
+          console.error("Error creating subscription:", subscriptionError);
+          throw subscriptionError;
+        }
+        
+        console.log("New subscription created:", newSubscription);
         
         // Update the subscription_id in the form data
         updatedData.subscription_id = newSubscription.id;
+        updatedData.plan = selectedPlanData.name;
+        updatedData.status = 'Ativo'; // Set user to active when a new subscription is created
         
-        // Get plan name to update profile.plan
-        const selectedPlanData = plans?.find(p => p.id === selectedPlan);
-        if (selectedPlanData) {
-          updatedData.plan = selectedPlanData.name;
-        }
+        // Create payment entry for the new subscription
+        await createPayment(profile.id, newSubscription.id, selectedPlanData);
       }
       
+      // Update profile in Supabase
       console.log('Form submitted with data:', updatedData);
-      onSave(updatedData);
-    } catch (error) {
+      await onSave(updatedData);
+      
+      toast.success("Perfil atualizado com sucesso!");
+    } catch (error: any) {
       console.error('Error saving profile with subscription:', error);
+      toast.error(`Erro ao salvar perfil: ${error.message || "Erro desconhecido"}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -168,6 +222,11 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
     .map(n => n[0])
     .join('')
     .toUpperCase();
+
+  // Check if the current subscription is expired
+  const isSubscriptionExpired = currentSubscription && 
+    currentSubscription.status === 'expired' ||
+    (currentSubscription?.end_date && new Date(currentSubscription.end_date) < new Date());
 
   return (
     <Form {...form}>
@@ -181,30 +240,35 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
           />
         </div>
 
+        {isSubscriptionExpired && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-md flex items-center mb-4">
+            <AlertTriangle className="h-5 w-5 mr-2" />
+            <span>Este usuário possui uma assinatura vencida. Atualize o plano para reativar o acesso.</span>
+          </div>
+        )}
+
         <UserProfilePersonalInfo form={form} isEditing={isEditing} />
         <UserProfileSystemInfo form={form} isEditing={isEditing} />
         <UserProfileAddressInfo form={form} isEditing={isEditing} />
         
-        {isEditing && (
-          <UserProfileSubscription 
-            profile={profile}
-            currentSubscription={currentSubscription}
-            plans={plans || []}
-            isLoading={plansLoading || subscriptionLoading}
-            onPlanChange={handlePlanChange}
-            subscriptionData={subscriptionDates}
-            setSubscriptionData={setSubscriptionDates}
-          />
-        )}
+        <UserProfileSubscription 
+          profile={profile}
+          currentSubscription={currentSubscription}
+          plans={plans || []}
+          isLoading={plansLoading || subscriptionLoading}
+          onPlanChange={handlePlanChange}
+          subscriptionData={subscriptionDates}
+          setSubscriptionData={setSubscriptionDates}
+        />
 
         {isEditing && (
           <div className="flex justify-end space-x-2">
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancelar
             </Button>
-            <Button type="submit">
+            <Button type="submit" disabled={isProcessing}>
               <Save className="w-4 h-4 mr-2" />
-              Salvar Alterações
+              {isProcessing ? 'Salvando...' : 'Salvar Alterações'}
             </Button>
           </div>
         )}
