@@ -185,7 +185,7 @@ const PaymentHistory = () => {
                   </TableCell>
                   <TableCell>
                     <Badge 
-                      variant={payment.status === 'paid' ? 'success' : 'warning'}
+                      variant={payment.status === 'paid' ? 'default' : 'outline'}
                       className={payment.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}
                     >
                       {payment.status === 'paid' ? 'Pago' : 'Pendente'}

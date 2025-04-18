@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
 
 interface NewPaymentDialogProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
   onPaymentCreated
 }) => {
   const form = useForm<PaymentFormData>();
+  const { toast } = useToast();
 
   const { data: users } = useQuery({
     queryKey: ['users'],
@@ -54,21 +56,62 @@ const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
     }
   });
 
+  // Get subscriptions for users
+  const { data: subscriptions } = useQuery({
+    queryKey: ['subscriptions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('subscriptions')
+        .select('id, user_id')
+        .eq('status', 'active');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
   const onSubmit = async (data: PaymentFormData) => {
     try {
+      // Find the user's active subscription
+      const userSubscription = subscriptions?.find(sub => sub.user_id === data.user_id);
+      
+      if (!userSubscription) {
+        toast({
+          title: "Erro",
+          description: "Este usuário não possui assinatura ativa",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const { error } = await supabase
         .from('payments')
-        .insert([{
-          ...data,
+        .insert({
+          user_id: data.user_id,
+          subscription_id: userSubscription.id, // Add the subscription_id here
+          amount: data.amount,
+          due_date: data.due_date,
+          payment_date: data.payment_date,
+          payment_method: data.payment_method,
+          notes: data.notes,
           status: data.payment_date ? 'paid' : 'pending'
-        }]);
+        });
 
       if (error) throw error;
       
+      toast({
+        title: "Sucesso",
+        description: "Pagamento registrado com sucesso",
+      });
       onPaymentCreated();
       onClose();
     } catch (error) {
       console.error('Error creating payment:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível registrar o pagamento",
+        variant: "destructive"
+      });
     }
   };
 
