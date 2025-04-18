@@ -46,6 +46,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "checkins_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_checkin_counts"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       classes: {
@@ -89,6 +96,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classes_coach_id_fkey"
+            columns: ["coach_id"]
+            isOneToOne: false
+            referencedRelation: "user_checkin_counts"
+            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "classes_program_id_fkey"
@@ -156,6 +170,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_checkin_counts"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -310,13 +331,37 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_checkin_counts"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      user_checkin_counts: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          last_checkin_date: string | null
+          total_checkins: number | null
+          user_id: string | null
+          user_name: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
+      get_daily_checkins: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          check_date: string
+          checkin_count: number
+        }[]
+      }
       get_user_role: {
         Args: { user_id: string }
         Returns: string
