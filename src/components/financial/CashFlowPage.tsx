@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { 
-  PlusCircle, Search, FileText, ArrowDownUp, ArrowDown, ArrowUp, 
-  Calendar, Edit2, Trash2, Filter, Download
+  PlusCircle, Search, FileText, ArrowDown, ArrowUp, 
+  Calendar, Edit2, Trash2, Filter, Download, ArrowUpDown
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format, isValid } from "date-fns";
@@ -52,7 +51,6 @@ const CashFlowPage = () => {
   const [suppliers, setSuppliers] = useState<{id: string, name: string}[]>([]);
   const [users, setUsers] = useState<{id: string, name: string, email: string}[]>([]);
 
-  // Form states
   const [formValues, setFormValues] = useState({
     date: new Date(),
     category: "",
@@ -67,18 +65,15 @@ const CashFlowPage = () => {
 
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Fetch transactions
   useEffect(() => {
     fetchTransactions();
     fetchSuppliers();
     fetchUsers();
   }, []);
 
-  // Apply filters
   useEffect(() => {
     let filtered = [...transactions];
     
-    // Apply search term
     if (searchTerm) {
       filtered = filtered.filter(t => 
         t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -87,17 +82,14 @@ const CashFlowPage = () => {
       );
     }
     
-    // Apply status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(t => t.status === statusFilter);
     }
     
-    // Apply category filter
     if (categoryFilter !== "all") {
       filtered = filtered.filter(t => t.category === categoryFilter);
     }
     
-    // Apply date filter
     if (dateFilter === "today") {
       const today = new Date().toISOString().split('T')[0];
       filtered = filtered.filter(t => t.date.startsWith(today));
@@ -117,7 +109,6 @@ const CashFlowPage = () => {
       });
     }
     
-    // Apply active tab filter
     if (activeTab === "income") {
       filtered = filtered.filter(t => t.transaction_type === "income");
     } else if (activeTab === "expenses") {
@@ -166,10 +157,24 @@ const CashFlowPage = () => {
         .select('id, name')
         .order('name');
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching suppliers:', error);
+        setSuppliers([
+          { id: '1', name: 'Imobiliária' },
+          { id: '2', name: 'Serviços de Limpeza' },
+          { id: '3', name: 'Fornecedor de Equipamentos' }
+        ]);
+        return;
+      }
+      
       setSuppliers(data || []);
     } catch (error) {
       console.error('Error fetching suppliers:', error);
+      setSuppliers([
+        { id: '1', name: 'Imobiliária' },
+        { id: '2', name: 'Serviços de Limpeza' },
+        { id: '3', name: 'Fornecedor de Equipamentos' }
+      ]);
     }
   };
   
@@ -287,7 +292,6 @@ const CashFlowPage = () => {
         setShowNewExpenseDialog(false);
       }
       
-      // Reset form
       setFormValues({
         date: new Date(),
         category: "",
@@ -564,7 +568,6 @@ const CashFlowPage = () => {
         </DialogHeader>
         
         <form onSubmit={(e) => handleSubmit(e, 'income')} className="space-y-4">
-          {/* Data */}
           <div className="space-y-2">
             <Label htmlFor="date">Data</Label>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -596,7 +599,6 @@ const CashFlowPage = () => {
             </Popover>
           </div>
           
-          {/* Cliente */}
           <div className="space-y-2">
             <Label htmlFor="user_id">Cliente</Label>
             <Select value={formValues.user_id} onValueChange={(value) => handleSelectChange('user_id', value)}>
@@ -614,7 +616,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Descrição */}
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Input
@@ -626,7 +627,6 @@ const CashFlowPage = () => {
             />
           </div>
           
-          {/* Categoria */}
           <div className="space-y-2">
             <Label htmlFor="category">Categoria</Label>
             <Select value={formValues.category} onValueChange={(value) => handleSelectChange('category', value)} required>
@@ -642,7 +642,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Valor */}
           <div className="space-y-2">
             <Label htmlFor="amount">Valor (R$)</Label>
             <Input
@@ -656,7 +655,6 @@ const CashFlowPage = () => {
             />
           </div>
           
-          {/* Status */}
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select value={formValues.status} onValueChange={(value) => handleSelectChange('status', value)}>
@@ -671,7 +669,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Forma de pagamento */}
           <div className="space-y-2">
             <Label htmlFor="payment_method">Forma de pagamento</Label>
             <Select value={formValues.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
@@ -688,7 +685,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Conta */}
           <div className="space-y-2">
             <Label htmlFor="bank_account">Conta</Label>
             <Select value={formValues.bank_account} onValueChange={(value) => handleSelectChange('bank_account', value)}>
@@ -721,7 +717,6 @@ const CashFlowPage = () => {
         </DialogHeader>
         
         <form onSubmit={(e) => handleSubmit(e, 'expense')} className="space-y-4">
-          {/* Data */}
           <div className="space-y-2">
             <Label htmlFor="date">Data</Label>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -753,7 +748,6 @@ const CashFlowPage = () => {
             </Popover>
           </div>
           
-          {/* Fornecedor */}
           <div className="space-y-2">
             <Label htmlFor="fornecedor">Fornecedor</Label>
             <Select value={formValues.fornecedor} onValueChange={(value) => handleSelectChange('fornecedor', value)}>
@@ -771,7 +765,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Descrição */}
           <div className="space-y-2">
             <Label htmlFor="description">Descrição</Label>
             <Input
@@ -783,7 +776,6 @@ const CashFlowPage = () => {
             />
           </div>
           
-          {/* Categoria */}
           <div className="space-y-2">
             <Label htmlFor="category">Categoria</Label>
             <Select value={formValues.category} onValueChange={(value) => handleSelectChange('category', value)} required>
@@ -801,7 +793,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Valor */}
           <div className="space-y-2">
             <Label htmlFor="amount">Valor (R$)</Label>
             <Input
@@ -815,7 +806,6 @@ const CashFlowPage = () => {
             />
           </div>
           
-          {/* Status */}
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select value={formValues.status} onValueChange={(value) => handleSelectChange('status', value)}>
@@ -829,7 +819,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Forma de pagamento */}
           <div className="space-y-2">
             <Label htmlFor="payment_method">Forma de pagamento</Label>
             <Select value={formValues.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
@@ -846,7 +835,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Conta */}
           <div className="space-y-2">
             <Label htmlFor="bank_account">Conta</Label>
             <Select value={formValues.bank_account} onValueChange={(value) => handleSelectChange('bank_account', value)}>
@@ -879,7 +867,6 @@ const CashFlowPage = () => {
         </DialogHeader>
         
         <form onSubmit={updateTransaction} className="space-y-4">
-          {/* Data */}
           <div className="space-y-2">
             <Label htmlFor="edit_date">Data</Label>
             <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
@@ -911,7 +898,6 @@ const CashFlowPage = () => {
             </Popover>
           </div>
           
-          {/* Descrição */}
           <div className="space-y-2">
             <Label htmlFor="edit_description">Descrição</Label>
             <Input
@@ -923,7 +909,6 @@ const CashFlowPage = () => {
             />
           </div>
           
-          {/* Fornecedor (apenas para despesas) */}
           {currentTransaction?.transaction_type === 'expense' && (
             <div className="space-y-2">
               <Label htmlFor="edit_fornecedor">Fornecedor</Label>
@@ -943,7 +928,6 @@ const CashFlowPage = () => {
             </div>
           )}
           
-          {/* Categoria */}
           <div className="space-y-2">
             <Label htmlFor="edit_category">Categoria</Label>
             <Select value={formValues.category} onValueChange={(value) => handleSelectChange('category', value)} required>
@@ -972,7 +956,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Valor */}
           <div className="space-y-2">
             <Label htmlFor="edit_amount">Valor (R$)</Label>
             <Input
@@ -986,7 +969,6 @@ const CashFlowPage = () => {
             />
           </div>
           
-          {/* Status */}
           <div className="space-y-2">
             <Label htmlFor="edit_status">Status</Label>
             <Select value={formValues.status} onValueChange={(value) => handleSelectChange('status', value)}>
@@ -1003,7 +985,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Forma de pagamento */}
           <div className="space-y-2">
             <Label htmlFor="edit_payment_method">Forma de pagamento</Label>
             <Select value={formValues.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
@@ -1020,7 +1001,6 @@ const CashFlowPage = () => {
             </Select>
           </div>
           
-          {/* Conta */}
           <div className="space-y-2">
             <Label htmlFor="edit_bank_account">Conta</Label>
             <Select value={formValues.bank_account} onValueChange={(value) => handleSelectChange('bank_account', value)}>
@@ -1190,7 +1170,6 @@ const CashFlowPage = () => {
         </TabsContent>
       </Tabs>
       
-      {/* Diálogos */}
       {renderNewIncomeDialog()}
       {renderNewExpenseDialog()}
       {renderEditDialog()}

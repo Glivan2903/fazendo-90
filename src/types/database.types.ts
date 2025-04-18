@@ -132,4 +132,32 @@ export type Tables = {
       };
     };
   };
+  
+  suppliers: {
+    id: string;
+    name: string;
+    active?: boolean;
+    created_at?: string;
+  };
+  
+  bank_invoices: {
+    id: string;
+    user_id: string;
+    invoice_number: string;
+    due_date: string;
+    payment_date?: string;
+    total_amount: number;
+    discount_amount: number;
+    status: string;
+    payment_method?: string;
+    sale_date: string;
+    buyer_name: string;
+    seller_name: string;
+    created_at?: string;
+    updated_at?: string;
+    category?: string;
+    fornecedor?: string;
+    bank_account?: string;
+    transaction_type?: string;
+  };
 };
