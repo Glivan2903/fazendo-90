@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { createUser, deleteUser } from "@/api/userApi";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useNavigate } from "react-router-dom";
 
 interface UsersTabProps {
   users: User[];
@@ -25,6 +26,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const navigate = useNavigate();
+  
   const [newUser, setNewUser] = useState<Partial<User>>({
     name: "",
     email: "",
@@ -108,6 +111,10 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
     }
   };
   
+  const handleUserProfileClick = (userId: string) => {
+    navigate(`/admin/perfil-usuario/${userId}`);
+  };
+  
   const getRoleDisplay = (role: string | undefined) => {
     switch(role) {
       case "admin":
@@ -162,8 +169,18 @@ const UsersTab: React.FC<UsersTabProps> = ({ users, onEditUser }) => {
                   
                   return (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell 
+                        className="font-medium cursor-pointer hover:text-blue-600 hover:underline"
+                        onClick={() => handleUserProfileClick(user.id)}
+                      >
+                        {user.name}
+                      </TableCell>
+                      <TableCell 
+                        className="cursor-pointer hover:text-blue-600 hover:underline"
+                        onClick={() => handleUserProfileClick(user.id)}
+                      >
+                        {user.email}
+                      </TableCell>
                       <TableCell>
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleInfo.classes}`}>
                           {roleInfo.text}
