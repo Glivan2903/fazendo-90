@@ -36,15 +36,17 @@ export const useAttendanceStats = () => {
         .from('checkins')
         .select('user_id')
         .eq('status', 'confirmed')
-        .gte('checked_in_at', thirtyDaysAgo.toISOString())
-        .distinct();
+        .gte('checked_in_at', thirtyDaysAgo.toISOString());
 
       if (activeError) throw activeError;
+
+      // Get unique user IDs
+      const uniqueUserIds = [...new Set(activeUsers.map(item => item.user_id))];
 
       return {
         todayCheckins: todayData.length,
         totalCheckins: totalData.length,
-        activeUsers: activeUsers.length
+        activeUsers: uniqueUserIds.length
       };
     }
   });

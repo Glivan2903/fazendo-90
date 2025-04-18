@@ -24,7 +24,6 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   todayClasses,
   scheduleClasses,
   users,
-  attendance,
   onEditUser,
 }) => {
   if (loading && activeTab !== "overview") {
@@ -45,7 +44,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
     case "users":
       return <UsersTab users={users} onEditUser={onEditUser} />;
     case "attendance":
-      return <AttendanceTab attendanceData={attendance} />;
+      return <AttendanceTab />;
     default:
       return null;
   }
