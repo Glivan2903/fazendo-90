@@ -52,6 +52,8 @@ export const useSubscriptionStatus = (userId?: string) => {
     queryFn: async () => {
       if (!userId) return null;
 
+      console.log("Fetching subscription status for user:", userId);
+
       // Get user's active subscription
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
@@ -73,12 +75,19 @@ export const useSubscriptionStatus = (userId?: string) => {
       if (subError) {
         if (subError.code === 'PGRST116') {
           // No subscription found
+          console.log("No subscription found for user:", userId);
           return null;
         }
+        console.error("Error fetching subscription:", subError);
         throw subError;
       }
       
-      if (!subscription) return null;
+      if (!subscription) {
+        console.log("No subscription data returned for user:", userId);
+        return null;
+      }
+      
+      console.log("Fetched subscription:", subscription);
       
       // Get payments for this subscription
       const { data: paymentsData, error: paymentsError } = await supabase
@@ -87,7 +96,12 @@ export const useSubscriptionStatus = (userId?: string) => {
         .eq('subscription_id', subscription.id)
         .order('due_date', { ascending: true });
         
-      if (paymentsError) throw paymentsError;
+      if (paymentsError) {
+        console.error("Error fetching payments:", paymentsError);
+        throw paymentsError;
+      }
+
+      console.log("Fetched payments:", paymentsData);
 
       // Transform the data to match our types
       const payments = paymentsData ? paymentsData.map(payment => ({
@@ -103,6 +117,38 @@ export const useSubscriptionStatus = (userId?: string) => {
       };
     },
     enabled: !!userId,
+  });
+  
+  // Check if subscription is expired and update status in database if needed
+  useQuery({
+    queryKey: ['update-subscription-status', subscriptionWithPayments?.id, refreshTrigger],
+    queryFn: async () => {
+      if (!subscriptionWithPayments) return null;
+      
+      const today = new Date();
+      const endDate = parseISO(subscriptionWithPayments.end_date);
+      const isExpired = isPast(endDate);
+      
+      if (isExpired && subscriptionWithPayments.status === 'active') {
+        console.log("Subscription expired, updating status to expired:", subscriptionWithPayments.id);
+        
+        // Update subscription status to expired
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({ status: 'expired', updated_at: new Date().toISOString() })
+          .eq('id', subscriptionWithPayments.id);
+        
+        if (error) {
+          console.error("Error updating subscription status:", error);
+        } else {
+          // Refresh data after updating
+          setRefreshTrigger(prev => prev + 1);
+        }
+      }
+      
+      return null;
+    },
+    enabled: !!subscriptionWithPayments?.id,
   });
   
   const processedSubscription = subscriptionWithPayments ? formatSubscription(subscriptionWithPayments) : null;

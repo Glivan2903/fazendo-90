@@ -45,12 +45,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
   }
 
   // Special case for admin email
-  if (user.email === "matheusprograming@gmail.com") {
-    console.log("Admin email detected, bypassing role and subscription check");
+  if (user.email === "matheusprograming@gmail.com" || userRole === "admin") {
+    console.log("Admin user detected, bypassing role and subscription check");
     return <>{children}</>;
   }
 
-  // Check for active subscription
+  // Check for active subscription - only check if location is not /auth
   if (!hasActiveSubscription && location.pathname !== "/auth") {
     console.log("Usuário sem assinatura ativa, redirecionando para /auth");
     toast.error("Sua assinatura não está ativa. Por favor, entre em contato com o administrador para regularizar seu pagamento.");

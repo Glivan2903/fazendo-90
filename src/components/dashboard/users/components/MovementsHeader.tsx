@@ -4,7 +4,11 @@ import { Button } from '@/components/ui/button';
 import { FilePlus } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
-const MovementsHeader: React.FC = () => {
+interface MovementsHeaderProps {
+  onNewMovement?: () => void;
+}
+
+const MovementsHeader: React.FC<MovementsHeaderProps> = ({ onNewMovement }) => {
   return (
     <div className="flex justify-between items-center">
       <div className="text-xl font-bold">Movimentações</div>
@@ -19,7 +23,7 @@ const MovementsHeader: React.FC = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={onNewMovement}>
               <FilePlus className="mr-2 h-4 w-4" />
               Nova movimentação
             </DropdownMenuItem>

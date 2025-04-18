@@ -1,16 +1,36 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PlansManagement from "@/components/financial/PlansManagement";
 import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
 import PaymentHistory from "@/components/financial/PaymentHistory";
 import SubscriptionsManagement from "@/components/financial/SubscriptionsManagement";
-import { CreditCard, BarChart2, FileText, UsersRound } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CreditCard, BarChart2, FileText, UsersRound, Plus } from "lucide-react";
+import NewPaymentDialog from "@/components/financial/NewPaymentDialog";
 
 const FinancialTab = () => {
+  const [isNewPaymentDialogOpen, setIsNewPaymentDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const handlePaymentCreated = () => {
+    // Atualizar dados após criar um novo pagamento
+    if (activeTab === "payments") {
+      // Forçar atualização do PaymentHistory - poderá ser implementado através de um ref
+    }
+  };
+
   return (
     <div className="container mx-auto">
-      <Tabs defaultValue="overview" className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Gestão Financeira</h1>
+        <Button onClick={() => setIsNewPaymentDialogOpen(true)} size="sm">
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Pagamento
+        </Button>
+      </div>
+      
+      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="w-full md:w-auto overflow-auto">
           <TabsTrigger value="overview" className="flex items-center">
             <BarChart2 className="w-4 h-4 mr-2" />
@@ -46,6 +66,12 @@ const FinancialTab = () => {
           <PaymentHistory />
         </TabsContent>
       </Tabs>
+      
+      <NewPaymentDialog
+        open={isNewPaymentDialogOpen}
+        onOpenChange={setIsNewPaymentDialogOpen}
+        onPaymentCreated={handlePaymentCreated}
+      />
     </div>
   );
 };

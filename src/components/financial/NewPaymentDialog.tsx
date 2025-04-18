@@ -1,377 +1,495 @@
 
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { cn } from "@/lib/utils";
 
 interface NewPaymentDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onPaymentCreated?: () => void;
+  userId?: string;
+  selectedUserOnly?: boolean;
 }
 
-interface NewPaymentForm {
-  user_id: string;
-  subscription_id: string;
-  amount: number;
-  due_date: string;
-  payment_date?: string;
-  status: string;
-  payment_method?: string;
-  notes?: string;
-}
+const paymentMethods = [
+  { value: "pix", label: "PIX" },
+  { value: "credit_card", label: "Cartão de Crédito" },
+  { value: "debit_card", label: "Cartão de Débito" },
+  { value: "cash", label: "Dinheiro" },
+  { value: "bank_transfer", label: "Transferência Bancária" }
+];
 
-const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({ isOpen, onClose, onPaymentCreated }) => {
+const paymentStatus = [
+  { value: "pending", label: "Pendente" },
+  { value: "paid", label: "Pago" },
+  { value: "overdue", label: "Atrasado" },
+  { value: "canceled", label: "Cancelado" }
+];
+
+export default function NewPaymentDialog({ 
+  open, 
+  onOpenChange, 
+  onPaymentCreated,
+  userId,
+  selectedUserOnly = false
+}: NewPaymentDialogProps) {
+  const queryClient = useQueryClient();
   const [users, setUsers] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
-  const [selectedUser, setSelectedUser] = useState<string>('');
   const [loading, setLoading] = useState(false);
-
-  const { register, handleSubmit, setValue, reset, watch, formState: { errors } } = useForm<NewPaymentForm>({
-    defaultValues: {
-      status: 'pending',
-      amount: 0,
-      due_date: new Date().toISOString().split('T')[0],
-    }
+  const [form, setForm] = useState({
+    userId: userId || '',
+    subscriptionId: '',
+    amount: '',
+    dueDate: new Date(),
+    paymentDate: null as Date | null,
+    status: 'pending',
+    paymentMethod: '',
+    notes: ''
   });
 
-  const watchUserId = watch('user_id');
-  const watchSubscriptionId = watch('subscription_id');
-  const watchPaymentDate = watch('payment_date');
-  const watchStatus = watch('status');
-
+  // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .order('name');
-
-      if (error) {
-        console.error('Error fetching users:', error);
-        return;
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email');
+          
+        if (error) throw error;
+        setUsers(data || []);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+        toast.error("Erro ao carregar usuários");
       }
-
-      setUsers(data || []);
     };
-
-    if (isOpen) {
+    
+    if (open && !selectedUserOnly) {
       fetchUsers();
-      reset({
-        status: 'pending',
-        amount: 0,
-        due_date: new Date().toISOString().split('T')[0],
-      });
     }
-  }, [isOpen, reset]);
+  }, [open, selectedUserOnly]);
 
+  // Fetch subscriptions when user changes
   useEffect(() => {
     const fetchSubscriptions = async () => {
-      if (!watchUserId) {
+      if (!form.userId) {
         setSubscriptions([]);
         return;
       }
-
-      const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          plans (
-            id, name, amount
-          )
-        `)
-        .eq('user_id', watchUserId);
-
-      if (error) {
-        console.error('Error fetching subscriptions:', error);
-        return;
-      }
-
-      setSubscriptions(data || []);
       
-      // If there's only one subscription, select it automatically
-      if (data && data.length === 1) {
-        setValue('subscription_id', data[0].id);
-        // Set the amount from the plan
-        if (data[0].plans && data[0].plans.amount) {
-          setValue('amount', data[0].plans.amount);
+      try {
+        const { data, error } = await supabase
+          .from('subscriptions')
+          .select(`
+            *,
+            plans (
+              name,
+              amount,
+              days_validity
+            )
+          `)
+          .eq('user_id', form.userId)
+          .order('end_date', { ascending: false });
+          
+        if (error) throw error;
+        
+        // Calculate subscription label for each subscription
+        const processedSubscriptions = data?.map(sub => {
+          const endDate = new Date(sub.end_date);
+          const label = `${sub.plans?.name} (válido até ${format(endDate, 'dd/MM/yyyy', { locale: ptBR })})`;
+          
+          return {
+            ...sub,
+            label,
+            amount: sub.plans?.amount || 0
+          };
+        }) || [];
+        
+        setSubscriptions(processedSubscriptions);
+        
+        // Auto-select the first subscription if available
+        if (processedSubscriptions.length > 0 && !form.subscriptionId) {
+          handleSubscriptionChange(processedSubscriptions[0].id);
         }
-      } else {
-        setValue('subscription_id', '');
+      } catch (error) {
+        console.error("Error fetching subscriptions:", error);
+        toast.error("Erro ao carregar assinaturas");
       }
     };
+    
+    if (form.userId) {
+      fetchSubscriptions();
+    }
+  }, [form.userId]);
 
-    fetchSubscriptions();
-  }, [watchUserId, setValue]);
-
+  // Fetch individual user if userId is provided
   useEffect(() => {
-    // When subscription changes, update the amount from the plan
-    if (watchSubscriptionId) {
-      const subscription = subscriptions.find(s => s.id === watchSubscriptionId);
-      if (subscription && subscription.plans && subscription.plans.amount) {
-        setValue('amount', subscription.plans.amount);
+    const fetchUserInfo = async () => {
+      if (!userId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email')
+          .eq('id', userId)
+          .single();
+          
+        if (error) throw error;
+        if (data) {
+          setUsers([data]);
+          setForm(prev => ({ ...prev, userId: data.id }));
+        }
+      } catch (error) {
+        console.error("Error fetching user info:", error);
       }
+    };
+    
+    if (open && userId) {
+      fetchUserInfo();
     }
-  }, [watchSubscriptionId, subscriptions, setValue]);
+  }, [open, userId]);
 
-  useEffect(() => {
-    // If payment_date is set, change status to paid
-    if (watchPaymentDate && watchStatus === 'pending') {
-      setValue('status', 'paid');
-    }
-    // If payment_date is removed, change status back to pending
-    else if (!watchPaymentDate && watchStatus === 'paid') {
-      setValue('status', 'pending');
-    }
-  }, [watchPaymentDate, watchStatus, setValue]);
+  const handleUserChange = (value: string) => {
+    setForm({
+      ...form,
+      userId: value,
+      subscriptionId: '',
+      amount: ''
+    });
+  };
 
-  const onSubmit = async (data: NewPaymentForm) => {
+  const handleSubscriptionChange = (value: string) => {
+    const subscription = subscriptions.find(sub => sub.id === value);
+    setForm({
+      ...form,
+      subscriptionId: value,
+      amount: subscription?.amount ? subscription.amount.toString() : ''
+    });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setLoading(true);
+    
     try {
-      // Insert the payment
-      const { data: paymentData, error: paymentError } = await supabase
+      if (!form.userId || !form.amount) {
+        toast.error("Por favor preencha todos os campos obrigatórios");
+        return;
+      }
+      
+      const { data: payment, error: paymentError } = await supabase
         .from('payments')
-        .insert({
-          user_id: data.user_id,
-          subscription_id: data.subscription_id,
-          amount: data.amount,
-          due_date: data.due_date,
-          payment_date: data.payment_date || null,
-          status: data.status,
-          payment_method: data.payment_method || null,
-          notes: data.notes || null,
-        })
+        .insert([
+          {
+            user_id: form.userId,
+            subscription_id: form.subscriptionId || null,
+            amount: parseFloat(form.amount),
+            due_date: format(form.dueDate, 'yyyy-MM-dd'),
+            payment_date: form.paymentDate ? format(form.paymentDate, 'yyyy-MM-dd') : null,
+            status: form.status,
+            payment_method: form.paymentMethod || null,
+            notes: form.notes || null
+          }
+        ])
         .select()
         .single();
-
+      
       if (paymentError) throw paymentError;
-
-      // If the payment is marked as paid and has a subscription_id, update the subscription status to active
-      if (data.status === 'paid' && data.subscription_id) {
-        const { error: subscriptionError } = await supabase
-          .from('subscriptions')
-          .update({ status: 'active' })
-          .eq('id', data.subscription_id);
-
-        if (subscriptionError) throw subscriptionError;
+      
+      // Criar fatura bancária
+      if (payment) {
+        const { error: invoiceError } = await supabase
+          .from('bank_invoices')
+          .insert([
+            {
+              user_id: form.userId,
+              due_date: format(form.dueDate, 'yyyy-MM-dd'),
+              payment_date: form.paymentDate ? format(form.paymentDate, 'yyyy-MM-dd') : null,
+              total_amount: parseFloat(form.amount),
+              discount_amount: 0,
+              status: form.status,
+              buyer_name: users.find(u => u.id === form.userId)?.name || 'Cliente',
+              payment_method: form.paymentMethod || null,
+              invoice_number: await generateInvoiceNumber()
+            }
+          ]);
+        
+        if (invoiceError) {
+          console.error("Erro ao criar fatura:", invoiceError);
+          toast.error("Pagamento criado, mas houve um erro ao gerar a fatura");
+        }
       }
-
-      toast.success('Pagamento criado com sucesso!');
-      onClose();
-      if (onPaymentCreated) onPaymentCreated();
-    } catch (error) {
-      console.error('Error creating payment:', error);
-      toast.error('Erro ao criar pagamento');
+      
+      toast.success("Pagamento criado com sucesso!");
+      
+      // Reset form
+      setForm({
+        userId: userId || '',
+        subscriptionId: '',
+        amount: '',
+        dueDate: new Date(),
+        paymentDate: null,
+        status: 'pending',
+        paymentMethod: '',
+        notes: ''
+      });
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['user-subscriptions'] });
+      
+      if (onPaymentCreated) {
+        onPaymentCreated();
+      }
+      
+      onOpenChange(false);
+      
+    } catch (error: any) {
+      console.error("Error creating payment:", error);
+      toast.error(`Erro ao criar pagamento: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
-
-  const handleUserChange = (userId: string) => {
-    setValue('user_id', userId);
-    setSelectedUser(userId);
-    // Reset subscription when user changes
-    setValue('subscription_id', '');
+  
+  const generateInvoiceNumber = async (): Promise<string> => {
+    try {
+      const { data, error } = await supabase.rpc('generate_invoice_number');
+      
+      if (error) throw error;
+      return data || "1";
+    } catch (error) {
+      console.error("Error generating invoice number:", error);
+      // Fallback: get current timestamp as invoice number
+      return Date.now().toString().substring(5);
+    }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Novo Pagamento</DialogTitle>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-4">
+        
+        <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+          {/* Cliente (Usuário) */}
           <div className="space-y-2">
-            <Label htmlFor="user_id">Cliente</Label>
-            <Select value={selectedUser} onValueChange={handleUserChange}>
-              <SelectTrigger id="user_id">
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name} ({user.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.user_id && <p className="text-sm text-red-500">Cliente é obrigatório</p>}
+            <Label htmlFor="user">Cliente</Label>
+            {selectedUserOnly && users.length > 0 ? (
+              <div className="p-2 border rounded-md">
+                {users[0]?.name} ({users[0]?.email})
+              </div>
+            ) : (
+              <Select 
+                value={form.userId} 
+                onValueChange={handleUserChange}
+                disabled={loading}
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {users.map((user) => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name} ({user.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
-
+          
+          {/* Assinatura */}
           <div className="space-y-2">
-            <Label htmlFor="subscription_id">Assinatura</Label>
+            <Label htmlFor="subscription">Assinatura</Label>
             <Select 
-              value={watchSubscriptionId || ''}
-              onValueChange={(value) => setValue('subscription_id', value)}
-              disabled={!selectedUser || subscriptions.length === 0}
+              value={form.subscriptionId} 
+              onValueChange={handleSubscriptionChange}
+              disabled={loading || subscriptions.length === 0}
             >
-              <SelectTrigger id="subscription_id">
-                <SelectValue placeholder={selectedUser ? (subscriptions.length === 0 ? "Sem assinaturas disponíveis" : "Selecione uma assinatura") : "Selecione um cliente primeiro"} />
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione uma assinatura" />
               </SelectTrigger>
               <SelectContent>
-                {subscriptions.map((subscription) => (
-                  <SelectItem key={subscription.id} value={subscription.id}>
-                    {subscription.plans?.name || 'Sem plano'} (válido até {format(new Date(subscription.end_date), 'dd/MM/yyyy', { locale: ptBR })})
+                {subscriptions.map((sub) => (
+                  <SelectItem key={sub.id} value={sub.id}>
+                    {sub.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {errors.subscription_id && <p className="text-sm text-red-500">Assinatura é obrigatória</p>}
           </div>
-
+          
+          {/* Valor */}
           <div className="space-y-2">
             <Label htmlFor="amount">Valor</Label>
             <Input
               id="amount"
               type="number"
               step="0.01"
-              {...register('amount', { required: true, min: 0 })}
+              min="0"
+              placeholder="0.00"
+              value={form.amount}
+              onChange={e => setForm({ ...form, amount: e.target.value })}
+              disabled={loading}
+              required
             />
-            {errors.amount && <p className="text-sm text-red-500">Valor é obrigatório e deve ser positivo</p>}
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          {/* Data de Vencimento e Pagamento */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="due_date">Data de Vencimento</Label>
+              <Label>Data de Vencimento</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
-                    className="w-full justify-start text-left font-normal"
-                    type="button"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !form.dueDate && "text-muted-foreground"
+                    )}
+                    disabled={loading}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {watch('due_date') ? (
-                      format(new Date(watch('due_date')), 'PPP', { locale: ptBR })
+                    {form.dueDate ? (
+                      format(form.dueDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
                     ) : (
                       <span>Selecione uma data</span>
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={watch('due_date') ? new Date(watch('due_date')) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        setValue('due_date', date.toISOString().split('T')[0]);
-                      }
-                    }}
+                    selected={form.dueDate}
+                    onSelect={date => date && setForm({ ...form, dueDate: date })}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
-
+            
             <div className="space-y-2">
-              <Label htmlFor="payment_date">Data de Pagamento</Label>
+              <Label>Data de Pagamento</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
-                    variant={"outline"}
-                    className="w-full justify-start text-left font-normal"
-                    type="button"
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !form.paymentDate && "text-muted-foreground"
+                    )}
+                    disabled={loading}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {watch('payment_date') ? (
-                      format(new Date(watch('payment_date')), 'PPP', { locale: ptBR })
+                    {form.paymentDate ? (
+                      format(form.paymentDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
                     ) : (
                       <span>Selecione uma data</span>
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
-                    selected={watch('payment_date') ? new Date(watch('payment_date')) : undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        setValue('payment_date', date.toISOString().split('T')[0]);
-                      } else {
-                        setValue('payment_date', undefined);
-                      }
-                    }}
+                    selected={form.paymentDate || undefined}
+                    onSelect={date => setForm({ ...form, paymentDate: date })}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
             </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          
+          {/* Status e Método de Pagamento */}
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select 
-                value={watch('status')}
-                onValueChange={(value) => setValue('status', value)}
+                value={form.status} 
+                onValueChange={value => setForm({ ...form, status: value })}
+                disabled={loading}
               >
-                <SelectTrigger id="status">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="paid">Pago</SelectItem>
-                  <SelectItem value="overdue">Atrasado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  {paymentStatus.map((status) => (
+                    <SelectItem key={status.value} value={status.value}>
+                      {status.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-
+            
             <div className="space-y-2">
-              <Label htmlFor="payment_method">Método de Pagamento</Label>
+              <Label htmlFor="paymentMethod">Método de Pagamento</Label>
               <Select 
-                value={watch('payment_method') || ''}
-                onValueChange={(value) => setValue('payment_method', value)}
+                value={form.paymentMethod} 
+                onValueChange={value => setForm({ ...form, paymentMethod: value })}
+                disabled={loading}
               >
-                <SelectTrigger id="payment_method">
+                <SelectTrigger>
                   <SelectValue placeholder="Selecione o método" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                  <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                  <SelectItem value="cash">Dinheiro</SelectItem>
-                  <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="other">Outro</SelectItem>
+                  {paymentMethods.map((method) => (
+                    <SelectItem key={method.value} value={method.value}>
+                      {method.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-
+          
+          {/* Observações */}
           <div className="space-y-2">
             <Label htmlFor="notes">Observações</Label>
             <Textarea
               id="notes"
-              {...register('notes')}
               placeholder="Observações adicionais..."
+              value={form.notes}
+              onChange={e => setForm({ ...form, notes: e.target.value })}
+              disabled={loading}
               rows={3}
             />
           </div>
-
+          
           <DialogFooter>
-            <Button variant="outline" type="button" onClick={onClose}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               Cancelar
             </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Salvando...' : 'Salvar'}
+            <Button 
+              type="submit" 
+              disabled={loading || !form.userId || !form.amount}
+            >
+              {loading ? "Salvando..." : "Salvar"}
             </Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
   );
-};
-
-export default NewPaymentDialog;
+}
