@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar, BarChart2, Users, LogOut, ClipboardCheck, Wallet } from "lucide-react";
@@ -19,10 +20,13 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   const isAdmin = userRole === "admin";
 
   return (
-    <div className="space-y-4 py-4">
-      <div className="px-3 py-2">
-        <h2 className="mb-2 px-4 text-lg font-semibold">Dashboard</h2>
-        <div className="space-y-1">
+    <div className="h-full flex flex-col bg-white">
+      <div className="p-4 border-b">
+        <h2 className="text-xl font-bold">Dashboard</h2>
+      </div>
+      
+      <div className="flex-1 overflow-auto">
+        <div className="space-y-1 p-2">
           <Button
             variant={activeTab === "overview" ? "secondary" : "ghost"}
             className="w-full justify-start"
@@ -65,15 +69,18 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
               Financeiro
             </Button>
           )}
-          <Button
-            variant="ghost"
-            className="w-full justify-start text-red-500 hover:text-red-600"
-            onClick={signOut}
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sair
-          </Button>
         </div>
+      </div>
+      
+      <div className="p-4 border-t">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+          onClick={signOut}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </Button>
       </div>
     </div>
   );

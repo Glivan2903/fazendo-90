@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,7 +15,7 @@ import React from "react";
 import UserProfile from "./pages/UserProfile";
 import FinancialDashboard from "./pages/FinancialDashboard";
 import UserProfileAdmin from "./pages/UserProfileAdmin";
-import SidebarLayout from "./components/SidebarLayout";
+import SidebarLayout from "./components/layout/SidebarLayout";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,9 +61,7 @@ const App = () => (
                 path="/teacher-dashboard"
                 element={
                   <ProtectedRoute allowedRoles={["admin", "coach"]}>
-                    <SidebarLayout>
-                      <TeacherDashboard />
-                    </SidebarLayout>
+                    <TeacherDashboard />
                   </ProtectedRoute>
                 }
               />

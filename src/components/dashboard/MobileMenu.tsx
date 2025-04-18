@@ -35,7 +35,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="p-0">
+      <SheetContent side="left" className="p-0 w-72">
         <div className="flex flex-col h-full">
           <div className="border-b p-4 flex justify-between items-center">
             <h2 className="text-xl font-bold">CrossBox Fênix</h2>
@@ -101,34 +101,25 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
               <li>
                 <Button
                   variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    navigate("/financial");
-                    setMenuOpen(false);
-                  }}
+                  className={cn(
+                    "w-full justify-start",
+                    activeTab === "financial" && "bg-accent text-accent-foreground"
+                  )}
+                  onClick={() => handleTabChange("financial")}
                 >
                   <CreditCard className="mr-2 h-5 w-5" />
                   Financeiro
-                </Button>
-              </li>
-              <li>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start"
-                  onClick={() => {
-                    navigate("/check-in");
-                    setMenuOpen(false);
-                  }}
-                >
-                  <Clock className="mr-2 h-5 w-5" />
-                  Check-in
                 </Button>
               </li>
             </ul>
           </nav>
           
           <div className="border-t p-4">
-            <Button variant="ghost" className="w-full justify-start" onClick={signOut}>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50" 
+              onClick={signOut}
+            >
               <LogOut className="mr-2 h-5 w-5" />
               Sair
             </Button>
