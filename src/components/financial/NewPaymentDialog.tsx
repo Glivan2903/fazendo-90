@@ -1,367 +1,374 @@
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useQuery } from '@tanstack/react-query';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { supabase } from '@/integrations/supabase/client';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from 'sonner';
 
 interface NewPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onPaymentCreated: () => void;
+  onPaymentCreated?: () => void;
 }
 
-interface PaymentFormData {
+interface NewPaymentForm {
   user_id: string;
+  subscription_id: string;
   amount: number;
   due_date: string;
   payment_date?: string;
-  payment_method: string;
-  notes?: string;
   status: string;
+  payment_method?: string;
+  notes?: string;
 }
 
-interface UserWithSubscription {
-  id: string;
-  name: string;
-  email: string;
-  subscription_id: string | null;
-  plan: string | null;
-}
+const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({ isOpen, onClose, onPaymentCreated }) => {
+  const [users, setUsers] = useState<any[]>([]);
+  const [subscriptions, setSubscriptions] = useState<any[]>([]);
+  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [loading, setLoading] = useState(false);
 
-interface SubscriptionDetail {
-  id: string;
-  plan_id: string;
-  plans: {
-    name: string;
-    amount: number;
-  };
-}
-
-const NewPaymentDialog: React.FC<NewPaymentDialogProps> = ({
-  isOpen,
-  onClose,
-  onPaymentCreated
-}) => {
-  const form = useForm<PaymentFormData>();
-  const { toast } = useToast();
-
-  // Fetch active users with their subscriptions
-  const { data: users, isLoading: loadingUsers } = useQuery({
-    queryKey: ['users-with-subscriptions'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email, subscription_id, plan')
-        .eq('status', 'Ativo')
-        .order('name');
-      
-      if (error) {
-        console.error('Erro ao buscar usuários:', error);
-        throw error;
-      }
-      
-      console.log('Usuários carregados:', data);
-      return data as UserWithSubscription[];
-    },
-    enabled: isOpen
+  const { register, handleSubmit, setValue, reset, watch, formState: { errors } } = useForm<NewPaymentForm>({
+    defaultValues: {
+      status: 'pending',
+      amount: 0,
+      due_date: new Date().toISOString().split('T')[0],
+    }
   });
 
-  // Fetch subscription details only when we have users
-  const { data: subscriptions, isLoading: loadingSubscriptions } = useQuery({
-    queryKey: ['subscriptions-details'],
-    queryFn: async () => {
-      // Get all subscription IDs that are not null
-      const subscriptionIds = users
-        ?.filter(user => user.subscription_id !== null)
-        .map(user => user.subscription_id) || [];
-      
-      if (subscriptionIds.length === 0) {
-        console.log('Nenhuma assinatura encontrada para buscar detalhes');
-        return [];
+  const watchUserId = watch('user_id');
+  const watchSubscriptionId = watch('subscription_id');
+  const watchPaymentDate = watch('payment_date');
+  const watchStatus = watch('status');
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, email')
+        .order('name');
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return;
+      }
+
+      setUsers(data || []);
+    };
+
+    if (isOpen) {
+      fetchUsers();
+      reset({
+        status: 'pending',
+        amount: 0,
+        due_date: new Date().toISOString().split('T')[0],
+      });
+    }
+  }, [isOpen, reset]);
+
+  useEffect(() => {
+    const fetchSubscriptions = async () => {
+      if (!watchUserId) {
+        setSubscriptions([]);
+        return;
       }
 
       const { data, error } = await supabase
         .from('subscriptions')
-        .select('id, plan_id, plans(name, amount)')
-        .in('id', subscriptionIds)
-        .eq('status', 'active');
-      
+        .select(`
+          *,
+          plans (
+            id, name, amount
+          )
+        `)
+        .eq('user_id', watchUserId);
+
       if (error) {
-        console.error('Erro ao buscar detalhes das assinaturas:', error);
-        throw error;
-      }
-      
-      console.log('Detalhes das assinaturas carregados:', data);
-      return data as SubscriptionDetail[];
-    },
-    enabled: isOpen && !!users && users.length > 0
-  });
-
-  // Reset form when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      form.reset({
-        user_id: '',
-        amount: 0,
-        due_date: new Date().toISOString().split('T')[0],
-        payment_method: '',
-        notes: '',
-        status: 'pending'
-      });
-    }
-  }, [isOpen, form]);
-
-  const onSubmit = async (data: PaymentFormData) => {
-    try {
-      // Find the user's subscription
-      const user = users?.find(u => u.id === data.user_id);
-      
-      if (!user?.subscription_id) {
-        toast({
-          title: "Erro",
-          description: "Este usuário não possui assinatura ativa",
-          variant: "destructive"
-        });
+        console.error('Error fetching subscriptions:', error);
         return;
       }
 
-      const { error } = await supabase
+      setSubscriptions(data || []);
+      
+      // If there's only one subscription, select it automatically
+      if (data && data.length === 1) {
+        setValue('subscription_id', data[0].id);
+        // Set the amount from the plan
+        if (data[0].plans && data[0].plans.amount) {
+          setValue('amount', data[0].plans.amount);
+        }
+      } else {
+        setValue('subscription_id', '');
+      }
+    };
+
+    fetchSubscriptions();
+  }, [watchUserId, setValue]);
+
+  useEffect(() => {
+    // When subscription changes, update the amount from the plan
+    if (watchSubscriptionId) {
+      const subscription = subscriptions.find(s => s.id === watchSubscriptionId);
+      if (subscription && subscription.plans && subscription.plans.amount) {
+        setValue('amount', subscription.plans.amount);
+      }
+    }
+  }, [watchSubscriptionId, subscriptions, setValue]);
+
+  useEffect(() => {
+    // If payment_date is set, change status to paid
+    if (watchPaymentDate && watchStatus === 'pending') {
+      setValue('status', 'paid');
+    }
+    // If payment_date is removed, change status back to pending
+    else if (!watchPaymentDate && watchStatus === 'paid') {
+      setValue('status', 'pending');
+    }
+  }, [watchPaymentDate, watchStatus, setValue]);
+
+  const onSubmit = async (data: NewPaymentForm) => {
+    setLoading(true);
+    try {
+      // Insert the payment
+      const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
         .insert({
           user_id: data.user_id,
-          subscription_id: user.subscription_id,
+          subscription_id: data.subscription_id,
           amount: data.amount,
           due_date: data.due_date,
-          payment_date: data.payment_date,
-          payment_method: data.payment_method,
-          notes: data.notes,
-          status: data.payment_date ? 'paid' : 'pending'
-        });
+          payment_date: data.payment_date || null,
+          status: data.status,
+          payment_method: data.payment_method || null,
+          notes: data.notes || null,
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
-      
-      toast({
-        title: "Sucesso",
-        description: "Pagamento registrado com sucesso",
-      });
-      onPaymentCreated();
+      if (paymentError) throw paymentError;
+
+      // If the payment is marked as paid and has a subscription_id, update the subscription status to active
+      if (data.status === 'paid' && data.subscription_id) {
+        const { error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .update({ status: 'active' })
+          .eq('id', data.subscription_id);
+
+        if (subscriptionError) throw subscriptionError;
+      }
+
+      toast.success('Pagamento criado com sucesso!');
       onClose();
+      if (onPaymentCreated) onPaymentCreated();
     } catch (error) {
       console.error('Error creating payment:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível registrar o pagamento",
-        variant: "destructive"
-      });
+      toast.error('Erro ao criar pagamento');
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Get users with active subscriptions
-  const usersWithSubscriptions = users?.filter(user => 
-    user.subscription_id !== null
-  );
-
-  // Log debug information
-  console.log('Usuários com assinaturas:', usersWithSubscriptions);
-  console.log('Assinaturas carregadas:', subscriptions);
-
-  // For a selected user, get the subscription amount
-  const getUserSubscriptionAmount = (userId: string) => {
-    const user = users?.find(u => u.id === userId);
-    if (!user?.subscription_id) {
-      console.log('Usuário sem assinatura:', userId);
-      return 0;
-    }
-    
-    const subscription = subscriptions?.find(s => s.id === user.subscription_id);
-    if (!subscription?.plans?.amount) {
-      console.log('Assinatura sem valor definido:', user.subscription_id);
-      return 0;
-    }
-
-    console.log('Valor da assinatura encontrado:', subscription.plans.amount);
-    return subscription.plans.amount;
-  };
-
-  // Set the amount when user is selected
   const handleUserChange = (userId: string) => {
-    form.setValue('user_id', userId);
-    const amount = getUserSubscriptionAmount(userId);
-    if (amount) {
-      form.setValue('amount', amount);
-    }
-    
-    // Debug
-    const user = users?.find(u => u.id === userId);
-    console.log('Usuário selecionado:', user);
+    setValue('user_id', userId);
+    setSelectedUser(userId);
+    // Reset subscription when user changes
+    setValue('subscription_id', '');
   };
-
-  // Check if we have any users with subscriptions
-  const hasUsersWithSubscriptions = 
-    usersWithSubscriptions && usersWithSubscriptions.length > 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Novo Pagamento</DialogTitle>
         </DialogHeader>
 
-        {loadingUsers || loadingSubscriptions ? (
-          <div className="p-4 text-center">
-            Carregando dados...
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-4">
+          <div className="space-y-2">
+            <Label htmlFor="user_id">Cliente</Label>
+            <Select value={selectedUser} onValueChange={handleUserChange}>
+              <SelectTrigger id="user_id">
+                <SelectValue placeholder="Selecione um cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.name} ({user.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.user_id && <p className="text-sm text-red-500">Cliente é obrigatório</p>}
           </div>
-        ) : !hasUsersWithSubscriptions ? (
-          <div className="p-4 text-center">
-            <p className="text-red-500">Nenhum usuário com assinatura ativa encontrado.</p>
-            <p className="text-sm text-gray-500 mt-2">
-              Verifique se existem usuários com assinaturas ativas no sistema.
-            </p>
+
+          <div className="space-y-2">
+            <Label htmlFor="subscription_id">Assinatura</Label>
+            <Select 
+              value={watchSubscriptionId || ''}
+              onValueChange={(value) => setValue('subscription_id', value)}
+              disabled={!selectedUser || subscriptions.length === 0}
+            >
+              <SelectTrigger id="subscription_id">
+                <SelectValue placeholder={selectedUser ? (subscriptions.length === 0 ? "Sem assinaturas disponíveis" : "Selecione uma assinatura") : "Selecione um cliente primeiro"} />
+              </SelectTrigger>
+              <SelectContent>
+                {subscriptions.map((subscription) => (
+                  <SelectItem key={subscription.id} value={subscription.id}>
+                    {subscription.plans?.name || 'Sem plano'} (válido até {format(new Date(subscription.end_date), 'dd/MM/yyyy', { locale: ptBR })})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {errors.subscription_id && <p className="text-sm text-red-500">Assinatura é obrigatória</p>}
           </div>
-        ) : (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="user_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliente</FormLabel>
-                    <Select 
-                      onValueChange={(value) => handleUserChange(value)} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um cliente" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {usersWithSubscriptions?.map((user) => (
-                          <SelectItem key={user.id} value={user.id}>
-                            {user.name} {user.plan ? `- ${user.plan}` : ''}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
 
-              <FormField
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Valor</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        {...field} 
-                        onChange={(e) => field.onChange(parseFloat(e.target.value))} 
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+          <div className="space-y-2">
+            <Label htmlFor="amount">Valor</Label>
+            <Input
+              id="amount"
+              type="number"
+              step="0.01"
+              {...register('amount', { required: true, min: 0 })}
+            />
+            {errors.amount && <p className="text-sm text-red-500">Valor é obrigatório e deve ser positivo</p>}
+          </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="due_date"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Data de Vencimento</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="due_date">Data de Vencimento</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className="w-full justify-start text-left font-normal"
+                    type="button"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {watch('due_date') ? (
+                      format(new Date(watch('due_date')), 'PPP', { locale: ptBR })
+                    ) : (
+                      <span>Selecione uma data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={watch('due_date') ? new Date(watch('due_date')) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setValue('due_date', date.toISOString().split('T')[0]);
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
 
-                <FormField
-                  control={form.control}
-                  name="payment_method"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Forma de Pagamento</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="cash">Dinheiro</SelectItem>
-                          <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                          <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                          <SelectItem value="pix">PIX</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="payment_date">Data de Pagamento</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant={"outline"}
+                    className="w-full justify-start text-left font-normal"
+                    type="button"
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {watch('payment_date') ? (
+                      format(new Date(watch('payment_date')), 'PPP', { locale: ptBR })
+                    ) : (
+                      <span>Selecione uma data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={watch('payment_date') ? new Date(watch('payment_date')) : undefined}
+                    onSelect={(date) => {
+                      if (date) {
+                        setValue('payment_date', date.toISOString().split('T')[0]);
+                      } else {
+                        setValue('payment_date', undefined);
+                      }
+                    }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
 
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observações</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select 
+                value={watch('status')}
+                onValueChange={(value) => setValue('status', value)}
+              >
+                <SelectTrigger id="status">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="paid">Pago</SelectItem>
+                  <SelectItem value="overdue">Atrasado</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <FormField
-                control={form.control}
-                name="payment_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <Checkbox
-                      checked={!!field.value}
-                      onCheckedChange={(checked) => {
-                        field.onChange(checked ? new Date().toISOString().split('T')[0] : undefined);
-                      }}
-                    />
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Pagamento já recebido
-                      </FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
+            <div className="space-y-2">
+              <Label htmlFor="payment_method">Método de Pagamento</Label>
+              <Select 
+                value={watch('payment_method') || ''}
+                onValueChange={(value) => setValue('payment_method', value)}
+              >
+                <SelectTrigger id="payment_method">
+                  <SelectValue placeholder="Selecione o método" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                  <SelectItem value="cash">Dinheiro</SelectItem>
+                  <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="other">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  Salvar
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
+          <div className="space-y-2">
+            <Label htmlFor="notes">Observações</Label>
+            <Textarea
+              id="notes"
+              {...register('notes')}
+              placeholder="Observações adicionais..."
+              rows={3}
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" type="button" onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

@@ -46,7 +46,7 @@ const SubscriptionsManagement = () => {
   const [selectedSubscription, setSelectedSubscription] = useState<any>(null);
   const [selectedPrograms, setSelectedPrograms] = useState<string[]>([]);
 
-  const { data: subscriptions, isLoading } = useQuery({
+  const { data: subscriptions, isLoading, refetch } = useQuery({
     queryKey: ['subscriptions'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -121,7 +121,7 @@ const SubscriptionsManagement = () => {
       userEmail.includes(searchQuery.toLowerCase()) ||
       planName.includes(searchQuery.toLowerCase());
       
-    const matchesStatus = selectedStatus === null || subscription.status === selectedStatus;
+    const matchesStatus = selectedStatus === null || selectedStatus === 'all' || subscription.status === selectedStatus;
     
     return matchesSearch && matchesStatus;
   });
@@ -133,6 +133,7 @@ const SubscriptionsManagement = () => {
         return;
       }
 
+      // First, create the subscription
       const { data, error } = await supabase
         .from('subscriptions')
         .insert([{
@@ -147,7 +148,30 @@ const SubscriptionsManagement = () => {
 
       if (error) throw error;
 
-      toast.success('Assinatura criada com sucesso!');
+      // Get information about the plan for the payment amount
+      const { data: planData, error: planError } = await supabase
+        .from('plans')
+        .select('amount')
+        .eq('id', newSubscription.plan_id)
+        .single();
+
+      if (planError) throw planError;
+
+      // Then create an initial payment for this subscription
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert([{
+          user_id: newSubscription.user_id,
+          subscription_id: data.id,
+          amount: planData.amount,
+          due_date: newSubscription.start_date,
+          payment_date: null,  // Starts as unpaid
+          status: 'pending',
+        }]);
+
+      if (paymentError) throw paymentError;
+
+      toast.success('Assinatura e pagamento inicial criados com sucesso!');
       setIsCreateDialogOpen(false);
       
       setNewSubscription({
@@ -158,6 +182,7 @@ const SubscriptionsManagement = () => {
         status: 'active',
       });
       
+      refetch();
     } catch (error) {
       console.error('Erro ao criar assinatura:', error);
       toast.error('Erro ao criar assinatura');
@@ -182,7 +207,7 @@ const SubscriptionsManagement = () => {
 
       toast.success('Assinatura atualizada com sucesso!');
       setIsEditDialogOpen(false);
-      
+      refetch();
     } catch (error) {
       console.error('Erro ao atualizar assinatura:', error);
       toast.error('Erro ao atualizar assinatura');
@@ -227,7 +252,45 @@ const SubscriptionsManagement = () => {
 
       if (error) throw error;
       
-      toast.success(`Status da assinatura atualizado para ${newStatus}`);
+      // If activating a subscription, check if there are any pending payments
+      // and create one if none exists
+      if (newStatus === 'active') {
+        const { data: subscription, error: subError } = await supabase
+          .from('subscriptions')
+          .select('*, plans(amount)')
+          .eq('id', subscriptionId)
+          .single();
+          
+        if (subError) throw subError;
+
+        // Check for pending payments
+        const { data: payments, error: paymentsError } = await supabase
+          .from('payments')
+          .select('*')
+          .eq('subscription_id', subscriptionId)
+          .eq('status', 'pending');
+          
+        if (paymentsError) throw paymentsError;
+          
+        // If no pending payments, create one
+        if (payments.length === 0) {
+          const { error: createPaymentError } = await supabase
+            .from('payments')
+            .insert([{
+              user_id: subscription.user_id,
+              subscription_id: subscriptionId,
+              amount: subscription.plans?.amount || 0,
+              due_date: new Date().toISOString().split('T')[0],
+              payment_date: null,
+              status: 'pending',
+            }]);
+            
+          if (createPaymentError) throw createPaymentError;
+        }
+      }
+      
+      toast.success(`Status da assinatura atualizado para ${newStatus === 'active' ? 'ativo' : newStatus === 'expired' ? 'expirado' : 'cancelado'}`);
+      refetch();
     } catch (error) {
       console.error('Erro ao atualizar status:', error);
       toast.error('Erro ao atualizar status da assinatura');
@@ -319,8 +382,8 @@ const SubscriptionsManagement = () => {
           />
         </div>
         <Select
-          value={selectedStatus || ""}
-          onValueChange={(value) => setSelectedStatus(value || null)}
+          value={selectedStatus || "all"}
+          onValueChange={(value) => setSelectedStatus(value === "all" ? null : value)}
         >
           <SelectTrigger className="w-full sm:w-[180px]">
             <SelectValue placeholder="Filtrar por status" />

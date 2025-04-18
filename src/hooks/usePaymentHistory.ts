@@ -129,7 +129,7 @@ export const usePaymentHistory = () => {
   const filteredPayments = payments?.filter(payment => {
     const matchesSearch = 
       payment.profiles?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.profiles?.plan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.profiles?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.subscriptions?.plans?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = 

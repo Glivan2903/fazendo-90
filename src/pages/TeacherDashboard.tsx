@@ -97,6 +97,7 @@ const TeacherDashboard = () => {
               {activeTab === "programs" && "Programas"}
               {activeTab === "users" && "Usuários"}
               {activeTab === "attendance" && "Controle de Presença"}
+              {activeTab === "financial" && "Gestão Financeira"}
             </h1>
           </div>
           

@@ -1,12 +1,14 @@
 
 import React from "react";
-import { Loader2 } from "lucide-react";
 import OverviewTab from "./OverviewTab";
 import ScheduleTab from "./ScheduleTab";
-import ProgramsTab from "./ProgramsTab";
 import UsersTab from "./UsersTab";
 import AttendanceTab from "./AttendanceTab";
-import { User } from "@/types";
+import ErrorDisplay from "./ErrorDisplay";
+import { User } from "../../types";
+import { Table } from "@/components/ui/table";
+import Loading from "@/components/ui/loading";
+import FinancialTab from "./FinancialTab";
 
 interface DashboardContentProps {
   activeTab: string;
@@ -14,8 +16,8 @@ interface DashboardContentProps {
   todayClasses: any[];
   scheduleClasses: any[];
   users: User[];
+  attendance: any[];
   onEditUser: (user: User) => void;
-  attendance?: any[]; // Added the attendance prop as optional
 }
 
 const DashboardContent: React.FC<DashboardContentProps> = ({
@@ -24,31 +26,41 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   todayClasses,
   scheduleClasses,
   users,
+  attendance,
   onEditUser,
-  attendance = [], // Default to empty array if not provided
 }) => {
-  if (loading && activeTab !== "overview") {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-      </div>
-    );
+  // Handle error display
+  if (loading) {
+    return <Loading />;
   }
 
-  switch (activeTab) {
-    case "overview":
-      return <OverviewTab classes={todayClasses} loading={loading} />;
-    case "schedule":
-      return <ScheduleTab classes={scheduleClasses} />;
-    case "programs":
-      return <ProgramsTab />;
-    case "users":
-      return <UsersTab users={users} onEditUser={onEditUser} />;
-    case "attendance":
-      return <AttendanceTab />;
-    default:
-      return null;
-  }
+  return (
+    <>
+      {activeTab === "overview" && (
+        <OverviewTab
+          todayClasses={todayClasses}
+          usersCount={users.length}
+          attendance={attendance}
+        />
+      )}
+
+      {activeTab === "schedule" && <ScheduleTab classes={scheduleClasses} />}
+
+      {activeTab === "users" && <UsersTab users={users} onEditUser={onEditUser} />}
+
+      {activeTab === "attendance" && <AttendanceTab attendance={attendance} />}
+      
+      {activeTab === "financial" && <FinancialTab />}
+
+      {activeTab !== "overview" &&
+        activeTab !== "schedule" &&
+        activeTab !== "users" &&
+        activeTab !== "attendance" &&
+        activeTab !== "financial" && (
+          <ErrorDisplay message="Aba não encontrada" />
+        )}
+    </>
+  );
 };
 
 export default DashboardContent;
