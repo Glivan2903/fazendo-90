@@ -33,33 +33,30 @@ const App = () => (
             <Sonner position="top-center" />
             <Routes>
               <Route path="/auth" element={<Auth />} />
-              <Route 
-                path="/" 
-                element={<Navigate to="/check-in" replace />} 
-              />
-              <Route 
-                path="/check-in" 
+              <Route path="/" element={<Navigate to="/check-in" replace />} />
+              <Route
+                path="/check-in"
                 element={
                   <ProtectedRoute>
                     <CheckIn />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/class/:classId" 
+              <Route
+                path="/class/:classId"
                 element={
                   <ProtectedRoute>
                     <ClassDetail />
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/teacher-dashboard" 
+              <Route
+                path="/teacher-dashboard"
                 element={
                   <ProtectedRoute allowedRoles={["admin", "coach"]}>
                     <TeacherDashboard />
                   </ProtectedRoute>
-                } 
+                }
               />
               <Route
                 path="/profile/:userId"

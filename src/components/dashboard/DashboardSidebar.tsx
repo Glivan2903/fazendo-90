@@ -1,9 +1,8 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar, BarChart2, Users, LogOut } from "lucide-react";
+import { Calendar, BarChart2, Users, LogOut, ClipboardCheck } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
-import { useNavigate } from "react-router-dom";
 
 interface DashboardSidebarProps {
   activeTab: string;
@@ -16,8 +15,6 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   setActiveTab,
   signOut,
 }) => {
-  const navigate = useNavigate();
-  
   return (
     <div className="space-y-4 py-4">
       <div className="px-3 py-2">
@@ -46,6 +43,14 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
           >
             <Users className="mr-2 h-4 w-4" />
             Usuários
+          </Button>
+          <Button
+            variant={activeTab === "attendance" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => setActiveTab("attendance")}
+          >
+            <ClipboardCheck className="mr-2 h-4 w-4" />
+            Controle de Presença
           </Button>
           <Button
             variant="ghost"

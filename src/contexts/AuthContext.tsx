@@ -19,7 +19,6 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   isLoading: boolean;
-  hasActiveSubscription: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -32,7 +31,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,8 +46,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (initialSession?.user) {
           await fetchUserRole(initialSession.user.id);
-          // Como removemos a parte de pagamentos, vamos assumir que todas as assinaturas estão ativas
-          setHasActiveSubscription(true);
         }
       } catch (error) {
         console.error("Erro ao carregar sessão:", error);
@@ -67,25 +63,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (currentSession?.user) {
         fetchUserRole(currentSession.user.id);
-        // Como removemos a parte de pagamentos, vamos assumir que todas as assinaturas estão ativas
-        setHasActiveSubscription(true);
       } else {
         setUserRole(null);
-        setHasActiveSubscription(false);
       }
     });
   }, []);
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Check for admin email directly first
       if (user?.email === "matheusprograming@gmail.com") {
         console.log("Admin email detected, setting role to admin");
         setUserRole("admin");
         return;
       }
       
-      // Fall back to database query if not admin email
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
@@ -187,7 +178,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     userRole,
     isLoading,
-    hasActiveSubscription,
     signIn,
     signUp,
     signOut,

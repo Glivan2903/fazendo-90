@@ -1,146 +1,159 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useAuth } from "@/contexts/AuthContext";
-import { AlertCircle } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [plan, setPlan] = useState("Mensal");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const navigate = useNavigate();
   const { signIn, signUp, isLoading } = useAuth();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isLogin) {
-      await signIn(email, password);
-    } else {
-      await signUp(email, password, name, plan);
-    }
+  const togglePasswordVisibility = () => {
+    setPasswordVisible(!passwordVisible);
   };
 
-  const getPlanPrice = () => {
-    switch (plan) {
-      case "Trimestral":
-        return "R$ 270,00";
-      case "Anual":
-        return "R$ 960,00";
-      default: // Mensal
-        return "R$ 100,00";
+  const toggleConfirmPasswordVisibility = () => {
+    setConfirmPasswordVisible(!confirmPasswordVisible);
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await signIn(email, password);
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
     }
+    await signUp(email, password, name);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <Card className="w-full max-w-md p-6 space-y-6 bg-white">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">
-            {isLogin ? "Login" : "Criar Conta"}
-          </h1>
-          <p className="text-gray-500">
-            {isLogin
-              ? "Entre com seu email e senha"
-              : "Preencha os dados para criar sua conta"}
+    <div className="grid h-screen place-items-center bg-gray-100">
+      <Card className="w-96">
+        <CardHeader className="space-y-1">
+          <h4 className="text-center text-2xl font-semibold">
+            {isSignUp ? "Criar Conta" : "Entrar"}
+          </h4>
+          <p className="text-center text-sm text-muted-foreground">
+            {isSignUp
+              ? "Crie uma nova conta para acessar o sistema"
+              : "Entre com seu email e senha"}
           </p>
-        </div>
-
-        {!isLogin && (
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Importante</AlertTitle>
-            <AlertDescription>
-              Sua conta será ativada somente após confirmação do pagamento da assinatura.
-              Após criar a conta, o administrador precisará validar seu pagamento.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div className="space-y-2">
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {isSignUp && (
+            <div className="grid gap-2">
               <Label htmlFor="name">Nome</Label>
               <Input
                 id="name"
-                placeholder="Seu nome completo"
+                type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                required
               />
             </div>
           )}
-
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
-              placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
             />
           </div>
-
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="password">Senha</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                type={passwordVisible ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
+                onClick={togglePasswordVisibility}
+              >
+                {passwordVisible ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                <span className="sr-only">Mostrar senha</span>
+              </Button>
+            </div>
           </div>
-
-          {!isLogin && (
-            <div className="space-y-2">
-              <Label htmlFor="plan">Plano {getPlanPrice()}</Label>
-              <Select value={plan} onValueChange={setPlan}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o plano" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Mensal">Mensal - R$ 100,00</SelectItem>
-                  <SelectItem value="Trimestral">Trimestral - R$ 270,00</SelectItem>
-                  <SelectItem value="Anual">Anual - R$ 960,00</SelectItem>
-                </SelectContent>
-              </Select>
+          {isSignUp && (
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  type={confirmPasswordVisible ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2"
+                  onClick={toggleConfirmPasswordVisibility}
+                >
+                  {confirmPasswordVisible ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                  <span className="sr-only">Mostrar senha</span>
+                </Button>
+              </div>
             </div>
           )}
-
           <Button
-            type="submit"
-            className="w-full"
             disabled={isLoading}
+            onClick={isSignUp ? handleSignUp : handleSignIn}
           >
             {isLoading
               ? "Carregando..."
-              : isLogin
-              ? "Entrar"
-              : "Criar Conta"}
+              : isSignUp
+              ? "Criar Conta"
+              : "Entrar"}
           </Button>
-        </form>
-
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-blue-600 hover:underline"
-          >
-            {isLogin
-              ? "Não tem uma conta? Cadastre-se"
-              : "Já tem uma conta? Faça login"}
-          </button>
+        </CardContent>
+        <div className="p-4 text-center text-sm">
+          {isSignUp ? (
+            <>
+              Já tem uma conta?{" "}
+              <Button variant="link" onClick={() => setIsSignUp(false)}>
+                Entrar
+              </Button>
+            </>
+          ) : (
+            <>
+              Não tem uma conta?{" "}
+              <Button variant="link" onClick={() => setIsSignUp(true)}>
+                Criar Conta
+              </Button>
+            </>
+          )}
         </div>
       </Card>
     </div>
