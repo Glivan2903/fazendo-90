@@ -164,7 +164,9 @@ export type Database = {
           active: boolean | null
           amount: number
           created_at: string | null
+          days_validity: number | null
           description: string | null
+          enrollment_fee: number | null
           id: string
           name: string
           periodicity: string
@@ -174,7 +176,9 @@ export type Database = {
           active?: boolean | null
           amount: number
           created_at?: string | null
+          days_validity?: number | null
           description?: string | null
+          enrollment_fee?: number | null
           id?: string
           name: string
           periodicity: string
@@ -184,7 +188,9 @@ export type Database = {
           active?: boolean | null
           amount?: number
           created_at?: string | null
+          days_validity?: number | null
           description?: string | null
+          enrollment_fee?: number | null
           id?: string
           name?: string
           periodicity?: string
