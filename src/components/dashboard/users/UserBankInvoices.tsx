@@ -11,12 +11,14 @@ import { Calendar } from 'lucide-react';
 
 interface BankInvoice {
   id: string;
-  amount: number;
+  invoice_number: string;
   due_date: string;
   status: string;
   payment_method: string | null;
-  subscription_id: string | null;
+  total_amount: number;
+  payment_date: string | null;
   reference: string | null;
+  buyer_name: string;
 }
 
 interface UserBankInvoicesProps {
@@ -37,7 +39,7 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
 
       setLoading(true);
       const { data, error } = await supabase
-        .from('payments')
+        .from('bank_invoices')
         .select('*')
         .eq('user_id', userId)
         .order('due_date', { ascending: false });
@@ -97,7 +99,7 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Referência</TableHead>
+                  <TableHead>Fatura</TableHead>
                   <TableHead>Data de vencimento</TableHead>
                   <TableHead>Forma de pagamento</TableHead>
                   <TableHead>Valor</TableHead>
@@ -108,7 +110,12 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
                 {invoices.length > 0 ? (
                   invoices.map((invoice) => (
                     <TableRow key={invoice.id}>
-                      <TableCell>{invoice.reference || `Fatura ${invoice.id.substring(0, 8)}`}</TableCell>
+                      <TableCell>
+                        {invoice.invoice_number ? 
+                          `Fatura #${invoice.invoice_number.padStart(4, '0')}` : 
+                          `Fatura ${invoice.id.substring(0, 8)}`
+                        }
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center">
                           <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
@@ -116,7 +123,7 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
                         </div>
                       </TableCell>
                       <TableCell>{invoice.payment_method || 'Não especificado'}</TableCell>
-                      <TableCell>{formatCurrency(invoice.amount)}</TableCell>
+                      <TableCell>{formatCurrency(invoice.total_amount)}</TableCell>
                       <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                     </TableRow>
                   ))

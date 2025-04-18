@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { User } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCcw } from "lucide-react";
+import { Plus, RefreshCcw, UserCheck } from "lucide-react";
 import UsersProfileView from "./UsersProfileView";
 import UsersSearch from "./users/UsersSearch";
 import UsersTable from "./users/UsersTable";
@@ -10,6 +10,7 @@ import CreateUserDialog from "./users/CreateUserDialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ApproveUserDialog from "./ApproveUserDialog";
 
 interface UsersTabProps {
   users: User[];
@@ -23,10 +24,17 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   const [users, setUsers] = useState<User[]>(initialUsers);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [userToApprove, setUserToApprove] = useState<{id: string, name: string} | null>(null);
   
   useEffect(() => {
     setUsers(initialUsers);
   }, [initialUsers]);
+
+  const handleApproveUser = (userId: string, userName: string) => {
+    setUserToApprove({ id: userId, name: userName });
+    setApproveDialogOpen(true);
+  };
 
   const filteredUsers = users.filter((user) => {
     // Apply text search filter
@@ -40,7 +48,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
     const matchesStatus = 
       statusFilter === "all" || 
       (statusFilter === "active" && user.status === "Ativo") ||
-      (statusFilter === "inactive" && user.status === "Inativo");
+      (statusFilter === "inactive" && user.status === "Inativo") ||
+      (statusFilter === "pending" && user.status === "Pendente");
       
     return matchesSearch && matchesStatus;
   });
@@ -92,6 +101,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   
   const activeUsersCount = users.filter(user => user.status === "Ativo").length;
   const inactiveUsersCount = users.filter(user => user.status === "Inativo").length;
+  const pendingUsersCount = users.filter(user => user.status === "Pendente").length;
   
   // Show profile view if a user is selected
   if (selectedUserId) {
@@ -129,8 +139,28 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
         </div>
       </div>
       
+      {/* Pending users notification */}
+      {pendingUsersCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex justify-between items-center">
+          <div className="flex items-center">
+            <UserCheck className="h-5 w-5 text-amber-600 mr-2" />
+            <span className="text-amber-800">
+              {pendingUsersCount} {pendingUsersCount === 1 ? 'usuário pendente' : 'usuários pendentes'} de aprovação
+            </span>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-amber-300 hover:bg-amber-100 text-amber-800"
+            onClick={() => setStatusFilter("pending")}
+          >
+            Ver pendentes
+          </Button>
+        </div>
+      )}
+      
       {/* User stats */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="border rounded-lg p-4 bg-white">
           <div className="text-sm font-medium text-gray-500">Total de Usuários</div>
           <div className="text-2xl font-bold mt-1">{users.length}</div>
@@ -140,8 +170,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
           <div className="text-2xl font-bold mt-1 text-green-600">{activeUsersCount}</div>
         </div>
         <div className="border rounded-lg p-4 bg-white">
-          <div className="text-sm font-medium text-gray-500">Usuários Inativos</div>
-          <div className="text-2xl font-bold mt-1 text-red-600">{inactiveUsersCount}</div>
+          <div className="text-sm font-medium text-gray-500">Usuários Pendentes</div>
+          <div className="text-2xl font-bold mt-1 text-amber-600">{pendingUsersCount}</div>
         </div>
       </div>
       
@@ -150,11 +180,13 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
         onSearchChange={setSearchTerm}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        showPendingFilter={true}
       />
       
       <UsersTable 
         users={filteredUsers}
         onUserClick={setSelectedUserId}
+        onApproveUser={handleApproveUser}
       />
       
       <CreateUserDialog
@@ -162,6 +194,16 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
         onClose={() => setShowNewUserDialog(false)}
         onSuccess={handleRefresh}
       />
+
+      {userToApprove && (
+        <ApproveUserDialog
+          open={approveDialogOpen}
+          onOpenChange={setApproveDialogOpen}
+          userId={userToApprove.id}
+          userName={userToApprove.name}
+          onApproved={handleRefresh}
+        />
+      )}
     </div>
   );
 };

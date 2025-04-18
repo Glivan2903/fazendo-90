@@ -23,15 +23,17 @@ import {
   Settings, 
   Plus, 
   FileText, 
-  CheckSquare 
+  CheckSquare,
+  Pencil
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PlansManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<any>(null);
 
-  const { data: plans, isLoading } = useQuery({
+  const { data: plans, isLoading, refetch } = useQuery({
     queryKey: ['plans'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -54,19 +56,9 @@ const PlansManagement = () => {
     },
   });
 
-  const togglePlanStatus = async (planId: string, currentStatus: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('plans')
-        .update({ active: !currentStatus })
-        .eq('id', planId);
-
-      if (error) throw error;
-      toast.success('Status do plano atualizado com sucesso!');
-    } catch (error) {
-      console.error('Erro ao atualizar status do plano:', error);
-      toast.error('Erro ao atualizar status do plano');
-    }
+  const handleEditPlan = (plan: any) => {
+    setEditingPlan(plan);
+    setIsDialogOpen(true);
   };
 
   if (isLoading) {
@@ -94,7 +86,10 @@ const PlansManagement = () => {
             Configure os planos disponíveis para seus alunos
           </p>
         </div>
-        <Button onClick={() => setIsDialogOpen(true)} className="sm:w-auto w-full">
+        <Button onClick={() => {
+          setEditingPlan(null);
+          setIsDialogOpen(true);
+        }} className="sm:w-auto w-full">
           <Plus className="mr-2 h-4 w-4" />
           Novo Plano
         </Button>
@@ -164,35 +159,43 @@ const PlansManagement = () => {
         </TabsList>
         
         <TabsContent value="all" className="w-full">
-          <PlanTable plans={plans || []} togglePlanStatus={togglePlanStatus} />
+          <PlanTable plans={plans || []} onEditPlan={handleEditPlan} />
         </TabsContent>
         
         <TabsContent value="active" className="w-full">
           <PlanTable 
             plans={(plans || []).filter(plan => plan.active)} 
-            togglePlanStatus={togglePlanStatus} 
+            onEditPlan={handleEditPlan} 
           />
         </TabsContent>
         
         <TabsContent value="inactive" className="w-full">
           <PlanTable 
             plans={(plans || []).filter(plan => !plan.active)} 
-            togglePlanStatus={togglePlanStatus} 
+            onEditPlan={handleEditPlan} 
           />
         </TabsContent>
       </Tabs>
 
-      <NewPlanDialog open={isDialogOpen} onOpenChange={setIsDialogOpen} />
+      <NewPlanDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen} 
+        editingPlan={editingPlan}
+        onSuccess={() => {
+          refetch();
+          setEditingPlan(null);
+        }}
+      />
     </div>
   );
 };
 
 interface PlanTableProps {
   plans: any[];
-  togglePlanStatus: (planId: string, currentStatus: boolean) => Promise<void>;
+  onEditPlan: (plan: any) => void;
 }
 
-const PlanTable: React.FC<PlanTableProps> = ({ plans, togglePlanStatus }) => {
+const PlanTable: React.FC<PlanTableProps> = ({ plans, onEditPlan }) => {
   return (
     <div className="rounded-md border">
       <Table>
@@ -244,9 +247,10 @@ const PlanTable: React.FC<PlanTableProps> = ({ plans, togglePlanStatus }) => {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => togglePlanStatus(plan.id, plan.active)}
+                    onClick={() => onEditPlan(plan)}
                   >
-                    {plan.active ? 'Desativar' : 'Ativar'}
+                    <Pencil className="h-4 w-4 mr-1" />
+                    Editar
                   </Button>
                 </TableCell>
               </TableRow>

@@ -50,6 +50,9 @@ export default function NewPaymentDialog({
   const [users, setUsers] = useState<any[]>([]);
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dueDatePopoverOpen, setDueDatePopoverOpen] = useState(false);
+  const [paymentDatePopoverOpen, setPaymentDatePopoverOpen] = useState(false);
+  const [monthlyPaymentExists, setMonthlyPaymentExists] = useState(false);
   const [form, setForm] = useState({
     userId: userId || '',
     subscriptionId: '',
@@ -132,8 +135,9 @@ export default function NewPaymentDialog({
     
     if (form.userId) {
       fetchSubscriptions();
+      checkExistingPaymentsForMonth(form.userId, form.dueDate);
     }
-  }, [form.userId]);
+  }, [form.userId, form.dueDate]);
 
   // Fetch individual user if userId is provided
   useEffect(() => {
@@ -151,6 +155,7 @@ export default function NewPaymentDialog({
         if (data) {
           setUsers([data]);
           setForm(prev => ({ ...prev, userId: data.id }));
+          checkExistingPaymentsForMonth(data.id, form.dueDate);
         }
       } catch (error) {
         console.error("Error fetching user info:", error);
@@ -178,6 +183,43 @@ export default function NewPaymentDialog({
       subscriptionId: value,
       amount: subscription?.amount ? subscription.amount.toString() : ''
     });
+  };
+
+  const handleDueDateChange = (date: Date | undefined) => {
+    if (date) {
+      setForm({ ...form, dueDate: date });
+      if (form.userId) {
+        checkExistingPaymentsForMonth(form.userId, date);
+      }
+      setDueDatePopoverOpen(false);
+    }
+  };
+
+  const handlePaymentDateChange = (date: Date | undefined) => {
+    setForm({ ...form, paymentDate: date || null });
+    setPaymentDatePopoverOpen(false);
+  };
+
+  // Check if a payment already exists for this month
+  const checkExistingPaymentsForMonth = async (userId: string, date: Date) => {
+    try {
+      // Call the RPC function to check if payment exists
+      const { data, error } = await supabase.rpc(
+        'has_payment_for_month',
+        { user_id: userId, month: date.toISOString() }
+      );
+      
+      if (error) throw error;
+      
+      setMonthlyPaymentExists(!!data);
+      
+      // Show warning if payment exists
+      if (data) {
+        toast.warning("Já existe um pagamento para este mês. Considere editar o pagamento existente.");
+      }
+    } catch (error) {
+      console.error("Error checking existing payments:", error);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -355,7 +397,7 @@ export default function NewPaymentDialog({
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Data de Vencimento</Label>
-              <Popover>
+              <Popover open={dueDatePopoverOpen} onOpenChange={setDueDatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -377,16 +419,21 @@ export default function NewPaymentDialog({
                   <Calendar
                     mode="single"
                     selected={form.dueDate}
-                    onSelect={date => date && setForm({ ...form, dueDate: date })}
+                    onSelect={handleDueDateChange}
                     initialFocus
                   />
                 </PopoverContent>
               </Popover>
+              {monthlyPaymentExists && (
+                <p className="text-amber-600 text-xs">
+                  Já existe um pagamento para este mês
+                </p>
+              )}
             </div>
             
             <div className="space-y-2">
               <Label>Data de Pagamento</Label>
-              <Popover>
+              <Popover open={paymentDatePopoverOpen} onOpenChange={setPaymentDatePopoverOpen}>
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -408,7 +455,7 @@ export default function NewPaymentDialog({
                   <Calendar
                     mode="single"
                     selected={form.paymentDate || undefined}
-                    onSelect={date => setForm({ ...form, paymentDate: date })}
+                    onSelect={handlePaymentDateChange}
                     initialFocus
                   />
                 </PopoverContent>

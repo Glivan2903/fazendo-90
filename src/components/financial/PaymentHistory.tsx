@@ -81,8 +81,8 @@ const PaymentHistory = () => {
       </Card>
 
       <NewPaymentDialog 
-        isOpen={isNewPaymentOpen}
-        onClose={() => setIsNewPaymentOpen(false)}
+        open={isNewPaymentOpen}
+        onOpenChange={setIsNewPaymentOpen}
         onPaymentCreated={refetch}
       />
     </div>
