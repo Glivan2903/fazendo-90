@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SidebarProvider, Sidebar } from "@/components/ui/sidebar";
@@ -12,6 +11,8 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import MobileMenu from "@/components/dashboard/MobileMenu";
 import DashboardContent from "@/components/dashboard/DashboardContent";
 import { useDashboardData } from "@/hooks/useDashboardData";
+import DashboardTabs from "@/components/dashboard/DashboardTabs";
+import { FinancialMetrics } from "@/components/financial/FinancialMetrics";
 
 const TeacherDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -91,16 +92,16 @@ const TeacherDashboard = () => {
                 signOut={signOut}
               />
             )}
-            <h1 className="text-xl font-bold ml-2">
-              {activeTab === "overview" && "Visão Geral"}
-              {activeTab === "schedule" && "Grade Horária"}
-              {activeTab === "programs" && "Programas"}
-              {activeTab === "users" && "Usuários"}
-              {activeTab === "attendance" && "Controle de Presença"}
-            </h1>
+            <h1 className="text-xl font-bold ml-2">Dashboard</h1>
           </div>
           
           <div className="p-4">
+            <div className="mb-6">
+              <DashboardTabs activeTab="administrativo" />
+            </div>
+
+            {activeTab === "overview" && <FinancialMetrics />}
+            
             <DashboardContent
               activeTab={activeTab}
               loading={loading}
