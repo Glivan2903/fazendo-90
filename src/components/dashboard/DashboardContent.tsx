@@ -15,6 +15,7 @@ interface DashboardContentProps {
   scheduleClasses: any[];
   users: User[];
   onEditUser: (user: User) => void;
+  attendance?: any[]; // Added the attendance prop as optional
 }
 
 const DashboardContent: React.FC<DashboardContentProps> = ({
@@ -24,6 +25,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
   scheduleClasses,
   users,
   onEditUser,
+  attendance = [], // Default to empty array if not provided
 }) => {
   if (loading && activeTab !== "overview") {
     return (
