@@ -1,5 +1,6 @@
+
 import React from "react";
-import { Menu, X, LayoutDashboard, Calendar, Users, UserCheck, Clock, LogOut, CreditCard } from "lucide-react";
+import { Menu, X, LayoutDashboard, Calendar, Users, UserCheck, Clock, LogOut, CreditCard, Home } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -57,7 +58,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             
             <div className="flex items-center space-x-4">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.name || 'User'} />
                 <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
               </Avatar>
               <div>
@@ -119,6 +120,19 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                 >
                   <UserCheck className="mr-2 h-5 w-5" />
                   Presença
+                </Button>
+              </li>
+              <li>
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start",
+                    activeTab === "check-in" && "bg-accent text-accent-foreground"
+                  )}
+                  onClick={() => navigate("/check-in")}
+                >
+                  <Home className="mr-2 h-5 w-5" />
+                  Check-in
                 </Button>
               </li>
               <li>

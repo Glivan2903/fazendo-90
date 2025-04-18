@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Home, LogOut, CheckCircle } from 'lucide-react';
+import { Bell, Home, LogOut, CheckCircle, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -121,23 +122,34 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
             onClick={() => navigate(userRole === 'admin' ? '/teacher-dashboard' : '/check-in')}
           >
             <Home className="mr-2 h-5 w-5" />
-            {userRole === 'admin' ? 'Dashboard' : 'Check-in'}
+            {userRole === 'admin' ? 'Dashboard' : 'Início'}
           </Button>
 
           {userRole === 'admin' && (
-            <Button
-              variant="ghost"
-              className="w-full justify-start relative"
-              onClick={() => navigate('/teacher-dashboard')}
-            >
-              <Bell className="mr-2 h-5 w-5" />
-              Notificações
-              {totalNotifications > 0 && (
-                <Badge variant="destructive" className="absolute right-2">
-                  {totalNotifications}
-                </Badge>
-              )}
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                className="w-full justify-start relative"
+                onClick={() => navigate('/teacher-dashboard')}
+              >
+                <Bell className="mr-2 h-5 w-5" />
+                Notificações
+                {totalNotifications > 0 && (
+                  <Badge variant="destructive" className="absolute right-2">
+                    {totalNotifications}
+                  </Badge>
+                )}
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => navigate('/check-in')}
+              >
+                <UserCheck className="mr-2 h-5 w-5" />
+                Check-in
+              </Button>
+            </>
           )}
 
           <Button
@@ -169,13 +181,16 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
         {sidebarContent}
       </div>
 
+      {/* Mobile Menu Button (only show if mobile sidebar is not open) */}
+      {!showMobileMenu && (
+        <Button variant="ghost" className="md:hidden fixed top-4 left-4 z-50 p-2"
+          onClick={() => setShowMobileMenu(true)}>
+          <Home className="h-5 w-5" />
+        </Button>
+      )}
+
       {/* Mobile Sidebar */}
       <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-        <SheetTrigger asChild>
-          <Button variant="ghost" className="md:hidden fixed top-4 left-4 z-50">
-            <Home className="h-5 w-5" />
-          </Button>
-        </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
           {sidebarContent}
         </SheetContent>

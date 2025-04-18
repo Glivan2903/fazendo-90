@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +13,7 @@ const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [stats, setStats] = useState({
     checkinsThisMonth: 0,
@@ -61,47 +61,12 @@ const UserProfile = () => {
             phone: userWithDefaults.phone || '',
             birth_date: userWithDefaults.birth_date || ''
           });
-        } else {
-          const mockUser = {
-            id: userId,
-            name: "João Silva",
-            email: "joao.silva@exemplo.com",
-            phone: "(11) 98765-4321",
-            birth_date: "1990-05-15",
-            avatar_url: `https://api.dicebear.com/6.x/avataaars/svg?seed=${userId}`,
-            created_at: "2023-01-15T00:00:00"
-          };
-          
-          setUser(mockUser);
-          setEditForm({
-            name: mockUser.name,
-            email: mockUser.email,
-            phone: mockUser.phone,
-            birth_date: mockUser.birth_date
-          });
         }
         
         await fetchUserStats(userId);
       } catch (error) {
         console.error("Error fetching user profile:", error);
         toast.error("Erro ao carregar perfil do usuário");
-        const mockUser = {
-          id: userId,
-          name: "João Silva",
-          email: "joao.silva@exemplo.com",
-          phone: "(11) 98765-4321",
-          birth_date: "1990-05-15",
-          avatar_url: `https://api.dicebear.com/6.x/avataaars/svg?seed=${userId}`,
-          created_at: "2023-01-15T00:00:00"
-        };
-        
-        setUser(mockUser);
-        setEditForm({
-          name: mockUser.name,
-          email: mockUser.email,
-          phone: mockUser.phone,
-          birth_date: mockUser.birth_date
-        });
       } finally {
         setLoading(false);
       }
@@ -111,34 +76,41 @@ const UserProfile = () => {
   }, [userId]);
 
   const fetchUserStats = async (userId: string) => {
+    setStatsLoading(true);
     try {
       const now = new Date();
       const currentMonth = now.getMonth() + 1;
       const currentYear = now.getFullYear();
-      const firstDayOfMonth = new Date(currentYear, now.getMonth(), 1).toISOString().split('T')[0];
-      const lastDayOfMonth = new Date(currentYear, now.getMonth() + 1, 0).toISOString().split('T')[0];
+      const firstDayOfMonth = new Date(currentYear, now.getMonth(), 1).toISOString();
+      const lastDayOfMonth = new Date(currentYear, now.getMonth() + 1, 0).toISOString();
       
-      const { data: totalCheckins, error: totalError } = await supabase
-        .from('checkins')
-        .select('id')
-        .eq('user_id', userId);
+      // Fetch total checkins from user_checkin_counts view
+      const { data: checkinCount, error: countError } = await supabase
+        .from('user_checkin_counts')
+        .select('total_checkins')
+        .eq('user_id', userId)
+        .maybeSingle();
         
-      if (totalError) throw totalError;
+      if (countError) throw countError;
       
+      // Fetch monthly checkins directly
       const { data: monthlyCheckins, error: monthlyError } = await supabase
         .from('checkins')
-        .select('id, classes(date)')
+        .select('id, checked_in_at')
         .eq('user_id', userId)
-        .gte('classes.date', firstDayOfMonth)
-        .lte('classes.date', lastDayOfMonth);
+        .gte('checked_in_at', firstDayOfMonth)
+        .lte('checked_in_at', lastDayOfMonth);
         
       if (monthlyError) throw monthlyError;
       
-      const total = totalCheckins?.length || 0;
+      const total = checkinCount?.total_checkins || 0;
       const monthly = monthlyCheckins?.length || 0;
-      const weeksInMonth = 4;
+      
+      // Calculate workouts per week
+      const weeksInMonth = 4; // Approximate
       const workoutsPerWeek = monthly / weeksInMonth;
       
+      // Calculate attendance rate (assume 3x per week is 100%)
       const attendanceRate = Math.min(100, Math.round((workoutsPerWeek / 3) * 100));
       
       setStats({
@@ -149,12 +121,9 @@ const UserProfile = () => {
       });
     } catch (error) {
       console.error("Error fetching user stats:", error);
-      setStats({
-        checkinsThisMonth: 12,
-        attendanceRate: 75,
-        workoutsPerWeek: 3,
-        totalCheckins: 45
-      });
+      // Keep existing fallback values in case of error
+    } finally {
+      setStatsLoading(false);
     }
   };
 
@@ -206,17 +175,6 @@ const UserProfile = () => {
       toast.error("Erro ao atualizar perfil");
     }
   };
-
-  const formatDate = (dateStr: string) => {
-    if (!dateStr) return '';
-    
-    try {
-      const date = new Date(dateStr);
-      return new Intl.DateTimeFormat('pt-BR').format(date);
-    } catch (error) {
-      return dateStr;
-    }
-  };
   
   const memberSince = user?.created_at 
     ? new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' }).format(new Date(user.created_at))
@@ -266,7 +224,7 @@ const UserProfile = () => {
           <UserInfo user={userInfoData} />
         )}
         
-        <UserStats stats={stats} />
+        <UserStats stats={stats} isLoading={statsLoading} />
       </div>
     </div>
   );
