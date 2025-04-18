@@ -13,6 +13,10 @@ import DashboardContent from "@/components/dashboard/DashboardContent";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { FinancialMetrics } from "@/components/financial/FinancialMetrics";
+import PlansManagement from "@/components/financial/PlansManagement";
+import PaymentHistory from "@/components/financial/PaymentHistory";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
 
 const TeacherDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -20,6 +24,9 @@ const TeacherDashboard = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [userEditLoading, setUserEditLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dashboardSection, setDashboardSection] = useState("administrativo");
+  const [financialTab, setFinancialTab] = useState("overview");
+  
   const navigate = useNavigate();
   const { signOut, userRole, user } = useAuth();
   const isMobile = useIsMobile();
@@ -69,6 +76,59 @@ const TeacherDashboard = () => {
       setUserEditLoading(false);
     }
   };
+
+  const renderDashboardContent = () => {
+    switch (dashboardSection) {
+      case "administrativo":
+        return (
+          <DashboardContent
+            activeTab={activeTab}
+            loading={loading}
+            todayClasses={todayClasses}
+            scheduleClasses={scheduleClasses}
+            users={users}
+            attendance={attendance}
+            onEditUser={handleEditUser}
+          />
+        );
+      case "financeiro":
+        return renderFinancialContent();
+      case "tecnico":
+        return <div className="p-4 bg-white rounded-lg">Conteúdo técnico em desenvolvimento</div>;
+      default:
+        return null;
+    }
+  };
+
+  const renderFinancialContent = () => {
+    return (
+      <div className="space-y-6">
+        <FinancialMetrics />
+        
+        <div className="bg-white p-4 rounded-lg">
+          <Tabs defaultValue={financialTab} onValueChange={setFinancialTab} className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+              <TabsTrigger value="plans">Planos</TabsTrigger>
+              <TabsTrigger value="payments">Pagamentos</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="overview" className="space-y-4">
+              <SubscriptionsOverview />
+            </TabsContent>
+
+            <TabsContent value="plans" className="space-y-4">
+              <PlansManagement />
+            </TabsContent>
+
+            <TabsContent value="payments" className="space-y-4">
+              <PaymentHistory />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    );
+  };
   
   return (
     <SidebarProvider>
@@ -97,20 +157,13 @@ const TeacherDashboard = () => {
           
           <div className="p-4">
             <div className="mb-6">
-              <DashboardTabs activeTab="administrativo" />
+              <DashboardTabs 
+                activeTab={dashboardSection} 
+                onTabChange={setDashboardSection} 
+              />
             </div>
 
-            {activeTab === "overview" && <FinancialMetrics />}
-            
-            <DashboardContent
-              activeTab={activeTab}
-              loading={loading}
-              todayClasses={todayClasses}
-              scheduleClasses={scheduleClasses}
-              users={users}
-              attendance={attendance}
-              onEditUser={handleEditUser}
-            />
+            {renderDashboardContent()}
           </div>
         </main>
         

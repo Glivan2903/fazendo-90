@@ -13,7 +13,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import React from "react";
 import UserProfile from "./pages/UserProfile";
-import FinancialDashboard from "./pages/FinancialDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,14 +65,6 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <UserProfile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/financial"
-                element={
-                  <ProtectedRoute allowedRoles={["admin"]}>
-                    <FinancialDashboard />
                   </ProtectedRoute>
                 }
               />
