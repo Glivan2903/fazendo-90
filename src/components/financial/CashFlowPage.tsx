@@ -31,8 +31,8 @@ const CashFlowPage = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
-  const [showNewIncomeDialog, setShowNewIncomeDialog] = useState(false);
-  const [showNewExpenseDialog, setShowNewExpenseDialog] = useState(false);
+  const [showNewIncomeDialog, setIsIncomeDialogOpen] = useState(false);
+  const [showNewExpenseDialog, setIsExpenseDialogOpen] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
@@ -165,9 +165,9 @@ const CashFlowPage = () => {
       fetchTransactions();
       
       if (type === 'income') {
-        setShowNewIncomeDialog(false);
+        setIsIncomeDialogOpen(false);
       } else {
-        setShowNewExpenseDialog(false);
+        setIsExpenseDialogOpen(false);
       }
       
       setFormValues({
@@ -332,25 +332,23 @@ const CashFlowPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
         <h2 className="text-2xl font-bold">Fluxo de Caixa</h2>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button 
-            onClick={() => setShowNewIncomeDialog(true)} 
-            variant="outline" 
-            className="flex items-center gap-2"
+            className="w-full sm:w-auto" 
+            onClick={() => setIsIncomeDialogOpen(true)}
           >
-            <ArrowUp className="h-4 w-4 text-green-600" />
-            <span>Novo Recebimento</span>
+            <ArrowUp className="w-4 h-4 mr-2" />
+            Novo Recebimento
           </Button>
           <Button 
-            onClick={() => setShowNewExpenseDialog(true)} 
-            variant="outline" 
-            className="flex items-center gap-2"
+            className="w-full sm:w-auto" 
+            onClick={() => setIsExpenseDialogOpen(true)}
           >
-            <ArrowDown className="h-4 w-4 text-red-600" />
-            <span>Nova Despesa</span>
+            <ArrowDown className="w-4 h-4 mr-2" />
+            Nova Despesa
           </Button>
         </div>
       </div>
@@ -398,7 +396,7 @@ const CashFlowPage = () => {
 
       <NewIncomeDialog 
         isOpen={showNewIncomeDialog} 
-        onClose={() => setShowNewIncomeDialog(false)}
+        onClose={() => setIsIncomeDialogOpen(false)}
         onSubmit={(e) => handleSubmit(e, 'income')}
         formValues={formValues}
         handleFormChange={handleFormChange}
@@ -411,7 +409,7 @@ const CashFlowPage = () => {
       
       <NewExpenseDialog 
         isOpen={showNewExpenseDialog} 
-        onClose={() => setShowNewExpenseDialog(false)}
+        onClose={() => setIsExpenseDialogOpen(false)}
         onSubmit={(e) => handleSubmit(e, 'expense')}
         formValues={formValues}
         handleFormChange={handleFormChange}

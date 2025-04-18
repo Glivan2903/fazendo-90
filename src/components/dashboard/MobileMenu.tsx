@@ -1,10 +1,11 @@
-
 import React from "react";
 import { Menu, X, LayoutDashboard, Calendar, Users, UserCheck, Clock, LogOut, CreditCard } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface MobileMenuProps {
   menuOpen: boolean;
@@ -22,10 +23,19 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   signOut
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setMenuOpen(false);
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      ?.split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase();
   };
   
   return (
@@ -37,11 +47,24 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
       </SheetTrigger>
       <SheetContent side="left" className="p-0 w-72">
         <div className="flex flex-col h-full">
-          <div className="border-b p-4 flex justify-between items-center">
-            <h2 className="text-xl font-bold">CrossBox Fênix</h2>
-            <Button variant="ghost" size="icon" onClick={() => setMenuOpen(false)}>
-              <X className="h-5 w-5" />
-            </Button>
+          <div className="border-b p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">CrossBox Fênix</h2>
+              <Button variant="ghost" size="icon" onClick={() => setMenuOpen(false)}>
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-12 w-12">
+                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
+                <p className="text-sm text-muted-foreground truncate max-w-[180px]">{user?.email}</p>
+              </div>
+            </div>
           </div>
           
           <nav className="flex-1 p-4">
@@ -114,7 +137,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
             </ul>
           </nav>
           
-          <div className="border-t p-4">
+          <div className="border-t p-4 mt-auto">
             <Button 
               variant="ghost" 
               className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50" 

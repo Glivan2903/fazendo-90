@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -111,7 +110,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
           </Avatar>
           <div className="text-center">
             <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
-            <p className="text-sm text-muted-foreground">{user?.email}</p>
+            <p className="text-sm text-muted-foreground truncate max-w-[200px]">{user?.email}</p>
           </div>
         </div>
 
@@ -166,7 +165,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
   return (
     <div className="flex h-screen">
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex w-64 border-r bg-white">
+      <div className="hidden md:flex w-64 border-r bg-white overflow-hidden">
         {sidebarContent}
       </div>
 
@@ -183,8 +182,10 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
       </Sheet>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        {children}
+      <div className="flex-1 overflow-auto bg-gray-50">
+        <div className="container mx-auto p-4 md:p-6">
+          {children}
+        </div>
       </div>
     </div>
   );
