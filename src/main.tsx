@@ -4,10 +4,10 @@ import App from './App.tsx';
 import './index.css';
 import React from 'react';
 
-// Make sure we explicitly use React here
+// Correct way to render React application
 const root = createRoot(document.getElementById("root")!);
 root.render(
-  <React>
+  <React.StrictMode>
     <App />
-  </React>
+  </React.StrictMode>
 );
