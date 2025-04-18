@@ -15,7 +15,7 @@ import { Eye } from 'lucide-react';
 import ClassDetailsDialog from './ClassDetailsDialog';
 import { supabase } from '@/integrations/supabase/client';
 
-interface AttendanceRecord {
+export interface AttendanceRecord {
   id: string;
   date: string;
   class: string;
@@ -28,13 +28,19 @@ interface AttendanceRecord {
 
 interface AttendanceTableProps {
   data: AttendanceRecord[];
+  onViewDetails?: (classId: string) => void;
 }
 
-const AttendanceTable: React.FC<AttendanceTableProps> = ({ data }) => {
+const AttendanceTable: React.FC<AttendanceTableProps> = ({ data, onViewDetails }) => {
   const [selectedClass, setSelectedClass] = useState<any>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleViewDetails = async (record: AttendanceRecord) => {
+    if (onViewDetails) {
+      onViewDetails(record.id);
+      return;
+    }
+    
     // Fetch detailed class information including attendees
     const { data: classDetails } = await supabase
       .from('checkins')

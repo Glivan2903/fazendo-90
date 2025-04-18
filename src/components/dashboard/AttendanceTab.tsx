@@ -4,7 +4,7 @@ import { useAttendanceStats } from '@/hooks/useAttendanceStats';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import AttendanceStats from './attendance/AttendanceStats';
-import AttendanceTable from './attendance/AttendanceTable';
+import AttendanceTable, { AttendanceRecord } from './attendance/AttendanceTable';
 import CheckinsChart from './attendance/CheckinsChart';
 import TopUsersList from './attendance/TopUsersList';
 import UserHistoryDialog from './attendance/UserHistoryDialog';
