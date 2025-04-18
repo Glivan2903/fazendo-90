@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, FileText, ArrowDown, ArrowUp, Filter, Download, ArrowUpDown } from 'lucide-react';
+import { PlusCircle, FileText, ArrowDown, ArrowUp, Filter, Download, ArrowUpDown, Search } from 'lucide-react';
 import { toast } from "sonner";
 import { useCashFlow } from './hooks/useCashFlow';
 import { TransactionTable } from './components/TransactionTable';
@@ -21,8 +21,11 @@ import { cn } from "@/lib/utils";
 import { format, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Edit2, Trash2, Calendar } from "lucide-react";
-import { Transaction } from './types';
+import { Transaction } from '../types';
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const CashFlowPage = () => {
   const [activeTab, setActiveTab] = useState("extract");
@@ -34,7 +37,7 @@ const CashFlowPage = () => {
   const [showNewExpenseDialog, setShowNewExpenseDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [currentTransaction, setCurrentTransaction: any] = useState(null);
+  const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   
   const {
@@ -66,7 +69,7 @@ const CashFlowPage = () => {
     if (searchTerm) {
       filtered = filtered.filter(t => 
         t.description.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        t.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (t.fornecedor && t.fornecedor.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
@@ -105,7 +108,7 @@ const CashFlowPage = () => {
     }
     
     setFilteredTransactions(filtered);
-  }, [transactions, searchTerm, statusFilter, categoryFilter, dateFilter, activeTab]);
+  }, [transactions, searchTerm, statusFilter, categoryFilter, dateFilter, activeTab, setFilteredTransactions]);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -328,540 +331,277 @@ const CashFlowPage = () => {
     return calculateIncomeTotal() - calculateExpenseTotal();
   };
 
-  const renderTable = () => (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Data</TableHead>
-            <TableHead>Tipo</TableHead>
-            <TableHead>Descrição</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Forma de Pagamento</TableHead>
-            <TableHead>Conta</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Valor</TableHead>
-            <TableHead>Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredTransactions.length > 0 ? (
-            filteredTransactions.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>{formatDate(transaction.date)}</TableCell>
-                <TableCell>{getTypeIcon(transaction.transaction_type)}</TableCell>
-                <TableCell className="max-w-[200px] truncate">
-                  {transaction.description}
-                  {transaction.fornecedor && <div className="text-xs text-gray-500">Fornecedor: {transaction.fornecedor}</div>}
-                </TableCell>
-                <TableCell>{transaction.category}</TableCell>
-                <TableCell>{transaction.payment_method || '-'}</TableCell>
-                <TableCell>{transaction.bank_account || 'Conta Principal'}</TableCell>
-                <TableCell>{getStatusBadge(transaction.status)}</TableCell>
-                <TableCell className={transaction.transaction_type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                  {formatCurrency(transaction.amount)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(transaction)}>
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete2(transaction)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={9} className="text-center py-10">
-                {loading ? (
-                  <div className="flex justify-center">
-                    <div className="h-6 w-6 border-2 border-blue-600 rounded-full animate-spin border-t-transparent"></div>
-                  </div>
-                ) : (
-                  'Nenhuma transação encontrada'
-                )}
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
-  );
-
-  const renderFilters = () => (
-    <div className="flex flex-col md:flex-row gap-3 mb-4">
-      <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-        <Input
-          placeholder="Buscar transações..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-8"
-        />
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Fluxo de Caixa</h2>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setShowNewIncomeDialog(true)} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <ArrowUp className="h-4 w-4 text-green-600" />
+            <span>Novo Recebimento</span>
+          </Button>
+          <Button 
+            onClick={() => setShowNewExpenseDialog(true)} 
+            variant="outline" 
+            className="flex items-center gap-2"
+          >
+            <ArrowDown className="h-4 w-4 text-red-600" />
+            <span>Nova Despesa</span>
+          </Button>
+        </div>
       </div>
       
-      <Select value={statusFilter} onValueChange={setStatusFilter}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Filtrar por status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os status</SelectItem>
-          <SelectItem value="paid">Pagos</SelectItem>
-          <SelectItem value="pending">Pendentes</SelectItem>
-          <SelectItem value="overdue">Atrasados</SelectItem>
-        </SelectContent>
-      </Select>
-      
-      <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Filtrar por categoria" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas as categorias</SelectItem>
-          <SelectItem value="Mensalidade">Mensalidade</SelectItem>
-          <SelectItem value="Adesão">Adesão</SelectItem>
-          <SelectItem value="Aluguel">Aluguel</SelectItem>
-          <SelectItem value="Despesa Operacional">Despesa Operacional</SelectItem>
-        </SelectContent>
-      </Select>
-      
-      <Select value={dateFilter} onValueChange={setDateFilter}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Filtrar por data" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todas as datas</SelectItem>
-          <SelectItem value="today">Hoje</SelectItem>
-          <SelectItem value="thisWeek">Esta semana</SelectItem>
-          <SelectItem value="thisMonth">Este mês</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
-  );
-
-  const renderSummaryCards = () => (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-500">Entradas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">{formatCurrency(calculateIncomeTotal())}</div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-500">Saídas</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-red-600">{formatCurrency(calculateExpenseTotal())}</div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-gray-500">Saldo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className={`text-2xl font-bold ${calculateBalance() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-            {formatCurrency(calculateBalance())}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderNewIncomeDialog = () => (
-    <Dialog open={showNewIncomeDialog} onOpenChange={setShowNewIncomeDialog}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Novo Recebimento</DialogTitle>
-        </DialogHeader>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="extract" className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <span>Extrato</span>
+          </TabsTrigger>
+          <TabsTrigger value="income" className="flex items-center gap-2">
+            <ArrowUp className="h-4 w-4 text-green-600" />
+            <span>Entradas</span>
+          </TabsTrigger>
+          <TabsTrigger value="expenses" className="flex items-center gap-2">
+            <ArrowDown className="h-4 w-4 text-red-600" />
+            <span>Saídas</span>
+          </TabsTrigger>
+          <TabsTrigger value="balance" className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4" />
+            <span>Balanço</span>
+          </TabsTrigger>
+        </TabsList>
         
-        <form onSubmit={(e) => handleSubmit(e, 'income')} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="date">Data</Label>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formValues.date && "text-muted-foreground"
-                  )}
-                  id="date"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formValues.date ? (
-                    format(formValues.date, "dd/MM/yyyy", { locale: ptBR })
-                  ) : (
-                    <span>Selecione uma data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={formValues.date}
-                  onSelect={handleDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="user_id">Cliente</Label>
-            <Select value={formValues.user_id} onValueChange={(value) => handleSelectChange('user_id', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Selecione um cliente</SelectItem>
-                {users.map(user => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name} ({user.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Input
-              id="description"
-              name="description"
-              value={formValues.description}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Categoria</Label>
-            <Select value={formValues.category} onValueChange={(value) => handleSelectChange('category', value)} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Mensalidade">Mensalidade</SelectItem>
-                <SelectItem value="Adesão">Adesão</SelectItem>
-                <SelectItem value="Taxa extra">Taxa extra</SelectItem>
-                <SelectItem value="Produto">Produto</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="amount">Valor (R$)</Label>
-            <Input
-              id="amount"
-              name="amount"
-              type="number"
-              step="0.01"
-              value={formValues.amount}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={formValues.status} onValueChange={(value) => handleSelectChange('status', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="paid">Pago</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-                <SelectItem value="overdue">Atrasado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="payment_method">Forma de pagamento</Label>
-            <Select value={formValues.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a forma de pagamento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pix">PIX</SelectItem>
-                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                <SelectItem value="cash">Dinheiro</SelectItem>
-                <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="bank_account">Conta</Label>
-            <Select value={formValues.bank_account} onValueChange={(value) => handleSelectChange('bank_account', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Nubank">Nubank</SelectItem>
-                <SelectItem value="Bradesco">Bradesco</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowNewIncomeDialog(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">Salvar</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-
-  const renderNewExpenseDialog = () => (
-    <Dialog open={showNewExpenseDialog} onOpenChange={setShowNewExpenseDialog}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Nova Despesa</DialogTitle>
-        </DialogHeader>
+        <SummaryCards transactions={filteredTransactions} />
         
-        <form onSubmit={(e) => handleSubmit(e, 'expense')} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="date">Data</Label>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formValues.date && "text-muted-foreground"
-                  )}
-                  id="date"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formValues.date ? (
-                    format(formValues.date, "dd/MM/yyyy", { locale: ptBR })
-                  ) : (
-                    <span>Selecione uma data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={formValues.date}
-                  onSelect={handleDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="fornecedor">Fornecedor</Label>
-            <Select value={formValues.fornecedor} onValueChange={(value) => handleSelectChange('fornecedor', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione um fornecedor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">Selecione um fornecedor</SelectItem>
-                {suppliers.map(supplier => (
-                  <SelectItem key={supplier.id} value={supplier.name}>
-                    {supplier.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="description">Descrição</Label>
-            <Input
-              id="description"
-              name="description"
-              value={formValues.description}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="category">Categoria</Label>
-            <Select value={formValues.category} onValueChange={(value) => handleSelectChange('category', value)} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Aluguel">Aluguel</SelectItem>
-                <SelectItem value="Despesa Operacional">Despesa Operacional</SelectItem>
-                <SelectItem value="Materiais">Materiais</SelectItem>
-                <SelectItem value="Serviços">Serviços</SelectItem>
-                <SelectItem value="Impostos">Impostos</SelectItem>
-                <SelectItem value="Outros">Outros</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="amount">Valor (R$)</Label>
-            <Input
-              id="amount"
-              name="amount"
-              type="number"
-              step="0.01"
-              value={formValues.amount}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="status">Status</Label>
-            <Select value={formValues.status} onValueChange={(value) => handleSelectChange('status', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="paid">Pago</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="payment_method">Forma de pagamento</Label>
-            <Select value={formValues.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a forma de pagamento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pix">PIX</SelectItem>
-                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                <SelectItem value="cash">Dinheiro</SelectItem>
-                <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="bank_account">Conta</Label>
-            <Select value={formValues.bank_account} onValueChange={(value) => handleSelectChange('bank_account', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Nubank">Nubank</SelectItem>
-                <SelectItem value="Bradesco">Bradesco</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowNewExpenseDialog(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">Salvar</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-
-  const renderEditDialog = () => (
-    <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Editar Transação</DialogTitle>
-        </DialogHeader>
+        <TransactionFilters
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          categoryFilter={categoryFilter}
+          onCategoryFilterChange={setCategoryFilter}
+          dateFilter={dateFilter}
+          onDateFilterChange={setDateFilter}
+        />
         
-        <form onSubmit={updateTransaction} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="edit_date">Data</Label>
-            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !formValues.date && "text-muted-foreground"
-                  )}
-                  id="edit_date"
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {formValues.date ? (
-                    format(formValues.date, "dd/MM/yyyy", { locale: ptBR })
-                  ) : (
-                    <span>Selecione uma data</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={formValues.date}
-                  onSelect={handleDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
+        <TransactionTable
+          transactions={filteredTransactions}
+          loading={loading}
+          onEdit={handleEdit}
+          onDelete={handleDelete2}
+        />
+      </Tabs>
+
+      <NewIncomeDialog 
+        isOpen={showNewIncomeDialog} 
+        onClose={() => setShowNewIncomeDialog(false)}
+        onSubmit={(e) => handleSubmit(e, 'income')}
+        formValues={formValues}
+        handleFormChange={handleFormChange}
+        handleSelectChange={handleSelectChange}
+        handleDateChange={handleDateChange}
+        users={users}
+        calendarOpen={calendarOpen}
+        setCalendarOpen={setCalendarOpen}
+      />
+      
+      <NewExpenseDialog 
+        isOpen={showNewExpenseDialog} 
+        onClose={() => setShowNewExpenseDialog(false)}
+        onSubmit={(e) => handleSubmit(e, 'expense')}
+        formValues={formValues}
+        handleFormChange={handleFormChange}
+        handleSelectChange={handleSelectChange}
+        handleDateChange={handleDateChange}
+        suppliers={suppliers}
+        calendarOpen={calendarOpen}
+        setCalendarOpen={setCalendarOpen}
+      />
+      
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Editar Transação</DialogTitle>
+          </DialogHeader>
           
-          <div className="space-y-2">
-            <Label htmlFor="edit_description">Descrição</Label>
-            <Input
-              id="edit_description"
-              name="description"
-              value={formValues.description}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-          
-          {currentTransaction?.transaction_type === 'expense' && (
+          <form onSubmit={updateTransaction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="edit_fornecedor">Fornecedor</Label>
-              <Select value={formValues.fornecedor} onValueChange={(value) => handleSelectChange('fornecedor', value)}>
+              <Label htmlFor="edit_date">Data</Label>
+              <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full justify-start text-left font-normal",
+                      !formValues.date && "text-muted-foreground"
+                    )}
+                    id="edit_date"
+                  >
+                    <Calendar className="mr-2 h-4 w-4" />
+                    {formValues.date ? (
+                      format(formValues.date, "dd/MM/yyyy", { locale: ptBR })
+                    ) : (
+                      <span>Selecione uma data</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <CalendarComponent
+                    mode="single"
+                    selected={formValues.date}
+                    onSelect={handleDateChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit_description">Descrição</Label>
+              <Input
+                id="edit_description"
+                name="description"
+                value={formValues.description}
+                onChange={handleFormChange}
+                required
+              />
+            </div>
+            
+            {currentTransaction?.transaction_type === 'expense' && (
+              <div className="space-y-2">
+                <Label htmlFor="edit_fornecedor">Fornecedor</Label>
+                <Select value={formValues.fornecedor} onValueChange={(value) => handleSelectChange('fornecedor', value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um fornecedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sem fornecedor</SelectItem>
+                    {suppliers.map(supplier => (
+                      <SelectItem key={supplier.id} value={supplier.name}>
+                        {supplier.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit_category">Categoria</Label>
+              <Select value={formValues.category} onValueChange={(value) => handleSelectChange('category', value)} required>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione um fornecedor" />
+                  <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem fornecedor</SelectItem>
-                  {suppliers.map(supplier => (
-                    <SelectItem key={supplier.id} value={supplier.name}>
-                      {supplier.name}
-                    </SelectItem>
-                  ))}
+                  {currentTransaction?.transaction_type === 'income' ? (
+                    <>
+                      <SelectItem value="Mensalidade">Mensalidade</SelectItem>
+                      <SelectItem value="Adesão">Adesão</SelectItem>
+                      <SelectItem value="Taxa extra">Taxa extra</SelectItem>
+                      <SelectItem value="Produto">Produto</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="Aluguel">Aluguel</SelectItem>
+                      <SelectItem value="Despesa Operacional">Despesa Operacional</SelectItem>
+                      <SelectItem value="Materiais">Materiais</SelectItem>
+                      <SelectItem value="Serviços">Serviços</SelectItem>
+                      <SelectItem value="Impostos">Impostos</SelectItem>
+                      <SelectItem value="Outros">Outros</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>
-          )}
-          
-          <div className="space-y-2">
-            <Label htmlFor="edit_category">Categoria</Label>
-            <Select value={formValues.category} onValueChange={(value) => handleSelectChange('category', value)} required>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione uma categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {currentTransaction?.transaction_type === 'income' ? (
-                  <>
-                    <SelectItem value="Mensalidade">Mensalidade</SelectItem>
-                    <SelectItem value="Adesão">Adesão</SelectItem>
-                    <SelectItem value="Taxa extra">Taxa extra</SelectItem>
-                    <SelectItem value="Produto">Produto</SelectItem>
-                  </>
-                ) : (
-                  <>
-                    <SelectItem value="Aluguel">Aluguel</SelectItem>
-                    <SelectItem value="Despesa Operacional">Despesa Operacional</SelectItem>
-                    <SelectItem value="Materiais">Materiais</SelectItem>
-                    <SelectItem value="Serviços">Serviços</SelectItem>
-                    <SelectItem value="Impostos">Impostos</SelectItem>
-                    <SelectItem value="Outros">Outros</SelectItem>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit_amount">Valor (R$)</Label>
+              <Input
+                id="edit_amount"
+                name="amount"
+                type="number"
+                step="0.01"
+                value={formValues.amount}
+                onChange={handleFormChange}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit_status">Status</Label>
+              <Select value={formValues.status} onValueChange={(value) => handleSelectChange('status', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="paid">Pago</SelectItem>
+                  <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="overdue">Atrasado</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit_payment_method">Forma de pagamento</Label>
+              <Select value={formValues.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                  <SelectItem value="cash">Dinheiro</SelectItem>
+                  <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="edit_bank_account">Conta</Label>
+              <Select value={formValues.bank_account} onValueChange={(value) => handleSelectChange('bank_account', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a conta" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Nubank">Nubank</SelectItem>
+                  <SelectItem value="Bradesco">Bradesco</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setShowDeleteDialog(false)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => currentTransaction && handleDelete(currentTransaction.id)}>
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default CashFlowPage;
