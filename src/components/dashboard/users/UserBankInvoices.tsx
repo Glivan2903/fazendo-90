@@ -45,7 +45,21 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
         .order('due_date', { ascending: false });
 
       if (error) throw error;
-      setInvoices(data || []);
+      
+      // Map the data to match the BankInvoice interface
+      const mappedInvoices: BankInvoice[] = (data || []).map(invoice => ({
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        due_date: invoice.due_date,
+        status: invoice.status,
+        payment_method: invoice.payment_method,
+        total_amount: invoice.total_amount,
+        payment_date: invoice.payment_date,
+        reference: null, // Add a default null reference
+        buyer_name: invoice.buyer_name
+      }));
+
+      setInvoices(mappedInvoices);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast.error('Erro ao carregar faturas do usuário');

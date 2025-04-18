@@ -523,6 +523,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: string
       }
+      has_payment_for_month: {
+        Args: { user_id: string; month: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
@@ -18,12 +18,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children, 
   redirect = '/auth'
 }) => {
-  const { user, loading, userRole } = useAuth();
-  const [userStatus, setUserStatus] = useState<string | null>(null);
-  const [statusLoading, setStatusLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoading, userRole } = useAuth(); // Changed from loading to isLoading
+  const [userStatus, setUserStatus] = React.useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const checkUserStatus = async () => {
       if (!user) {
         setStatusLoading(false);
@@ -51,7 +51,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }, [user]);
 
   // Wait until auth is initialized and user status is checked
-  if (loading || statusLoading) {
+  if (isLoading || statusLoading) {
     return <LoadingSpinner />;
   }
 
@@ -60,7 +60,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to={redirect} />;
   }
 
-  // Check if user is active
+  // Check if user is pending
   if (userStatus === 'Pendente') {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">

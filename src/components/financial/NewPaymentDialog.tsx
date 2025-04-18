@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -200,14 +199,9 @@ export default function NewPaymentDialog({
     setPaymentDatePopoverOpen(false);
   };
 
-  // Check if a payment already exists for this month
   const checkExistingPaymentsForMonth = async (userId: string, date: Date) => {
     try {
-      // Call the RPC function to check if payment exists
-      const { data, error } = await supabase.rpc(
-        'has_payment_for_month',
-        { user_id: userId, month: date.toISOString() }
-      );
+      const { data, error } = await supabase.rpc('has_payment_for_month', { user_id: userId, month: date.toISOString() });
       
       if (error) throw error;
       
