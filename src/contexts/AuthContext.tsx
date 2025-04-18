@@ -1,12 +1,15 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AuthContextProps {
   user: User | null;
   userRole: string | null;
   isLoading: boolean;
-  signIn: (email: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
   setUserRole: React.Dispatch<React.SetStateAction<string | null>>;
 }
@@ -20,6 +23,7 @@ const AuthContext = createContext<AuthContextProps>({
   userRole: null,
   isLoading: true,
   signIn: async () => {},
+  signUp: async () => {},
   signOut: async () => {},
   setUserRole: () => {}
 });
@@ -49,13 +53,37 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const signIn = async (email: string): Promise<void> => {
+  const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({ email });
+      const { error } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+      
       if (error) throw error;
-      alert('Check your email for the login link!');
     } catch (error: any) {
-      alert(error.error_description || error.message);
+      toast.error(error.error_description || error.message);
+      throw error;
+    }
+  };
+
+  const signUp = async (email: string, password: string, name: string): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name
+          }
+        }
+      });
+      
+      if (error) throw error;
+      toast.success('Conta criada com sucesso! Verifique seu email.');
+    } catch (error: any) {
+      toast.error(error.error_description || error.message);
+      throw error;
     }
   };
 
@@ -64,7 +92,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
     } catch (error: any) {
-      alert(error.error_description || error.message);
+      toast.error(error.error_description || error.message);
     }
   };
 
@@ -124,6 +152,7 @@ const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     userRole,
     isLoading,
     signIn,
+    signUp,
     signOut,
     setUserRole
   };
