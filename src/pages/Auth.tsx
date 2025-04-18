@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
-import LoadingSpinner from "@/components/LoadingSpinner";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -18,7 +16,6 @@ const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { signIn, signUp, isLoading } = useAuth();
 
@@ -32,14 +29,7 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await signIn(email, password);
-    } catch (error) {
-      console.error("Error signing in:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await signIn(email, password);
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -48,14 +38,7 @@ const Auth = () => {
       toast.error("As senhas não coincidem");
       return;
     }
-    setIsSubmitting(true);
-    try {
-      await signUp(email, password, name);
-    } catch (error) {
-      console.error("Error signing up:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+    await signUp(email, password, name);
   };
 
   return (
@@ -145,14 +128,11 @@ const Auth = () => {
             </div>
           )}
           <Button
-            disabled={isLoading || isSubmitting}
+            disabled={isLoading}
             onClick={isSignUp ? handleSignUp : handleSignIn}
           >
-            {isLoading || isSubmitting ? (
-              <LoadingSpinner size={16} className="mr-2" />
-            ) : null}
-            {isSubmitting
-              ? "Processando..."
+            {isLoading
+              ? "Carregando..."
               : isSignUp
               ? "Criar Conta"
               : "Entrar"}

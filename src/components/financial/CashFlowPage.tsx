@@ -138,36 +138,28 @@ const CashFlowPage = () => {
     e.preventDefault();
     
     try {
-      console.log("Form values:", formValues);
-      console.log("Transaction type:", type);
-      
       const newTransaction = {
-        buyer_name: type === 'income' ? formValues.description : formValues.description,
+        buyer_name: type === 'income' ? formValues.description : null,
         due_date: format(formValues.date, 'yyyy-MM-dd'),
         payment_date: formValues.status === 'paid' ? format(formValues.date, 'yyyy-MM-dd') : null,
-        total_amount: parseFloat(formValues.amount) || 0,
+        total_amount: parseFloat(formValues.amount),
         discount_amount: 0,
         status: formValues.status,
-        payment_method: formValues.payment_method || 'pix',
+        payment_method: formValues.payment_method,
         invoice_number: await generateInvoiceNumber(),
         transaction_type: type,
         category: formValues.category,
         fornecedor: type === 'expense' ? formValues.fornecedor : null,
-        bank_account: formValues.bank_account || 'Nubank',
+        bank_account: formValues.bank_account,
         user_id: type === 'income' ? formValues.user_id || null : null
       };
-      
-      console.log("New transaction data:", newTransaction);
       
       const { data, error } = await supabase
         .from('bank_invoices')
         .insert([newTransaction])
         .select();
         
-      if (error) {
-        console.error('Error details:', error);
-        throw error;
-      }
+      if (error) throw error;
       
       toast.success(`${type === 'income' ? 'Recebimento' : 'Despesa'} cadastrado com sucesso`);
       fetchTransactions();
@@ -192,7 +184,7 @@ const CashFlowPage = () => {
       
     } catch (error) {
       console.error('Error adding transaction:', error);
-      toast.error(`Erro ao cadastrar ${type === 'income' ? 'recebimento' : 'despesa'}: ${(error as Error).message}`);
+      toast.error(`Erro ao cadastrar ${type === 'income' ? 'recebimento' : 'despesa'}`);
     }
   };
 

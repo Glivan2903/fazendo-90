@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +14,6 @@ import React from "react";
 import UserProfile from "./pages/UserProfile";
 import FinancialDashboard from "./pages/FinancialDashboard";
 import UserProfileAdmin from "./pages/UserProfileAdmin";
-import AdminRedirect from "./components/AdminRedirect";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,7 +30,6 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <TooltipProvider>
-            <AdminRedirect />
             <Toaster />
             <Sonner position="top-center" />
             <Routes>
