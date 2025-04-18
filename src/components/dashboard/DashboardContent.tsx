@@ -14,7 +14,6 @@ interface DashboardContentProps {
   todayClasses: any[];
   scheduleClasses: any[];
   users: User[];
-  attendance: any[];
   onEditUser: (user: User) => void;
 }
 

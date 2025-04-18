@@ -13,7 +13,7 @@ export const useAttendanceStats = () => {
       const todayStart = startOfDay(today).toISOString();
       const todayEnd = endOfDay(today).toISOString();
 
-      // Get today's check-ins
+      // Get today's check-ins (only confirmed ones)
       const { data: todayData, error: todayError } = await supabase
         .from('checkins')
         .select('id')
@@ -23,7 +23,7 @@ export const useAttendanceStats = () => {
 
       if (todayError) throw todayError;
 
-      // Get total check-ins
+      // Get total check-ins (only confirmed ones)
       const { data: totalData, error: totalError } = await supabase
         .from('checkins')
         .select('id')
@@ -31,7 +31,7 @@ export const useAttendanceStats = () => {
 
       if (totalError) throw totalError;
 
-      // Get active users (users with at least one check-in in the last 30 days)
+      // Get active users (users with at least one confirmed check-in in the last 30 days)
       const { data: activeUsers, error: activeError } = await supabase
         .from('checkins')
         .select('user_id')
@@ -78,9 +78,45 @@ export const useAttendanceStats = () => {
     }
   });
 
+  const { data: attendanceRecords } = useQuery({
+    queryKey: ['attendance-records'],
+    queryFn: async () => {
+      const { data: classesData, error } = await supabase
+        .from('classes')
+        .select(`
+          id,
+          date,
+          programs (name),
+          profiles!coach_id (name),
+          checkins!inner (status)
+        `)
+        .order('date', { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+
+      return classesData?.map(cls => {
+        const confirmedCheckins = cls.checkins.filter(c => c.status === 'confirmed').length;
+        const total = 15; // Default max capacity
+        
+        return {
+          id: cls.id,
+          date: cls.date,
+          class_name: cls.programs?.name || 'CrossFit',
+          coach_name: cls.profiles?.name || 'Coach',
+          present: confirmedCheckins,
+          absent: total - confirmedCheckins,
+          total,
+          rate: Math.round((confirmedCheckins / total) * 100)
+        };
+      }) || [];
+    }
+  });
+
   return {
     stats: stats || { todayCheckins: 0, totalCheckins: 0, activeUsers: 0 },
     dailyCheckins: dailyCheckins || [],
-    topUsers: topUsers || []
+    topUsers: topUsers || [],
+    attendanceRecords: attendanceRecords || []
   };
 };

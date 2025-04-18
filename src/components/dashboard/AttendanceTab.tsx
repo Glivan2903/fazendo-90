@@ -4,6 +4,7 @@ import { useAttendanceStats } from '@/hooks/useAttendanceStats';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import AttendanceStats from './attendance/AttendanceStats';
+import AttendanceTable from './attendance/AttendanceTable';
 import CheckinsChart from './attendance/CheckinsChart';
 import TopUsersList from './attendance/TopUsersList';
 import UserHistoryDialog from './attendance/UserHistoryDialog';
@@ -12,7 +13,7 @@ const AttendanceTab = () => {
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [userHistory, setUserHistory] = useState<any[]>([]);
   const [selectedUserName, setSelectedUserName] = useState("");
-  const { stats, dailyCheckins, topUsers } = useAttendanceStats();
+  const { stats, dailyCheckins, topUsers, attendanceRecords } = useAttendanceStats();
 
   const handleViewHistory = async (userId: string) => {
     const user = topUsers.find(u => u.user_id === userId);
@@ -48,6 +49,11 @@ const AttendanceTab = () => {
     setSelectedUser(userId);
   };
 
+  const handleViewClassDetails = async (classId: string) => {
+    // Implement class details view if needed
+    console.log('Viewing class details:', classId);
+  };
+
   if (!stats) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -59,6 +65,10 @@ const AttendanceTab = () => {
   return (
     <div className="space-y-6">
       <AttendanceStats {...stats} />
+      <AttendanceTable 
+        data={attendanceRecords}
+        onViewDetails={handleViewClassDetails}
+      />
       <CheckinsChart data={dailyCheckins} />
       <TopUsersList users={topUsers} onViewHistory={handleViewHistory} />
       
