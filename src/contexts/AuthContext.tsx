@@ -1,9 +1,9 @@
+
 import React, {
   createContext,
   useState,
   useEffect,
   useContext,
-  useCallback,
 } from "react";
 import {
   Session,
@@ -59,7 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     loadSession();
 
-    supabase.auth.onAuthStateChange((event, currentSession) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
       setSession(currentSession);
       setUser(currentSession?.user || null);
 
@@ -71,6 +71,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setHasActiveSubscription(false);
       }
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserRole = async (userId: string) => {
@@ -149,6 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
+      // Primeiro, crie o usuário na autenticação do Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -160,21 +165,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) throw error;
+      
+      if (!data.user) {
+        throw new Error("Falha ao criar usuário");
+      }
 
+      // Depois, insira manualmente os dados no perfil
+      // O trigger pode ter falhado, então fazemos manualmente
       const { error: profileError } = await supabase
         .from('profiles')
         .insert({
-          id: data.user?.id,
+          id: data.user.id,
           name,
           email,
           role: 'student',
           status: 'Ativo'
-        });
+        })
+        .select()
+        .single();
 
-      if (profileError) throw profileError;
+      if (profileError) {
+        console.error("Erro ao criar perfil, mas usuário foi criado:", profileError);
+        // Não lançamos erro aqui, pois o usuário já foi criado na autenticação
+        toast.warning("Conta criada, mas houve um problema ao configurar seu perfil. Entre em contato com o suporte.");
+      } else {
+        toast.success("Conta criada com sucesso!");
+      }
 
+      // Redirecionar para a página de check-in
       navigate("/check-in");
-      toast.success("Conta criada com sucesso!");
     } catch (error: any) {
       console.error("Erro ao criar conta:", error.message);
       toast.error("Erro ao criar conta: " + error.message);
