@@ -29,6 +29,13 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
     .join('')
     .toUpperCase();
 
+  const stats = {
+    checkinsThisMonth: 0,
+    attendanceRate: 0,
+    workoutsPerWeek: 0,
+    totalCheckins: 0
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-center space-y-4">
@@ -44,8 +51,8 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
         </div>
       </div>
 
-      <UserInfo user={user} />
-      <UserStats userId={user?.id} />
+      <UserInfo user={user?.user_metadata || {}} />
+      <UserStats stats={stats} />
 
       <Button
         variant="outline"

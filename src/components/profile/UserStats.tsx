@@ -1,19 +1,8 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from 'react';
+import { Card } from '@/components/ui/card';
 
-interface StatBlockProps {
-  value: number | string;
-  label: string;
-}
-
-const StatBlock = ({ value, label }: StatBlockProps) => (
-  <div className="bg-blue-50 p-4 rounded-lg text-center">
-    <div className="text-blue-600 text-2xl font-bold">{value}</div>
-    <div className="text-gray-600 text-sm">{label}</div>
-  </div>
-);
-
-interface UserStatsProps {
+export interface UserStatsProps {
   stats: {
     checkinsThisMonth: number;
     attendanceRate: number;
@@ -22,19 +11,37 @@ interface UserStatsProps {
   };
 }
 
-const UserStats = ({ stats }: UserStatsProps) => {
+const UserStats: React.FC<UserStatsProps> = ({ stats }) => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Estatísticas</CardTitle>
-      </CardHeader>
-      <CardContent className="grid grid-cols-2 gap-4">
-        <StatBlock value={stats.checkinsThisMonth || 0} label="Check-ins este mês" />
-        <StatBlock value={`${stats.attendanceRate || 0}%`} label="Taxa de Frequência" />
-        <StatBlock value={stats.workoutsPerWeek || 0} label="Treinos por semana" />
-        <StatBlock value={stats.totalCheckins || 0} label="Total de check-ins" />
-      </CardContent>
-    </Card>
+    <div className="grid grid-cols-2 gap-4">
+      <Card className="p-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-blue-600">{stats.totalCheckins}</div>
+          <div className="text-sm text-gray-500">Total de check-ins</div>
+        </div>
+      </Card>
+      
+      <Card className="p-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-blue-600">{stats.checkinsThisMonth}</div>
+          <div className="text-sm text-gray-500">Check-ins este mês</div>
+        </div>
+      </Card>
+      
+      <Card className="p-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-blue-600">{stats.workoutsPerWeek}</div>
+          <div className="text-sm text-gray-500">Treinos por semana</div>
+        </div>
+      </Card>
+      
+      <Card className="p-4">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-blue-600">{stats.attendanceRate}%</div>
+          <div className="text-sm text-gray-500">Taxa de presença</div>
+        </div>
+      </Card>
+    </div>
   );
 };
 

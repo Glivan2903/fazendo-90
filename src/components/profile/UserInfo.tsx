@@ -1,39 +1,36 @@
 
-import { Mail, Phone, Calendar } from "lucide-react";
+import React from 'react';
+import { Mail, Phone, Calendar } from 'lucide-react';
 
-interface UserInfoProps {
-  email: string;
-  phone: string | null;
-  birthDate: string | null;
-  formatDate: (date: string | null) => string;
+export interface UserInfoProps {
+  user: {
+    email: string;
+    phone?: string | null;
+    birth_date?: string | null;
+  };
 }
 
-const UserInfo = ({ email, phone, birthDate, formatDate }: UserInfoProps) => {
+const UserInfo: React.FC<UserInfoProps> = ({ user }) => {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 space-y-4">
-      <div className="flex items-center">
-        <Mail className="h-5 w-5 text-gray-500 mr-4" />
-        <div>
-          <div className="text-sm text-gray-500">Email</div>
-          <div>{email}</div>
-        </div>
+    <div className="space-y-4 bg-white rounded-lg shadow-sm p-4">
+      <div className="flex items-center space-x-2">
+        <Mail className="w-4 h-4 text-gray-500" />
+        <span>{user.email}</span>
       </div>
       
-      <div className="flex items-center">
-        <Phone className="h-5 w-5 text-gray-500 mr-4" />
-        <div>
-          <div className="text-sm text-gray-500">Telefone</div>
-          <div>{phone || "Não informado"}</div>
+      {user.phone && (
+        <div className="flex items-center space-x-2">
+          <Phone className="w-4 h-4 text-gray-500" />
+          <span>{user.phone}</span>
         </div>
-      </div>
+      )}
       
-      <div className="flex items-center">
-        <Calendar className="h-5 w-5 text-gray-500 mr-4" />
-        <div>
-          <div className="text-sm text-gray-500">Data de Nascimento</div>
-          <div>{birthDate ? formatDate(birthDate) : "Não informada"}</div>
+      {user.birth_date && (
+        <div className="flex items-center space-x-2">
+          <Calendar className="w-4 h-4 text-gray-500" />
+          <span>{user.birth_date}</span>
         </div>
-      </div>
+      )}
     </div>
   );
 };

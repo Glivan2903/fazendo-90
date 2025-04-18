@@ -23,6 +23,7 @@ interface UserProfile {
   created_at: string;
   notes: string | null;
   avatar_url: string | null;
+  role: string;
 }
 
 const UserProfileAdmin = () => {
