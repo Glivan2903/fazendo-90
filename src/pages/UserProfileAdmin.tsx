@@ -9,6 +9,8 @@ import UserProfileNotes from '@/components/profile/admin/UserProfileNotes';
 import UserProfileActions from '@/components/profile/admin/UserProfileActions';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
+import UserFinancialMovements from '@/components/dashboard/users/UserFinancialMovements';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface UserProfile {
   id: string;
@@ -32,6 +34,7 @@ const UserProfileAdmin = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [checkinsCount, setCheckinsCount] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState('profile');
 
   useEffect(() => {
     fetchUserProfile();
@@ -133,22 +136,43 @@ const UserProfileAdmin = () => {
 
         {/* Right column */}
         <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
-            <UserProfileForm
-              profile={profile}
-              isEditing={isEditing}
-              onSave={handleSave}
-              onCancel={() => setIsEditing(false)}
-            />
-          </Card>
+          <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="profile">Perfil</TabsTrigger>
+              <TabsTrigger value="financials">Movimentações</TabsTrigger>
+              <TabsTrigger value="checkins">Check-ins</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="profile">
+              <Card className="p-6">
+                <UserProfileForm
+                  profile={profile}
+                  isEditing={isEditing}
+                  onSave={handleSave}
+                  onCancel={() => setIsEditing(false)}
+                />
+              </Card>
 
-          <Card className="p-6">
-            <UserProfileNotes
-              notes={profile.notes}
-              isEditing={isEditing}
-              onSave={(notes) => handleSave({ notes })}
-            />
-          </Card>
+              <Card className="p-6 mt-6">
+                <UserProfileNotes
+                  notes={profile.notes}
+                  isEditing={isEditing}
+                  onSave={(notes) => handleSave({ notes })}
+                />
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="financials">
+              <UserFinancialMovements userId={userId} />
+            </TabsContent>
+            
+            <TabsContent value="checkins">
+              <Card className="p-6">
+                <h2 className="text-xl font-bold mb-4">Histórico de Check-ins</h2>
+                <p>Histórico de check-ins do usuário será exibido aqui.</p>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </div>
     </div>

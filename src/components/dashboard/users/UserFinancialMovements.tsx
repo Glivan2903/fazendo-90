@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,7 +21,9 @@ interface PaymentMovement {
   payment_method: string | null;
   reference: string | null;
   bank_invoice_id: string | null;
+  notes: string | null;
   bank_invoice?: {
+    id: string;
     invoice_number: string;
     buyer_name: string;
     total_amount: number;
@@ -29,6 +32,10 @@ interface PaymentMovement {
       quantity: number;
       unit_price: number;
       total: number;
+      item_type: string;
+      discount: number;
+      period_start?: string;
+      period_end?: string;
     }>;
   };
 }
@@ -57,15 +64,8 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
         .select(`
           *,
           bank_invoice:bank_invoices (
-            invoice_number,
-            buyer_name,
-            total_amount,
-            bank_invoice_items (
-              description,
-              quantity,
-              unit_price,
-              total
-            )
+            *,
+            bank_invoice_items (*)
           )
         `)
         .eq('user_id', userId)
@@ -73,6 +73,7 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
 
       if (error) throw error;
       
+      console.log("Fetched financial movements:", data);
       setMovements(data || []);
     } catch (error) {
       console.error('Error fetching financial movements:', error);
@@ -110,6 +111,19 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
         return <Badge className="bg-gray-100 text-gray-800">CANCELADO</Badge>;
       default:
         return <Badge variant="outline">{status.toUpperCase()}</Badge>;
+    }
+  };
+
+  const getPaymentMethodText = (method: string | null) => {
+    if (!method) return 'Dinheiro';
+    
+    switch (method.toLowerCase()) {
+      case 'credit_card': return 'Cartão de Crédito';
+      case 'debit_card': return 'Cartão de Débito';
+      case 'cash': return 'Dinheiro';
+      case 'bank_transfer': return 'Transferência';
+      case 'pix': return 'PIX';
+      default: return method;
     }
   };
 
@@ -169,54 +183,69 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
               </TableHeader>
               <TableBody>
                 {movements.length > 0 ? (
-                  movements.map((movement) => (
-                    <TableRow key={movement.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleOpenSalesDetail(movement)}>
-                      <TableCell className="text-center">
-                        <input type="checkbox" className="rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
-                      </TableCell>
-                      <TableCell>{movement.bank_invoice?.invoice_number || movement.id.substring(0, 8)}</TableCell>
-                      <TableCell>{movement.payment_method || 'Dinheiro'}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                          {movement.bank_invoice?.invoice_number || '-'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className="bg-blue-100 text-blue-800 rounded-full">
-                          {movement.bank_invoice ? 'Venda' : 'Pagamento'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center">
-                          <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-                          {formatDate(movement.due_date)}
-                        </div>
-                      </TableCell>
-                      <TableCell>{formatCurrency(movement.bank_invoice?.total_amount || movement.amount)}</TableCell>
-                      <TableCell>{formatCurrency(0)}</TableCell>
-                      <TableCell>{formatCurrency(0)}</TableCell>
-                      <TableCell>{formatCurrency(movement.amount)}</TableCell>
-                      <TableCell>{getStatusBadge(movement.status)}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-1">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenSalesDetail(movement);
-                            }}
-                          >
-                            <FileEdit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  movements.map((movement) => {
+                    // Get the display number - prefer invoice_number if available
+                    const displayNumber = movement.bank_invoice?.invoice_number || 
+                                         (movement.reference ? movement.reference : movement.id.substring(0, 8));
+                    
+                    return (
+                      <TableRow key={movement.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleOpenSalesDetail(movement)}>
+                        <TableCell className="text-center">
+                          <input type="checkbox" className="rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
+                        </TableCell>
+                        <TableCell>{displayNumber}</TableCell>
+                        <TableCell>{getPaymentMethodText(movement.payment_method)}</TableCell>
+                        <TableCell>
+                          {movement.bank_invoice?.invoice_number ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                              {movement.bank_invoice.invoice_number}
+                            </Badge>
+                          ) : (
+                            '-'
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-blue-100 text-blue-800 rounded-full">
+                            {movement.bank_invoice ? 'Venda' : 'Pagamento'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center">
+                            <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                            {formatDate(movement.due_date)}
+                          </div>
+                        </TableCell>
+                        <TableCell>{formatCurrency(movement.bank_invoice?.total_amount || movement.amount)}</TableCell>
+                        <TableCell>{formatCurrency(0)}</TableCell>
+                        <TableCell>{formatCurrency(0)}</TableCell>
+                        <TableCell>{formatCurrency(movement.amount)}</TableCell>
+                        <TableCell>{getStatusBadge(movement.status)}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-1">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenSalesDetail(movement);
+                              }}
+                            >
+                              <FileEdit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8" 
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow>
                     <TableCell colSpan={12} className="text-center py-6">
