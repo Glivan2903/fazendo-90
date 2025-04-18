@@ -13,9 +13,8 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import React from "react";
 import UserProfile from "./pages/UserProfile";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
 
+// Create query client outside of component to avoid recreation
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
