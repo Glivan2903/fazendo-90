@@ -8,6 +8,8 @@ export type User = {
   status: string;
   phone?: string;
   birth_date?: string;
+  created_at?: string;
+  plan?: string;
   lastCheckInDate?: string;
   registrationDate?: string;
 };

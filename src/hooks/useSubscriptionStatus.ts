@@ -88,8 +88,11 @@ export const useSubscriptionStatus = (userId?: string) => {
         
       if (paymentsError) throw paymentsError;
       
+      // Convert subscription.status to the correct type before returning
       return {
         ...subscription,
+        // Ensure status is one of the allowed types
+        status: subscription.status as 'active' | 'expired' | 'canceled',
         payments: payments || []
       };
     },

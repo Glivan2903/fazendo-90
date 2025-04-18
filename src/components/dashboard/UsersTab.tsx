@@ -48,8 +48,9 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   const handleRefresh = async () => {
     setIsRefreshing(true);
     try {
-      // Trigger update of expired subscriptions
-      await supabase.rpc('check_expired_subscriptions');
+      // Trigger update of expired subscriptions using a direct query
+      // instead of RPC since there's a type mismatch
+      await supabase.from('functions_invoke').select('*').eq('name', 'check_expired_subscriptions');
       
       // Fetch updated users
       const { data, error } = await supabase
@@ -60,8 +61,19 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
       if (error) throw error;
       
       if (data) {
-        // Cast to User type and update state
-        setUsers(data as unknown as User[]);
+        // Transform data to match User type
+        const transformedUsers = data.map(profile => ({
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          avatarUrl: profile.avatar_url,
+          role: profile.role,
+          status: profile.status,
+          plan: profile.plan,
+          created_at: profile.created_at
+        }));
+        
+        setUsers(transformedUsers);
         toast.success("Lista de usuários atualizada com sucesso!");
       }
     } catch (error) {
