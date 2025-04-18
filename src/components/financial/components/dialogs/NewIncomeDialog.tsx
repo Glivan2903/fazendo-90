@@ -72,7 +72,7 @@ export const NewIncomeDialog = ({
                 <SelectValue placeholder="Selecione um cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Selecione um cliente</SelectItem>
+                <SelectItem value="no_client">Selecione um cliente</SelectItem>
                 {users.map(user => (
                   <SelectItem key={user.id} value={user.id}>
                     {user.name} ({user.email})

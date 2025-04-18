@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Transaction, Supplier } from '../types';
 import { format } from 'date-fns';
+import { BankInvoiceTable } from '../types/database.types';
 
 export const useCashFlow = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -21,7 +22,7 @@ export const useCashFlow = () => {
         
       if (error) throw error;
       
-      const formattedData = data.map(item => ({
+      const formattedData = (data as BankInvoiceTable[]).map(item => ({
         id: item.id,
         date: item.due_date,
         category: item.category || 'Sem categoria',

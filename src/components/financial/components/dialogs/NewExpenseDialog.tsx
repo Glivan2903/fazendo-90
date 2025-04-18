@@ -72,7 +72,7 @@ export const NewExpenseDialog = ({
                 <SelectValue placeholder="Selecione um fornecedor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Selecione um fornecedor</SelectItem>
+                <SelectItem value="no_supplier">Selecione um fornecedor</SelectItem>
                 {suppliers.map(supplier => (
                   <SelectItem key={supplier.id} value={supplier.name}>
                     {supplier.name}
