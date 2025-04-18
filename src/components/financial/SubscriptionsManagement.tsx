@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -150,7 +149,6 @@ const SubscriptionsManagement = () => {
       toast.success('Assinatura criada com sucesso!');
       setIsCreateDialogOpen(false);
       
-      // Reset form
       setNewSubscription({
         user_id: '',
         plan_id: '',
@@ -327,7 +325,7 @@ const SubscriptionsManagement = () => {
             <SelectValue placeholder="Filtrar por status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos os status</SelectItem>
+            <SelectItem value="all">Todos os status</SelectItem>
             <SelectItem value="active">Ativos</SelectItem>
             <SelectItem value="expired">Expirados</SelectItem>
             <SelectItem value="cancelled">Cancelados</SelectItem>
@@ -421,7 +419,6 @@ const SubscriptionsManagement = () => {
         </Table>
       </div>
 
-      {/* Create Subscription Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -589,7 +586,6 @@ const SubscriptionsManagement = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Edit Subscription Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
