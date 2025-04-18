@@ -21,7 +21,10 @@ const PaymentHistory = () => {
         .from('payments')
         .select(`
           *,
-          profiles (name, email)
+          profiles (
+            name,
+            email
+          )
         `)
         .order('due_date', { ascending: false });
 
