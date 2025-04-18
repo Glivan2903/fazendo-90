@@ -41,7 +41,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
   onCancel,
 }) => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [subscriptionData, setSubscriptionData] = useState({
+  const [subscriptionDates, setSubscriptionDates] = useState({
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
   });
@@ -118,7 +118,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
         const endDate = new Date();
         endDate.setDate(startDate.getDate() + (plan.days_validity || 30));
         
-        setSubscriptionData({
+        setSubscriptionDates({
           start_date: startDate.toISOString().split('T')[0],
           end_date: endDate.toISOString().split('T')[0],
         });
@@ -132,13 +132,13 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
       
       // If a new plan was selected, create a subscription
       if (selectedPlan) {
-        const { data: subscriptionData, error: subscriptionError } = await supabase
+        const { data: newSubscription, error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert([{
             user_id: profile.id,
             plan_id: selectedPlan,
-            start_date: new Date(subscriptionData.start_date).toISOString(),
-            end_date: new Date(subscriptionData.end_date).toISOString(),
+            start_date: new Date(subscriptionDates.start_date).toISOString(),
+            end_date: new Date(subscriptionDates.end_date).toISOString(),
             status: 'active'
           }])
           .select('id')
@@ -147,7 +147,7 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
         if (subscriptionError) throw subscriptionError;
         
         // Update the subscription_id in the form data
-        updatedData.subscription_id = subscriptionData.id;
+        updatedData.subscription_id = newSubscription.id;
         
         // Get plan name to update profile.plan
         const selectedPlanData = plans?.find(p => p.id === selectedPlan);
@@ -192,8 +192,8 @@ const UserProfileForm: React.FC<UserProfileFormProps> = ({
             plans={plans || []}
             isLoading={plansLoading || subscriptionLoading}
             onPlanChange={handlePlanChange}
-            subscriptionData={subscriptionData}
-            setSubscriptionData={setSubscriptionData}
+            subscriptionData={subscriptionDates}
+            setSubscriptionData={setSubscriptionDates}
           />
         )}
 
