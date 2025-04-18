@@ -1,4 +1,3 @@
-
 import React, {
   createContext,
   useState,
@@ -19,6 +18,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   isLoading: boolean;
+  hasActiveSubscription: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -31,6 +31,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -46,6 +47,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
         if (initialSession?.user) {
           await fetchUserRole(initialSession.user.id);
+          await checkSubscriptionStatus(initialSession.user.id);
         }
       } catch (error) {
         console.error("Erro ao carregar sessão:", error);
@@ -63,8 +65,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (currentSession?.user) {
         fetchUserRole(currentSession.user.id);
+        checkSubscriptionStatus(currentSession.user.id);
       } else {
         setUserRole(null);
+        setHasActiveSubscription(false);
       }
     });
   }, []);
@@ -96,6 +100,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Erro ao obter role do usuário:", error);
       setUserRole("student");
+    }
+  };
+
+  const checkSubscriptionStatus = async (userId: string) => {
+    try {
+      const { data: subscription, error } = await supabase
+        .from('subscriptions')
+        .select('status, end_date')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .gt('end_date', new Date().toISOString())
+        .maybeSingle();
+
+      if (error) {
+        console.error("Erro ao verificar assinatura:", error);
+        setHasActiveSubscription(false);
+        return;
+      }
+
+      setHasActiveSubscription(!!subscription);
+    } catch (error) {
+      console.error("Erro ao verificar assinatura:", error);
+      setHasActiveSubscription(false);
     }
   };
 
@@ -163,6 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setSession(null);
       setUserRole(null);
+      setHasActiveSubscription(false);
       navigate("/auth");
       toast.success("Logout realizado com sucesso!");
     } catch (error: any) {
@@ -178,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     userRole,
     isLoading,
+    hasActiveSubscription,
     signIn,
     signUp,
     signOut,
