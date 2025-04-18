@@ -9,6 +9,122 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      bank_invoice_items: {
+        Row: {
+          created_at: string | null
+          description: string
+          discount: number
+          id: string
+          invoice_id: string
+          item_type: string
+          period_end: string | null
+          period_start: string | null
+          quantity: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          description: string
+          discount?: number
+          id?: string
+          invoice_id: string
+          item_type?: string
+          period_end?: string | null
+          period_start?: string | null
+          quantity?: number
+          total: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string
+          discount?: number
+          id?: string
+          invoice_id?: string
+          item_type?: string
+          period_end?: string | null
+          period_start?: string | null
+          quantity?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "bank_invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_invoices: {
+        Row: {
+          buyer_name: string
+          created_at: string | null
+          discount_amount: number
+          due_date: string
+          id: string
+          invoice_number: string
+          payment_date: string | null
+          payment_method: string | null
+          sale_date: string
+          seller_name: string
+          status: string
+          total_amount: number
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          buyer_name: string
+          created_at?: string | null
+          discount_amount?: number
+          due_date: string
+          id?: string
+          invoice_number: string
+          payment_date?: string | null
+          payment_method?: string | null
+          sale_date?: string
+          seller_name?: string
+          status?: string
+          total_amount: number
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          buyer_name?: string
+          created_at?: string | null
+          discount_amount?: number
+          due_date?: string
+          id?: string
+          invoice_number?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          sale_date?: string
+          seller_name?: string
+          status?: string
+          total_amount?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_checkin_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       checkins: {
         Row: {
           checked_in_at: string | null
@@ -116,6 +232,7 @@ export type Database = {
       payments: {
         Row: {
           amount: number
+          bank_invoice_id: string | null
           created_at: string | null
           due_date: string
           id: string
@@ -130,6 +247,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          bank_invoice_id?: string | null
           created_at?: string | null
           due_date: string
           id?: string
@@ -144,6 +262,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          bank_invoice_id?: string | null
           created_at?: string | null
           due_date?: string
           id?: string
@@ -157,6 +276,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "payments_bank_invoice_id_fkey"
+            columns: ["bank_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "bank_invoices"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_subscription_id_fkey"
             columns: ["subscription_id"]
@@ -382,6 +508,10 @@ export type Database = {
       }
     }
     Functions: {
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_daily_checkins: {
         Args: { start_date: string; end_date: string }
         Returns: {

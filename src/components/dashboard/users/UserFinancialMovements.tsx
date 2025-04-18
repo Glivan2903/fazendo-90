@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -20,11 +19,18 @@ interface PaymentMovement {
   status: string;
   payment_method: string | null;
   reference: string | null;
-  description?: string;
-  observation?: string;
-  valor_bruto?: number;
-  valor_taxa?: number;
-  valor_liquido?: number;
+  bank_invoice_id: string | null;
+  bank_invoice?: {
+    invoice_number: string;
+    buyer_name: string;
+    total_amount: number;
+    bank_invoice_items: Array<{
+      description: string;
+      quantity: number;
+      unit_price: number;
+      total: number;
+    }>;
+  };
 }
 
 interface UserFinancialMovementsProps {
@@ -48,21 +54,26 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
       setLoading(true);
       const { data, error } = await supabase
         .from('payments')
-        .select('*')
+        .select(`
+          *,
+          bank_invoice:bank_invoices (
+            invoice_number,
+            buyer_name,
+            total_amount,
+            bank_invoice_items (
+              description,
+              quantity,
+              unit_price,
+              total
+            )
+          )
+        `)
         .eq('user_id', userId)
         .order('due_date', { ascending: false });
 
       if (error) throw error;
       
-      const transformedData = data?.map(payment => ({
-        ...payment,
-        valor_bruto: payment.amount,
-        valor_taxa: 0,
-        valor_liquido: payment.amount,
-        description: payment.reference || `Pagamento ${payment.id.substring(0, 8)}`
-      }));
-      
-      setMovements(transformedData || []);
+      setMovements(data || []);
     } catch (error) {
       console.error('Error fetching financial movements:', error);
       toast.error('Erro ao carregar movimentações financeiras');
@@ -159,20 +170,20 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
               <TableBody>
                 {movements.length > 0 ? (
                   movements.map((movement) => (
-                    <TableRow key={movement.id}>
+                    <TableRow key={movement.id} className="cursor-pointer hover:bg-gray-50" onClick={() => handleOpenSalesDetail(movement)}>
                       <TableCell className="text-center">
-                        <input type="checkbox" className="rounded border-gray-300" />
+                        <input type="checkbox" className="rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
                       </TableCell>
-                      <TableCell>{movement.id.substring(0, 8)}</TableCell>
+                      <TableCell>{movement.bank_invoice?.invoice_number || movement.id.substring(0, 8)}</TableCell>
                       <TableCell>{movement.payment_method || 'Dinheiro'}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                          {movement.reference || '1234'}
+                          {movement.bank_invoice?.invoice_number || '-'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge className="bg-blue-100 text-blue-800 rounded-full">
-                          Vendas
+                          {movement.bank_invoice ? 'Venda' : 'Pagamento'}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -181,10 +192,10 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
                           {formatDate(movement.due_date)}
                         </div>
                       </TableCell>
-                      <TableCell>{formatCurrency(movement.valor_bruto || 0)}</TableCell>
-                      <TableCell>{formatCurrency(movement.valor_taxa || 0)}</TableCell>
+                      <TableCell>{formatCurrency(movement.bank_invoice?.total_amount || movement.amount)}</TableCell>
                       <TableCell>{formatCurrency(0)}</TableCell>
-                      <TableCell>{formatCurrency(movement.valor_liquido || 0)}</TableCell>
+                      <TableCell>{formatCurrency(0)}</TableCell>
+                      <TableCell>{formatCurrency(movement.amount)}</TableCell>
                       <TableCell>{getStatusBadge(movement.status)}</TableCell>
                       <TableCell>
                         <div className="flex space-x-1">
@@ -192,11 +203,14 @@ const UserFinancialMovements: React.FC<UserFinancialMovementsProps> = ({ userId 
                             variant="ghost" 
                             size="icon" 
                             className="h-8 w-8"
-                            onClick={() => handleOpenSalesDetail(movement)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenSalesDetail(movement);
+                            }}
                           >
                             <FileEdit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
                             <Eye className="h-4 w-4" />
                           </Button>
                         </div>
