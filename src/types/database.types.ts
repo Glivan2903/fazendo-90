@@ -46,6 +46,8 @@ export type Tables = {
     phone?: string;
     birth_date?: string;
     created_at?: string;
+    plan?: string;
+    subscription_id?: string;
   };
 
   programs: {
@@ -73,6 +75,61 @@ export type Tables = {
       start_time: string;
       end_time: string;
       program_id: string;
+    };
+  };
+
+  plans: {
+    id: string;
+    name: string;
+    description?: string;
+    amount: number;
+    periodicity: string;
+    active?: boolean;
+    created_at?: string;
+    updated_at?: string;
+  };
+
+  subscriptions: {
+    id: string;
+    user_id: string;
+    plan_id?: string;
+    start_date: string;
+    end_date: string;
+    status: string;
+    created_at?: string;
+    updated_at?: string;
+    plans?: {
+      id: string;
+      name: string;
+      periodicity: string;
+    };
+  };
+
+  payments: {
+    id: string;
+    user_id: string;
+    subscription_id?: string;
+    amount: number;
+    status: string;
+    payment_date?: string;
+    due_date: string;
+    payment_method?: string;
+    reference?: string;
+    notes?: string;
+    created_at?: string;
+    updated_at?: string;
+    profiles?: {
+      name: string;
+      email: string;
+      plan?: string;
+    };
+    subscriptions?: {
+      start_date: string;
+      end_date: string;
+      plans?: {
+        name: string;
+        periodicity: string;
+      };
     };
   };
 };
