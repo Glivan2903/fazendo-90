@@ -21,7 +21,7 @@ const PaymentHistory = () => {
         .from('payments')
         .select(`
           *,
-          profiles: user_id (name, email)
+          profiles (name, email)
         `)
         .order('due_date', { ascending: false });
 
@@ -51,7 +51,7 @@ const PaymentHistory = () => {
         <TableBody>
           {payments?.map((payment) => (
             <TableRow key={payment.id}>
-              <TableCell>{payment.profiles?.name}</TableCell>
+              <TableCell>{payment.profiles?.name || 'N/A'}</TableCell>
               <TableCell>R$ {payment.amount.toFixed(2)}</TableCell>
               <TableCell>
                 {format(new Date(payment.due_date), 'dd/MM/yyyy', { locale: ptBR })}
