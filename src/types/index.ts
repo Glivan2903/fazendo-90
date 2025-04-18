@@ -67,3 +67,22 @@ export type Attendee = {
 
 export type PaymentStatus = 'paid' | 'pending' | 'overdue' | 'canceled';
 export type SubscriptionStatus = 'active' | 'expired' | 'canceled';
+
+export type UserCheckin = {
+  id: string;
+  date: string;
+  class_name: string;
+  coach_name: string;
+  checked_in_at: string;
+  status: string;
+};
+
+export type FinancialMovement = {
+  id: string;
+  type: string;
+  amount: number;
+  description: string;
+  date: string;
+  status: PaymentStatus;
+  reference?: string;
+};
