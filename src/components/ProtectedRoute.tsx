@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles }) => {
-  const { user, userRole, isLoading, hasActiveSubscription } = useAuth();
+  const { user, userRole, isLoading } = useAuth();
   const location = useLocation();
   
   useEffect(() => {
@@ -22,14 +22,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
       userRole,
       isLoading,
       allowedRoles,
-      hasActiveSubscription,
       path: location.pathname
     });
     
     if (user && !userRole && !isLoading) {
       console.warn("Usuário autenticado mas sem papel definido!");
     }
-  }, [user, userRole, isLoading, allowedRoles, hasActiveSubscription, location]);
+  }, [user, userRole, isLoading, allowedRoles, location]);
 
   if (isLoading) {
     return (
@@ -46,15 +45,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRoles 
 
   // Special case for admin email
   if (user.email === "matheusprograming@gmail.com") {
-    console.log("Admin email detected, bypassing role and subscription check");
+    console.log("Admin email detected, bypassing role check");
     return <>{children}</>;
-  }
-
-  // Check for active subscription
-  if (!hasActiveSubscription && location.pathname !== "/auth") {
-    console.log("Usuário sem assinatura ativa, redirecionando para /auth");
-    toast.error("Sua assinatura não está ativa. Por favor, entre em contato com o administrador para regularizar seu pagamento.");
-    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // Verificação de permissão com base no role do usuário
