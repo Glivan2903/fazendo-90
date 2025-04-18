@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Home, LogOut, CheckCircle } from 'lucide-react';
+import { Bell, Home, LogOut, CheckCircle, User, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -119,26 +118,36 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={() => navigate(userRole === 'admin' ? '/teacher-dashboard' : '/check-in')}
+            onClick={() => navigate('/check-in')}
           >
             <Home className="mr-2 h-5 w-5" />
-            {userRole === 'admin' ? 'Dashboard' : 'Check-in'}
+            Check-in
           </Button>
 
           {userRole === 'admin' && (
-            <Button
-              variant="ghost"
-              className="w-full justify-start relative"
-              onClick={() => navigate('/teacher-dashboard')}
-            >
-              <Bell className="mr-2 h-5 w-5" />
-              Notificações
-              {totalNotifications > 0 && (
-                <Badge variant="destructive" className="absolute right-2">
-                  {totalNotifications}
-                </Badge>
-              )}
-            </Button>
+            <>
+              <Button
+                variant="ghost"
+                className="w-full justify-start relative"
+                onClick={() => navigate('/teacher-dashboard')}
+              >
+                <Bell className="mr-2 h-5 w-5" />
+                Notificações
+                {totalNotifications > 0 && (
+                  <Badge variant="destructive" className="absolute right-2">
+                    {totalNotifications}
+                  </Badge>
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => navigate('/teacher-dashboard')}
+              >
+                <CheckCircle className="mr-2 h-5 w-5" />
+                Dashboard
+              </Button>
+            </>
           )}
 
           <Button
@@ -146,7 +155,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
             className="w-full justify-start"
             onClick={() => navigate(`/profile/${user?.id}`)}
           >
-            <CheckCircle className="mr-2 h-5 w-5" />
+            <User className="mr-2 h-5 w-5" />
             Meu Perfil
           </Button>
         </div>
@@ -174,7 +183,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
       <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
         <SheetTrigger asChild>
           <Button variant="ghost" className="md:hidden fixed top-4 left-4 z-50">
-            <Home className="h-5 w-5" />
+            <Menu className="h-5 w-5" />
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="w-64 p-0">
