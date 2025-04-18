@@ -335,7 +335,10 @@ const ProgramsTab = () => {
                       <TableCell>R$ {plan.amount?.toFixed(2)}</TableCell>
                       <TableCell>{plan.days_validity} dias</TableCell>
                       <TableCell>
-                        <Badge variant={plan.active ? "success" : "secondary"}>
+                        <Badge 
+                          variant={plan.active ? "secondary" : "outline"}
+                          className={plan.active ? "bg-green-100 text-green-800" : ""}
+                        >
                           {plan.active ? "Ativo" : "Inativo"}
                         </Badge>
                       </TableCell>
