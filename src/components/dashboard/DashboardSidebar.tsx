@@ -1,8 +1,8 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar, BarChart2, Users, LogOut, ClipboardCheck } from "lucide-react";
+import { Calendar, BarChart2, Users, LogOut, ClipboardCheck, Wallet } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardSidebarProps {
   activeTab: string;
@@ -15,6 +15,9 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
   setActiveTab,
   signOut,
 }) => {
+  const { userRole } = useAuth();
+  const isAdmin = userRole === "admin";
+
   return (
     <div className="space-y-4 py-4">
       <div className="px-3 py-2">
@@ -52,6 +55,16 @@ const DashboardSidebar: React.FC<DashboardSidebarProps> = ({
             <ClipboardCheck className="mr-2 h-4 w-4" />
             Controle de Presença
           </Button>
+          {isAdmin && (
+            <Button
+              variant={activeTab === "financial" ? "secondary" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("financial")}
+            >
+              <Wallet className="mr-2 h-4 w-4" />
+              Financeiro
+            </Button>
+          )}
           <Button
             variant="ghost"
             className="w-full justify-start text-red-500 hover:text-red-600"
