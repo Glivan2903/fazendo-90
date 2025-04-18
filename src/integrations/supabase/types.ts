@@ -61,10 +61,13 @@ export type Database = {
       }
       bank_invoices: {
         Row: {
+          bank_account: string | null
           buyer_name: string
+          category: string | null
           created_at: string | null
           discount_amount: number
           due_date: string
+          fornecedor: string | null
           id: string
           invoice_number: string
           payment_date: string | null
@@ -73,14 +76,18 @@ export type Database = {
           seller_name: string
           status: string
           total_amount: number
+          transaction_type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          bank_account?: string | null
           buyer_name: string
+          category?: string | null
           created_at?: string | null
           discount_amount?: number
           due_date: string
+          fornecedor?: string | null
           id?: string
           invoice_number: string
           payment_date?: string | null
@@ -89,14 +96,18 @@ export type Database = {
           seller_name?: string
           status?: string
           total_amount: number
+          transaction_type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          bank_account?: string | null
           buyer_name?: string
+          category?: string | null
           created_at?: string | null
           discount_amount?: number
           due_date?: string
+          fornecedor?: string | null
           id?: string
           invoice_number?: string
           payment_date?: string | null
@@ -105,6 +116,7 @@ export type Database = {
           seller_name?: string
           status?: string
           total_amount?: number
+          transaction_type?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -492,6 +504,36 @@ export type Database = {
             referencedColumns: ["user_id"]
           },
         ]
+      }
+      suppliers: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
       }
     }
     Views: {

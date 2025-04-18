@@ -1,4 +1,3 @@
-
 export interface Transaction {
   id: string;
   date: string;
@@ -62,4 +61,5 @@ export interface NewExpenseDialogProps {
   suppliers: Supplier[];
   calendarOpen: boolean;
   setCalendarOpen: (open: boolean) => void;
+  fetchSuppliers: () => void;
 }

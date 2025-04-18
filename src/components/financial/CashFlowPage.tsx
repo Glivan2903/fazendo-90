@@ -214,7 +214,8 @@ const CashFlowPage = () => {
         payment_method: formValues.payment_method,
         category: formValues.category,
         fornecedor: formValues.fornecedor,
-        bank_account: formValues.bank_account
+        bank_account: formValues.bank_account,
+        transaction_type: currentTransaction.transaction_type
       };
       
       const { error } = await supabase
@@ -234,6 +235,22 @@ const CashFlowPage = () => {
     }
   };
 
+  const handleEdit = (transaction: Transaction) => {
+    setCurrentTransaction(transaction);
+    setFormValues({
+      date: new Date(transaction.date),
+      category: transaction.category || "",
+      description: transaction.description || "",
+      amount: transaction.amount.toString(),
+      status: transaction.status,
+      payment_method: transaction.payment_method || "",
+      fornecedor: transaction.fornecedor || "",
+      user_id: "",
+      bank_account: transaction.bank_account || "Nubank"
+    });
+    setShowEditDialog(true);
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase
@@ -250,22 +267,6 @@ const CashFlowPage = () => {
       console.error('Error deleting transaction:', error);
       toast.error('Erro ao excluir transação');
     }
-  };
-
-  const handleEdit = (transaction: Transaction) => {
-    setCurrentTransaction(transaction);
-    setFormValues({
-      date: new Date(transaction.date),
-      category: transaction.category || "",
-      description: transaction.description || "",
-      amount: transaction.amount.toString(),
-      status: transaction.status,
-      payment_method: transaction.payment_method || "",
-      fornecedor: transaction.fornecedor || "",
-      user_id: "",
-      bank_account: transaction.bank_account || "Nubank"
-    });
-    setShowEditDialog(true);
   };
 
   const handleDelete2 = (transaction: Transaction) => {

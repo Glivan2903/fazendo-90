@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Calendar } from 'lucide-react';
+import { Calendar, PlusCircle } from 'lucide-react';
 import { NewExpenseDialogProps } from '../../types';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -12,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { SupplierManagementDialog } from '../SupplierManagementDialog';
 
 export const NewExpenseDialog = ({
   isOpen,
@@ -23,8 +23,11 @@ export const NewExpenseDialog = ({
   handleDateChange,
   suppliers,
   calendarOpen,
-  setCalendarOpen
+  setCalendarOpen,
+  fetchSuppliers
 }: NewExpenseDialogProps) => {
+  const [showSupplierDialog, setShowSupplierDialog] = React.useState(false);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -66,7 +69,19 @@ export const NewExpenseDialog = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="fornecedor">Fornecedor</Label>
+            <div className="flex justify-between items-center">
+              <Label htmlFor="fornecedor">Fornecedor</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2"
+                onClick={() => setShowSupplierDialog(true)}
+              >
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Novo Fornecedor
+              </Button>
+            </div>
             <Select value={formValues.fornecedor} onValueChange={(value) => handleSelectChange('fornecedor', value)}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione um fornecedor" />
@@ -173,6 +188,15 @@ export const NewExpenseDialog = ({
           </DialogFooter>
         </form>
       </DialogContent>
+
+      <SupplierManagementDialog
+        isOpen={showSupplierDialog}
+        onClose={() => setShowSupplierDialog(false)}
+        onSupplierAdded={() => {
+          fetchSuppliers();
+          setShowSupplierDialog(false);
+        }}
+      />
     </Dialog>
   );
 };
