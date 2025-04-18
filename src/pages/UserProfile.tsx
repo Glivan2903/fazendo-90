@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -233,6 +234,14 @@ const UserProfile = () => {
     );
   }
 
+  // Create the user object in the format expected by UserInfo
+  const userInfoData = {
+    name: user?.name,
+    email: user?.email || '',
+    phone: user?.phone || null,
+    birth_date: user?.birth_date || null
+  };
+
   return (
     <div className="max-w-md mx-auto px-4 py-6">
       <ProfileHeader
@@ -254,12 +263,7 @@ const UserProfile = () => {
             handleSubmit={handleSubmit}
           />
         ) : (
-          <UserInfo
-            email={user?.email || 'joao.silva@exemplo.com'}
-            phone={user?.phone || '(11) 98765-4321'}
-            birthDate={user?.birth_date ? formatDate(user.birth_date) : '15/05/1990'}
-            formatDate={formatDate}
-          />
+          <UserInfo user={userInfoData} />
         )}
         
         <UserStats stats={stats} />
