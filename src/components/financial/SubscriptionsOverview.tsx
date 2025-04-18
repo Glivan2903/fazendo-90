@@ -9,67 +9,117 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { 
+  DollarSign, 
+  Users, 
+  AlertTriangle, 
+  TrendingUp 
+} from 'lucide-react';
+import { Skeleton } from "@/components/ui/skeleton";
 
 const SubscriptionsOverview = () => {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['subscription-stats'],
     queryFn: async () => {
-      // Get active subscriptions
-      const { data: activeSubscriptions, error: activeError } = await supabase
+      // Get active subscriptions count
+      const { count: activeCount } = await supabase
         .from('subscriptions')
-        .select('status')
+        .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
 
-      // Get overdue subscriptions
-      const { data: overdueSubscriptions, error: overdueError } = await supabase
-        .from('subscriptions')
-        .select('status')
+      // Get total revenue from active subscriptions
+      const { data: revenue } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('status', 'paid')
+        .gte('payment_date', new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString());
+
+      // Get overdue payments count
+      const { count: overdueCount } = await supabase
+        .from('payments')
+        .select('*', { count: 'exact', head: true })
         .eq('status', 'overdue');
 
-      if (activeError || overdueError) throw activeError || overdueError;
+      // Calculate monthly growth
+      const { data: lastMonthPayments } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('status', 'paid')
+        .gte('payment_date', new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString())
+        .lt('payment_date', new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString());
+
+      const currentMonthTotal = revenue?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+      const lastMonthTotal = lastMonthPayments?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+      const growth = lastMonthTotal ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
 
       return {
-        active: activeSubscriptions?.length || 0,
-        overdue: overdueSubscriptions?.length || 0,
+        activeSubscriptions: activeCount || 0,
+        monthlyRevenue: currentMonthTotal,
+        overduePayments: overdueCount || 0,
+        monthlyGrowth: growth
       };
     },
   });
 
   if (isLoading) {
-    return <div>Carregando estatísticas...</div>;
+    return (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {[1, 2, 3, 4].map((i) => (
+          <Skeleton key={i} className="h-32" />
+        ))}
+      </div>
+    );
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
-        <CardHeader>
-          <CardTitle>Assinaturas Ativas</CardTitle>
-          <CardDescription>Total de alunos ativos</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Assinaturas Ativas</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold">{stats?.active}</p>
+          <div className="text-2xl font-bold">{stats?.activeSubscriptions}</div>
+          <p className="text-xs text-muted-foreground">alunos ativos</p>
         </CardContent>
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Pagamentos Atrasados</CardTitle>
-          <CardDescription>Alunos com pagamento pendente</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Receita Mensal</CardTitle>
+          <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <p className="text-3xl font-bold text-red-500">{stats?.overdue}</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Total de Receita</CardTitle>
-          <CardDescription>Valor mensal recorrente</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-bold text-green-500">
-            R$ {((stats?.active || 0) * 100).toFixed(2)}
+          <div className="text-2xl font-bold">
+            R$ {stats?.monthlyRevenue.toFixed(2)}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}% em relação ao mês anterior
           </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Pagamentos Atrasados</CardTitle>
+          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{stats?.overduePayments}</div>
+          <p className="text-xs text-muted-foreground">pagamentos pendentes</p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Crescimento Mensal</CardTitle>
+          <TrendingUp className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">
+            {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}%
+          </div>
+          <p className="text-xs text-muted-foreground">em relação ao mês anterior</p>
         </CardContent>
       </Card>
     </div>

@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/table";
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PaymentHistory = () => {
   const { data: payments, isLoading } = useQuery({
@@ -24,6 +26,14 @@ const PaymentHistory = () => {
           profiles (
             name,
             email
+          ),
+          subscriptions (
+            start_date,
+            end_date,
+            plans (
+              name,
+              periodicity
+            )
           )
         `)
         .order('due_date', { ascending: false });
@@ -33,8 +43,28 @@ const PaymentHistory = () => {
     },
   });
 
+  const getStatusBadgeStyle = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-red-100 text-red-800';
+    }
+  };
+
   if (isLoading) {
-    return <div>Carregando histórico de pagamentos...</div>;
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Histórico de Pagamentos</h2>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -45,38 +75,36 @@ const PaymentHistory = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Aluno</TableHead>
+            <TableHead>Plano</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Vencimento</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Método</TableHead>
+            <TableHead>Período</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {payments?.map((payment) => (
             <TableRow key={payment.id}>
               <TableCell>{payment.profiles?.name || 'N/A'}</TableCell>
+              <TableCell>{payment.subscriptions?.plans?.name || 'Plano não encontrado'}</TableCell>
               <TableCell>R$ {payment.amount.toFixed(2)}</TableCell>
               <TableCell>
                 {format(new Date(payment.due_date), 'dd/MM/yyyy', { locale: ptBR })}
               </TableCell>
               <TableCell>
-                <span
-                  className={`px-2 py-1 rounded-full text-sm ${
-                    payment.status === 'paid'
-                      ? 'bg-green-100 text-green-800'
-                      : payment.status === 'pending'
-                      ? 'bg-yellow-100 text-yellow-800'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
+                <Badge variant="outline" className={getStatusBadgeStyle(payment.status)}>
                   {payment.status === 'paid'
                     ? 'Pago'
                     : payment.status === 'pending'
                     ? 'Pendente'
                     : 'Atrasado'}
-                </span>
+                </Badge>
               </TableCell>
               <TableCell>{payment.payment_method || '-'}</TableCell>
+              <TableCell>
+                {payment.subscriptions?.plans?.periodicity || '-'}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

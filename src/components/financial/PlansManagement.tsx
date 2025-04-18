@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/table";
 import { toast } from 'sonner';
 import NewPlanDialog from './NewPlanDialog';
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PlansManagement = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -22,11 +24,19 @@ const PlansManagement = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('plans')
-        .select('*')
+        .select(`
+          *,
+          subscriptions (
+            id
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data.map(plan => ({
+        ...plan,
+        subscribersCount: plan.subscriptions?.length || 0
+      }));
     },
   });
 
@@ -46,7 +56,19 @@ const PlansManagement = () => {
   };
 
   if (isLoading) {
-    return <div>Carregando planos...</div>;
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-xl font-semibold">Gerenciar Planos</h2>
+          <Button disabled>Novo Plano</Button>
+        </div>
+        <div className="space-y-2">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-12 w-full" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -63,6 +85,7 @@ const PlansManagement = () => {
             <TableHead>Descrição</TableHead>
             <TableHead>Valor</TableHead>
             <TableHead>Periodicidade</TableHead>
+            <TableHead>Assinantes</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Ações</TableHead>
           </TableRow>
@@ -71,10 +94,15 @@ const PlansManagement = () => {
           {plans?.map((plan) => (
             <TableRow key={plan.id}>
               <TableCell>{plan.name}</TableCell>
-              <TableCell>{plan.description}</TableCell>
+              <TableCell>{plan.description || '-'}</TableCell>
               <TableCell>R$ {plan.amount.toFixed(2)}</TableCell>
               <TableCell>{plan.periodicity}</TableCell>
-              <TableCell>{plan.active ? 'Ativo' : 'Inativo'}</TableCell>
+              <TableCell>{plan.subscribersCount}</TableCell>
+              <TableCell>
+                <Badge variant="outline" className={plan.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                  {plan.active ? 'Ativo' : 'Inativo'}
+                </Badge>
+              </TableCell>
               <TableCell>
                 <Button
                   variant="outline"
