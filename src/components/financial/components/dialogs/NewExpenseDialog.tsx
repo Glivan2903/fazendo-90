@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -87,7 +88,7 @@ export const NewExpenseDialog = ({
                 <SelectValue placeholder="Selecione um fornecedor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="no_supplier">Selecione um fornecedor</SelectItem>
+                <SelectItem value="">Selecione um fornecedor</SelectItem>
                 {suppliers.map(supplier => (
                   <SelectItem key={supplier.id} value={supplier.name}>
                     {supplier.name}
@@ -189,14 +190,16 @@ export const NewExpenseDialog = ({
         </form>
       </DialogContent>
 
-      <SupplierManagementDialog
-        isOpen={showSupplierDialog}
-        onClose={() => setShowSupplierDialog(false)}
-        onSupplierAdded={() => {
-          fetchSuppliers();
-          setShowSupplierDialog(false);
-        }}
-      />
+      {isOpen && showSupplierDialog && (
+        <SupplierManagementDialog
+          isOpen={showSupplierDialog}
+          onClose={() => setShowSupplierDialog(false)}
+          onSupplierAdded={() => {
+            fetchSuppliers();
+            setShowSupplierDialog(false);
+          }}
+        />
+      )}
     </Dialog>
   );
 };
