@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -58,16 +58,17 @@ interface Plan {
   allows_suspension: boolean;
   suspension_days: number | null;
   active: boolean;
+  created_at: string;
 }
 
-interface NewPlanDialogProps {
+interface EditPlanDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  plan: Plan;
   onSuccess?: () => void;
-  plan?: Plan | null;
 }
 
-const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange, onSuccess, plan = null }) => {
+const EditPlanDialog: React.FC<EditPlanDialogProps> = ({ open, onOpenChange, plan, onSuccess }) => {
   const queryClient = useQueryClient();
   const [showLimitOptions, setShowLimitOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,7 +91,27 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange, onSuc
     },
   });
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (plan && open) {
+      form.reset({
+        name: plan.name,
+        description: plan.description || '',
+        amount: plan.amount.toString(),
+        enrollment_fee: plan.enrollment_fee.toString(),
+        periodicity: plan.periodicity as any,
+        days_validity: plan.days_validity.toString(),
+        check_in_limit_type: plan.check_in_limit_type as any,
+        check_in_limit_qty: plan.check_in_limit_qty?.toString() || '',
+        single_checkin_per_day: plan.single_checkin_per_day,
+        auto_renewal: plan.auto_renewal,
+        allows_suspension: plan.allows_suspension,
+        suspension_days: plan.suspension_days?.toString() || '',
+      });
+      setShowLimitOptions(plan.check_in_limit_type !== 'Ilimitado');
+    }
+  }, [plan, form, open]);
+
+  useEffect(() => {
     const limitType = form.watch('check_in_limit_type');
     setShowLimitOptions(limitType !== 'Ilimitado');
   }, [form.watch('check_in_limit_type')]);
@@ -99,7 +120,7 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange, onSuc
     try {
       setIsSubmitting(true);
       
-      // Prepare data for insert
+      // Prepare data for update
       const planData = {
         name: values.name,
         description: values.description || null,
@@ -113,32 +134,31 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange, onSuc
         auto_renewal: values.auto_renewal,
         allows_suspension: values.allows_suspension,
         suspension_days: values.suspension_days ? parseInt(values.suspension_days) : null,
-        active: true, // Ensure new plans are active by default
       };
       
-      console.log("Submitting plan data:", planData);
+      console.log("Updating plan data:", planData);
       
       const { data, error } = await supabase
         .from('plans')
-        .insert([planData])
+        .update(planData)
+        .eq('id', plan.id)
         .select();
 
       if (error) {
-        console.error("Error inserting plan:", error);
+        console.error("Error updating plan:", error);
         throw error;
       }
 
-      console.log("Plan created successfully:", data);
-      toast.success('Plano criado com sucesso!');
+      console.log("Plan updated successfully:", data);
+      toast.success('Plano atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['plans'] });
       if (onSuccess) {
         onSuccess();
       }
-      form.reset();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Erro ao criar plano:', error);
-      toast.error(`Erro ao criar plano: ${error.message || 'Erro desconhecido'}`);
+      console.error('Erro ao atualizar plano:', error);
+      toast.error(`Erro ao atualizar plano: ${error.message || 'Erro desconhecido'}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -148,7 +168,7 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange, onSuc
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>Novo Plano</DialogTitle>
+          <DialogTitle>Editar Plano</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -394,9 +414,9 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange, onSuc
 
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
-                <>Criando Plano...</>
+                <>Atualizando Plano...</>
               ) : (
-                <>Criar Plano</>
+                <>Atualizar Plano</>
               )}
             </Button>
           </form>
@@ -406,4 +426,4 @@ const NewPlanDialog: React.FC<NewPlanDialogProps> = ({ open, onOpenChange, onSuc
   );
 };
 
-export default NewPlanDialog;
+export default EditPlanDialog;
