@@ -1,44 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { 
-  PlusCircle, Search, FileText, ArrowDown, ArrowUp, 
-  Calendar, Edit2, Trash2, Filter, Download, ArrowUpDown
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { format, isValid } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { supabase } from "@/integrations/supabase/client";
+import { PlusCircle, FileText, ArrowDown, ArrowUp, Filter, Download, ArrowUpDown } from 'lucide-react';
 import { toast } from "sonner";
+import { useCashFlow } from './hooks/useCashFlow';
+import { TransactionTable } from './components/TransactionTable';
+import { SummaryCards } from './components/SummaryCards';
+import { TransactionFilters } from './components/TransactionFilters';
+import { NewIncomeDialog } from './components/dialogs/NewIncomeDialog';
+import { NewExpenseDialog } from './components/dialogs/NewExpenseDialog';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
-
-interface Transaction {
-  id: string;
-  date: string;
-  category: string;
-  description: string;
-  amount: number;
-  status: string;
-  payment_method: string;
-  fornecedor?: string;
-  bank_account?: string;
-  transaction_type: 'income' | 'expense';
-}
+import { format, isValid } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Edit2, Trash2, Calendar } from "lucide-react";
+import { Transaction } from './types';
+import { supabase } from "@/integrations/supabase/client";
 
 const CashFlowPage = () => {
   const [activeTab, setActiveTab] = useState("extract");
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>([]);
-  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -47,9 +34,19 @@ const CashFlowPage = () => {
   const [showNewExpenseDialog, setShowNewExpenseDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
-  const [suppliers, setSuppliers] = useState<{id: string, name: string}[]>([]);
-  const [users, setUsers] = useState<{id: string, name: string, email: string}[]>([]);
+  const [currentTransaction, setCurrentTransaction: any] = useState(null);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  
+  const {
+    transactions,
+    filteredTransactions,
+    setFilteredTransactions,
+    loading,
+    suppliers,
+    users,
+    fetchTransactions,
+    setTransactions
+  } = useCashFlow();
 
   const [formValues, setFormValues] = useState({
     date: new Date(),
@@ -62,14 +59,6 @@ const CashFlowPage = () => {
     user_id: "",
     bank_account: "Nubank"
   });
-
-  const [calendarOpen, setCalendarOpen] = useState(false);
-
-  useEffect(() => {
-    fetchTransactions();
-    fetchSuppliers();
-    fetchUsers();
-  }, []);
 
   useEffect(() => {
     let filtered = [...transactions];
@@ -117,119 +106,6 @@ const CashFlowPage = () => {
     
     setFilteredTransactions(filtered);
   }, [transactions, searchTerm, statusFilter, categoryFilter, dateFilter, activeTab]);
-
-  const fetchTransactions = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('bank_invoices')
-        .select('*')
-        .order('due_date', { ascending: false });
-        
-      if (error) throw error;
-      
-      const formattedData = data.map(item => ({
-        id: item.id,
-        date: item.due_date,
-        category: item.category || 'Sem categoria',
-        description: item.buyer_name || 'Sem descrição',
-        amount: item.total_amount,
-        status: item.status,
-        payment_method: item.payment_method || 'Não definido',
-        fornecedor: item.fornecedor || null,
-        bank_account: item.bank_account || 'Conta Principal',
-        transaction_type: item.transaction_type || 'income'
-      }));
-      
-      setTransactions(formattedData);
-    } catch (error) {
-      console.error('Error fetching transactions:', error);
-      toast.error('Não foi possível carregar as transações');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSuppliers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('suppliers')
-        .select('id, name')
-        .order('name');
-        
-      if (error) {
-        console.error('Error fetching suppliers:', error);
-        setSuppliers([
-          { id: '1', name: 'Imobiliária' },
-          { id: '2', name: 'Serviços de Limpeza' },
-          { id: '3', name: 'Fornecedor de Equipamentos' }
-        ]);
-        return;
-      }
-      
-      setSuppliers(data || []);
-    } catch (error) {
-      console.error('Error fetching suppliers:', error);
-      setSuppliers([
-        { id: '1', name: 'Imobiliária' },
-        { id: '2', name: 'Serviços de Limpeza' },
-        { id: '3', name: 'Fornecedor de Equipamentos' }
-      ]);
-    }
-  };
-  
-  const fetchUsers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, email')
-        .order('name');
-        
-      if (error) throw error;
-      setUsers(data || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('bank_invoices')
-        .delete()
-        .eq('id', id);
-        
-      if (error) throw error;
-      
-      toast.success('Transação excluída com sucesso');
-      fetchTransactions();
-      setShowDeleteDialog(false);
-    } catch (error) {
-      console.error('Error deleting transaction:', error);
-      toast.error('Erro ao excluir transação');
-    }
-  };
-
-  const handleEdit = (transaction: Transaction) => {
-    setCurrentTransaction(transaction);
-    setFormValues({
-      date: new Date(transaction.date),
-      category: transaction.category || "",
-      description: transaction.description || "",
-      amount: transaction.amount.toString(),
-      status: transaction.status,
-      payment_method: transaction.payment_method || "",
-      fornecedor: transaction.fornecedor || "",
-      user_id: "",
-      bank_account: transaction.bank_account || "Nubank"
-    });
-    setShowEditDialog(true);
-  };
-
-  const handleDelete2 = (transaction: Transaction) => {
-    setCurrentTransaction(transaction);
-    setShowDeleteDialog(true);
-  };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -357,11 +233,62 @@ const CashFlowPage = () => {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('bank_invoices')
+        .delete()
+        .eq('id', id);
+        
+      if (error) throw error;
+      
+      toast.success('Transação excluída com sucesso');
+      fetchTransactions();
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast.error('Erro ao excluir transação');
+    }
+  };
+
+  const handleEdit = (transaction: Transaction) => {
+    setCurrentTransaction(transaction);
+    setFormValues({
+      date: new Date(transaction.date),
+      category: transaction.category || "",
+      description: transaction.description || "",
+      amount: transaction.amount.toString(),
+      status: transaction.status,
+      payment_method: transaction.payment_method || "",
+      fornecedor: transaction.fornecedor || "",
+      user_id: "",
+      bank_account: transaction.bank_account || "Nubank"
+    });
+    setShowEditDialog(true);
+  };
+
+  const handleDelete2 = (transaction: Transaction) => {
+    setCurrentTransaction(transaction);
+    setShowDeleteDialog(true);
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
     }).format(value);
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isValid(date)) {
+        return format(date, 'dd/MM/yyyy', { locale: ptBR });
+      }
+      return 'Data inválida';
+    } catch (error) {
+      return 'Data inválida';
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -399,18 +326,6 @@ const CashFlowPage = () => {
 
   const calculateBalance = () => {
     return calculateIncomeTotal() - calculateExpenseTotal();
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isValid(date)) {
-        return format(date, 'dd/MM/yyyy', { locale: ptBR });
-      }
-      return 'Data inválida';
-    } catch (error) {
-      return 'Data inválida';
-    }
   };
 
   const renderTable = () => (
@@ -950,232 +865,3 @@ const CashFlowPage = () => {
                     <SelectItem value="Serviços">Serviços</SelectItem>
                     <SelectItem value="Impostos">Impostos</SelectItem>
                     <SelectItem value="Outros">Outros</SelectItem>
-                  </>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="edit_amount">Valor (R$)</Label>
-            <Input
-              id="edit_amount"
-              name="amount"
-              type="number"
-              step="0.01"
-              value={formValues.amount}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="edit_status">Status</Label>
-            <Select value={formValues.status} onValueChange={(value) => handleSelectChange('status', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="paid">Pago</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
-                {currentTransaction?.transaction_type === 'income' && (
-                  <SelectItem value="overdue">Atrasado</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="edit_payment_method">Forma de pagamento</Label>
-            <Select value={formValues.payment_method} onValueChange={(value) => handleSelectChange('payment_method', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a forma de pagamento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pix">PIX</SelectItem>
-                <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                <SelectItem value="cash">Dinheiro</SelectItem>
-                <SelectItem value="bank_transfer">Transferência Bancária</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="edit_bank_account">Conta</Label>
-            <Select value={formValues.bank_account} onValueChange={(value) => handleSelectChange('bank_account', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione a conta" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Nubank">Nubank</SelectItem>
-                <SelectItem value="Bradesco">Bradesco</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowEditDialog(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit">Salvar</Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-
-  const renderDeleteDialog = () => (
-    <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Excluir Transação</DialogTitle>
-        </DialogHeader>
-        
-        <div className="py-4">
-          <p>Tem certeza que deseja excluir esta transação? Esta ação não poderá ser desfeita.</p>
-          
-          {currentTransaction && (
-            <div className="mt-4 bg-gray-50 p-4 rounded-md">
-              <div><strong>Descrição:</strong> {currentTransaction.description}</div>
-              <div><strong>Data:</strong> {formatDate(currentTransaction.date)}</div>
-              <div><strong>Valor:</strong> {formatCurrency(currentTransaction.amount)}</div>
-            </div>
-          )}
-        </div>
-        
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
-            Cancelar
-          </Button>
-          <Button 
-            variant="destructive" 
-            onClick={() => currentTransaction && handleDelete(currentTransaction.id)}
-          >
-            Excluir
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-
-  return (
-    <div className="space-y-4">
-      <Tabs defaultValue="extract" value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex justify-between items-center mb-4">
-          <TabsList>
-            <TabsTrigger value="extract" className="flex items-center">
-              <FileText className="w-4 h-4 mr-2" />
-              <span>Extrato</span>
-            </TabsTrigger>
-            <TabsTrigger value="income" className="flex items-center">
-              <ArrowUp className="w-4 h-4 mr-2" />
-              <span>Entradas</span>
-            </TabsTrigger>
-            <TabsTrigger value="expenses" className="flex items-center">
-              <ArrowDown className="w-4 h-4 mr-2" />
-              <span>Saídas</span>
-            </TabsTrigger>
-            <TabsTrigger value="cashflow" className="flex items-center">
-              <ArrowUpDown className="w-4 h-4 mr-2" />
-              <span>Fluxo de Caixa</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <div className="flex space-x-2">
-            {activeTab === 'income' || activeTab === 'extract' ? (
-              <Button 
-                variant="default"
-                onClick={() => setShowNewIncomeDialog(true)}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Novo Recebimento
-              </Button>
-            ) : null}
-            
-            {activeTab === 'expenses' || activeTab === 'extract' ? (
-              <Button 
-                variant="outline" 
-                onClick={() => setShowNewExpenseDialog(true)}
-                className="border-red-500 text-red-600 hover:bg-red-50"
-              >
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Nova Despesa
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        <TabsContent value="extract">
-          {renderSummaryCards()}
-          {renderFilters()}
-          {renderTable()}
-        </TabsContent>
-        
-        <TabsContent value="income">
-          <Card className="mb-6">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Total de Entradas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">{formatCurrency(calculateIncomeTotal())}</div>
-            </CardContent>
-          </Card>
-          
-          {renderFilters()}
-          {renderTable()}
-        </TabsContent>
-        
-        <TabsContent value="expenses">
-          <Card className="mb-6">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Total de Saídas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{formatCurrency(calculateExpenseTotal())}</div>
-            </CardContent>
-          </Card>
-          
-          {renderFilters()}
-          {renderTable()}
-        </TabsContent>
-        
-        <TabsContent value="cashflow">
-          <div className="flex justify-end mb-4 space-x-2">
-            <Button variant="outline">
-              <Filter className="w-4 h-4 mr-2" />
-              Filtrar por Período
-            </Button>
-            <Button variant="outline">
-              <Download className="w-4 h-4 mr-2" />
-              Exportar
-            </Button>
-          </div>
-          
-          {renderSummaryCards()}
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Fluxo de Caixa Mensal</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="h-80 w-full">
-                <div className="flex justify-center items-center h-full">
-                  <p>Gráfico de fluxo de caixa será implementado aqui</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-      
-      {renderNewIncomeDialog()}
-      {renderNewExpenseDialog()}
-      {renderEditDialog()}
-      {renderDeleteDialog()}
-    </div>
-  );
-};
-
-export default CashFlowPage;
