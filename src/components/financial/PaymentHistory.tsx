@@ -40,6 +40,7 @@ interface Payment {
   profiles?: {
     name: string;
     email: string;
+    plan: string | null;
   };
   subscriptions?: {
     start_date: string;
@@ -89,13 +90,19 @@ const PaymentHistory = () => {
         endDate.setDate(0);
       }
 
+      console.log('Buscando pagamentos para o período:', {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+
       const { data, error } = await supabase
         .from('payments')
         .select(`
           *,
           profiles (
             name,
-            email
+            email,
+            plan
           ),
           subscriptions (
             start_date,
@@ -110,13 +117,19 @@ const PaymentHistory = () => {
         .lte('due_date', endDate.toISOString())
         .order('due_date', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Erro ao buscar pagamentos:', error);
+        throw error;
+      }
+      
+      console.log('Pagamentos carregados:', data?.length);
       return data as Payment[];
     },
   });
 
   const filteredPayments = payments?.filter(payment => 
     payment.profiles?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    payment.profiles?.plan?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     payment.subscriptions?.plans?.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -158,7 +171,7 @@ const PaymentHistory = () => {
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Pesquisar..."
+                placeholder="Pesquisar por nome ou plano..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-8"
@@ -203,7 +216,9 @@ const PaymentHistory = () => {
                 filteredPayments?.map((payment) => (
                   <TableRow key={payment.id}>
                     <TableCell>{payment.profiles?.name || 'N/A'}</TableCell>
-                    <TableCell>{payment.subscriptions?.plans?.name || 'Plano não encontrado'}</TableCell>
+                    <TableCell>
+                      {payment.profiles?.plan || payment.subscriptions?.plans?.name || 'Plano não encontrado'}
+                    </TableCell>
                     <TableCell>R$ {payment.amount.toFixed(2)}</TableCell>
                     <TableCell>
                       {format(new Date(payment.due_date), 'dd/MM/yyyy', { locale: ptBR })}
