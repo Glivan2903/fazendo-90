@@ -38,9 +38,8 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
     <>
       {activeTab === "overview" && (
         <OverviewTab
-          todayClasses={todayClasses}
-          usersCount={users.length}
-          attendance={attendance}
+          classes={todayClasses}
+          loading={false}
         />
       )}
 
@@ -48,7 +47,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
 
       {activeTab === "users" && <UsersTab users={users} onEditUser={onEditUser} />}
 
-      {activeTab === "attendance" && <AttendanceTab attendance={attendance} />}
+      {activeTab === "attendance" && <AttendanceTab />}
       
       {activeTab === "financial" && <FinancialTab />}
 
@@ -57,7 +56,7 @@ const DashboardContent: React.FC<DashboardContentProps> = ({
         activeTab !== "users" &&
         activeTab !== "attendance" &&
         activeTab !== "financial" && (
-          <ErrorDisplay message="Aba não encontrada" />
+          <ErrorDisplay title="Erro" message="Aba não encontrada" />
         )}
     </>
   );

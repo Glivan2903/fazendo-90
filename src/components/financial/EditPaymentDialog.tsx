@@ -8,24 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
-interface Payment {
-  id: string;
-  user_id: string;
-  subscription_id: string;
-  amount: number;
-  payment_date: string | null;
-  due_date: string;
-  status: string;
-  payment_method: string | null;
-  notes: string | null;
-}
+import { Payment } from "@/hooks/usePaymentHistory";
 
 interface EditPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
   payment: Payment | null;
-  onPaymentUpdated: () => void;
+  onPaymentUpdated: (payment: Payment) => Promise<void>;
 }
 
 const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
@@ -86,29 +75,7 @@ const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
     setIsLoading(true);
 
     try {
-      // Se o status mudou para 'paid' e não há payment_date, defina para a data atual
-      let dataToUpdate = { ...formData };
-      if (dataToUpdate.status === 'paid' && !dataToUpdate.payment_date) {
-        dataToUpdate.payment_date = new Date().toISOString().split('T')[0];
-      }
-      
-      const { error } = await supabase
-        .from('payments')
-        .update({
-          amount: dataToUpdate.amount,
-          payment_date: dataToUpdate.payment_date,
-          due_date: dataToUpdate.due_date,
-          status: dataToUpdate.status,
-          payment_method: dataToUpdate.payment_method,
-          notes: dataToUpdate.notes
-        })
-        .eq('id', dataToUpdate.id);
-
-      if (error) throw error;
-
-      toast.success("Pagamento atualizado com sucesso!");
-      onPaymentUpdated();
-      onClose();
+      await onPaymentUpdated(formData);
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
       toast.error("Erro ao atualizar pagamento");

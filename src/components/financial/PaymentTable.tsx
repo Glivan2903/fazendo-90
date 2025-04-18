@@ -218,7 +218,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({ payments }) => {
         isOpen={isDialogOpen}
         onClose={() => setIsDialogOpen(false)}
         payment={editingPayment}
-        onSave={handlePaymentUpdate}
+        onPaymentUpdated={handlePaymentUpdate}
       />
     </div>
   );
