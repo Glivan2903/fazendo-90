@@ -2,6 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfDay, endOfDay, subDays } from 'date-fns';
+import { AttendanceRecord } from '@/components/dashboard/attendance/AttendanceTable';
 
 export const useAttendanceStats = () => {
   const today = new Date();
@@ -102,13 +103,13 @@ export const useAttendanceStats = () => {
         return {
           id: cls.id,
           date: cls.date,
-          class_name: cls.programs?.name || 'CrossFit',
-          coach_name: cls.profiles?.name || 'Coach',
+          class: cls.programs?.name || 'CrossFit',
+          coach: cls.profiles?.name || 'Coach',
           present: confirmedCheckins,
           absent: total - confirmedCheckins,
           total,
           rate: Math.round((confirmedCheckins / total) * 100)
-        };
+        } as AttendanceRecord;
       }) || [];
     }
   });
