@@ -1,15 +1,49 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AvatarProps {
   url?: string;
   name: string;
   size?: number;
   className?: string;
+  userId?: string;
 }
 
-const Avatar: React.FC<AvatarProps> = ({ url, name, size = 40, className }) => {
+const Avatar: React.FC<AvatarProps> = ({ url, name, size = 40, className, userId }) => {
+  const [avatarUrl, setAvatarUrl] = useState<string | undefined>(url);
+  
+  useEffect(() => {
+    if (url) {
+      setAvatarUrl(url);
+    } else if (userId) {
+      // Buscar o avatar do usuário se não tiver URL mas tiver userId
+      const fetchAvatarUrl = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', userId)
+            .single();
+            
+          if (error) {
+            console.error('Erro ao buscar avatar:', error);
+            return;
+          }
+          
+          if (data?.avatar_url) {
+            setAvatarUrl(data.avatar_url);
+          }
+        } catch (error) {
+          console.error('Erro ao buscar avatar:', error);
+        }
+      };
+      
+      fetchAvatarUrl();
+    }
+  }, [url, userId]);
+
   const initials = name
     .split(" ")
     .map(part => part[0])
@@ -25,9 +59,9 @@ const Avatar: React.FC<AvatarProps> = ({ url, name, size = 40, className }) => {
       )}
       style={{ width: size, height: size }}
     >
-      {url ? (
+      {avatarUrl ? (
         <img
-          src={url}
+          src={avatarUrl}
           alt={name}
           className="w-full h-full object-cover"
           onError={(e) => {

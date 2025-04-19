@@ -10,6 +10,8 @@ interface UsersSearchProps {
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
   showPendingFilter?: boolean;
+  roleFilter?: string;
+  onRoleFilterChange?: (value: string) => void;
 }
 
 const UsersSearch: React.FC<UsersSearchProps> = ({ 
@@ -17,7 +19,9 @@ const UsersSearch: React.FC<UsersSearchProps> = ({
   onSearchChange, 
   statusFilter, 
   onStatusFilterChange,
-  showPendingFilter = false
+  showPendingFilter = false,
+  roleFilter,
+  onRoleFilterChange
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -32,22 +36,41 @@ const UsersSearch: React.FC<UsersSearchProps> = ({
         />
       </div>
       
-      <Select
-        value={statusFilter}
-        onValueChange={onStatusFilterChange}
-      >
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filtrar por status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os Status</SelectItem>
-          <SelectItem value="active">Ativos</SelectItem>
-          <SelectItem value="inactive">Inativos</SelectItem>
-          {showPendingFilter && (
-            <SelectItem value="pending">Pendentes</SelectItem>
-          )}
-        </SelectContent>
-      </Select>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Select
+          value={statusFilter}
+          onValueChange={onStatusFilterChange}
+        >
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Filtrar por status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Status</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            {showPendingFilter && (
+              <SelectItem value="pending">Pendentes</SelectItem>
+            )}
+          </SelectContent>
+        </Select>
+
+        {onRoleFilterChange && (
+          <Select
+            value={roleFilter}
+            onValueChange={onRoleFilterChange}
+          >
+            <SelectTrigger className="w-full md:w-[180px]">
+              <SelectValue placeholder="Filtrar por função" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as Funções</SelectItem>
+              <SelectItem value="student">Alunos</SelectItem>
+              <SelectItem value="coach">Professores</SelectItem>
+              <SelectItem value="admin">Administradores</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      </div>
     </div>
   );
 };
