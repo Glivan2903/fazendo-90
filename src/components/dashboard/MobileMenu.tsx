@@ -24,7 +24,7 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
   signOut
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
@@ -135,19 +135,21 @@ const MobileMenu: React.FC<MobileMenuProps> = ({
                   Check-in
                 </Button>
               </li>
-              <li>
-                <Button
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start",
-                    activeTab === "financial" && "bg-accent text-accent-foreground"
-                  )}
-                  onClick={() => handleTabChange("financial")}
-                >
-                  <CreditCard className="mr-2 h-5 w-5" />
-                  Financeiro
-                </Button>
-              </li>
+              {(userRole === "admin") && (
+                <li>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start",
+                      activeTab === "financial" && "bg-accent text-accent-foreground"
+                    )}
+                    onClick={() => handleTabChange("financial")}
+                  >
+                    <CreditCard className="mr-2 h-5 w-5" />
+                    Financeiro
+                  </Button>
+                </li>
+              )}
             </ul>
           </nav>
           

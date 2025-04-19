@@ -33,12 +33,6 @@ const CheckInHeader: React.FC<CheckInHeaderProps> = ({ onTabChange, onSignOut })
             Check-in
           </DropdownMenuItem>
           
-          {(userRole === "admin" || userRole === "coach") && (
-            <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/teacher-dashboard")}>
-              Dashboard
-            </DropdownMenuItem>
-          )}
-          
           <DropdownMenuItem className="cursor-pointer text-red-500" onClick={onSignOut}>
             Sair
           </DropdownMenuItem>

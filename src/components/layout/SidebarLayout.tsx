@@ -119,23 +119,23 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
           <Button
             variant="ghost"
             className="w-full justify-start"
-            onClick={() => navigate(userRole === 'admin' ? '/teacher-dashboard' : '/check-in')}
+            onClick={() => navigate('/check-in')}
           >
             <Home className="mr-2 h-5 w-5" />
-            {userRole === 'admin' ? 'Dashboard' : 'Início'}
+            Início
           </Button>
 
-          {userRole === 'admin' && (
+          {(userRole === 'admin' || userRole === 'coach') && (
             <>
               <Button
                 variant="ghost"
-                className="w-full justify-start relative"
+                className="w-full justify-start"
                 onClick={() => navigate('/teacher-dashboard')}
               >
                 <Bell className="mr-2 h-5 w-5" />
-                Notificações
-                {totalNotifications > 0 && (
-                  <Badge variant="destructive" className="absolute right-2">
+                Dashboard
+                {userRole === 'admin' && totalNotifications > 0 && (
+                  <Badge variant="destructive" className="ml-2">
                     {totalNotifications}
                   </Badge>
                 )}
