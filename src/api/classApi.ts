@@ -303,7 +303,7 @@ export const checkInToClass = async (classId: string): Promise<boolean | string>
 
     const { data: classData, error: classError } = await supabase
       .from('classes')
-      .select('date, start_time, end_time')
+      .select('date, start_time, end_time, check_in_settings')
       .eq('id', classId)
       .single();
 
@@ -312,7 +312,38 @@ export const checkInToClass = async (classId: string): Promise<boolean | string>
       return false;
     }
 
+    // Check if class has ended
     const classDate = classData.date;
+    const startTime = new Date(`${classDate}T${classData.start_time}`);
+    const endTime = new Date(`${classDate}T${classData.end_time}`);
+    const now = new Date();
+    
+    // Check if class has ended
+    if (now > endTime) {
+      toast.error("O tempo para confirmar check-in acabou");
+      return false;
+    }
+    
+    // Check if there's a check-in time limit configuration
+    if (classData.check_in_settings) {
+      const settings = classData.check_in_settings;
+      
+      if (settings.closeCheckInMinutes) {
+        const closeMinutes = settings.closeCheckInMinutes;
+        const closeWhen = settings.closeCheckInWhen || 'after';
+        
+        // Calculate limit time based on settings
+        const limitTime = new Date(closeWhen === 'before' ? 
+          startTime.getTime() - (closeMinutes * 60 * 1000) : 
+          startTime.getTime() + (closeMinutes * 60 * 1000));
+        
+        if (now > limitTime) {
+          toast.error("O tempo para confirmar check-in acabou");
+          return false;
+        }
+      }
+    }
+
     const { data: existingCheckins, error: checkinsError } = await supabase
       .from('checkins')
       .select(`

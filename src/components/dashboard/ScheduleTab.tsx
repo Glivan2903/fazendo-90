@@ -18,6 +18,7 @@ import { AlertCircle, Calendar as CalendarIcon, ChevronLeft, ChevronRight, Layou
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import CheckInSettings from "./CheckInSettings";
 
 interface ScheduleTabProps {
   classes: Class[];
@@ -54,7 +55,16 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
     endMinute: "00",
     maxCapacity: 15,
     coachId: "",
-    coachName: ""
+    coachName: "",
+    checkInSettings: {
+      enableLimitedCheckins: false,
+      enableReservation: false,
+      openCheckInMinutes: 10,
+      closeCheckInMinutes: 10,
+      closeCheckInWhen: 'after' as 'before' | 'after',
+      cancelMinutes: 10,
+      enableAutoCancel: false
+    }
   });
   
   useEffect(() => {
@@ -359,7 +369,8 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         end_time: endTimeStr,
         max_capacity: formData.maxCapacity,
         program_id: formData.programId,
-        coach_id: formData.coachId
+        coach_id: formData.coachId,
+        check_in_settings: formData.checkInSettings
       };
       
       if (selectedClass?.id) {
@@ -463,7 +474,16 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
       endMinute: "00",
       maxCapacity: 15,
       coachId: coaches.length > 0 ? coaches[0].id : "",
-      coachName: coaches.length > 0 ? coaches[0].name : ""
+      coachName: coaches.length > 0 ? coaches[0].name : "",
+      checkInSettings: {
+        enableLimitedCheckins: false,
+        enableReservation: false,
+        openCheckInMinutes: 10,
+        closeCheckInMinutes: 10,
+        closeCheckInWhen: 'after',
+        cancelMinutes: 10,
+        enableAutoCancel: false
+      }
     });
     setSelectedClass(null);
     setShowNewDialog(true);
@@ -496,7 +516,16 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         endMinute: format(endTime, "mm"),
         maxCapacity: classData.maxCapacity || 15,
         coachId: classData.coach?.id || "",
-        coachName: classData.coach?.name || classData.coachName || ""
+        coachName: classData.coach?.name || classData.coachName || "",
+        checkInSettings: classData.check_in_settings || {
+          enableLimitedCheckins: false,
+          enableReservation: false,
+          openCheckInMinutes: 10,
+          closeCheckInMinutes: 10,
+          closeCheckInWhen: 'after',
+          cancelMinutes: 10,
+          enableAutoCancel: false
+        }
       });
       
       setSelectedClass(classData);
@@ -783,7 +812,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
         open={isNew ? showNewDialog : showEditDialog} 
         onOpenChange={isNew ? setShowNewDialog : setShowEditDialog}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{isNew ? "Nova Aula" : "Editar Aula"}</DialogTitle>
           </DialogHeader>
@@ -829,226 +858,4 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.date ? format(formData.date, "dd/MM/yyyy") : <span>Selecione uma data</span>}
                   </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="center">
-                  <Calendar
-                    mode="single"
-                    selected={formData.date}
-                    onSelect={(date) => date && setFormData(prev => ({ ...prev, date }))}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Horário de início *</Label>
-                <div className="flex space-x-2">
-                  <Select
-                    value={formData.startHour}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, startHour: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="HH" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map(hour => (
-                        <SelectItem key={hour} value={hour}>{hour}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="flex items-center">:</span>
-                  <Select
-                    value={formData.startMinute}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, startMinute: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="MM" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["00", "15", "30", "45"].map(minute => (
-                        <SelectItem key={minute} value={minute}>{minute}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>Horário de término *</Label>
-                <div className="flex space-x-2">
-                  <Select
-                    value={formData.endHour}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, endHour: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="HH" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0")).map(hour => (
-                        <SelectItem key={hour} value={hour}>{hour}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <span className="flex items-center">:</span>
-                  <Select
-                    value={formData.endMinute}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, endMinute: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="MM" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {["00", "15", "30", "45"].map(minute => (
-                        <SelectItem key={minute} value={minute}>{minute}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="capacity">Capacidade máxima</Label>
-              <Input
-                id="capacity"
-                type="number"
-                min="1"
-                value={formData.maxCapacity}
-                onChange={(e) => {
-                  const capacity = parseInt(e.target.value);
-                  if (!isNaN(capacity) && capacity > 0) {
-                    setFormData(prev => ({ ...prev, maxCapacity: capacity }));
-                  }
-                }}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="coach">Coach</Label>
-              <Select
-                value={formData.coachId}
-                onValueChange={(value) => {
-                  const selected = coaches.find(c => c.id === value);
-                  setFormData(prev => ({
-                    ...prev,
-                    coachId: value,
-                    coachName: selected ? selected.name : prev.coachName
-                  }));
-                }}
-              >
-                <SelectTrigger id="coach">
-                  <SelectValue placeholder="Selecione um coach" />
-                </SelectTrigger>
-                <SelectContent>
-                  {coaches.length > 0 ? (
-                    coaches.map(coach => (
-                      <SelectItem key={coach.id} value={coach.id}>
-                        {coach.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-coach" disabled>
-                      Nenhum coach disponível
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          
-          <DialogFooter className="flex justify-between sm:justify-between">
-            <div className="flex space-x-2">
-              <DialogClose asChild>
-                <Button type="button" variant="outline">
-                  Cancelar
-                </Button>
-              </DialogClose>
-              
-              {!isNew && (
-                <Button 
-                  type="button" 
-                  variant="destructive" 
-                  onClick={handleDeleteClass}
-                  disabled={deleteLoading}
-                >
-                  {deleteLoading ? "Excluindo..." : "Excluir"}
-                </Button>
-              )}
-            </div>
-            
-            <Button 
-              onClick={handleSaveClass}
-              disabled={loading}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                "Salvar"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    );
-  };
-  
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <CardTitle>Grade Horária</CardTitle>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <div className="border rounded-md flex overflow-hidden w-full sm:w-auto">
-              <Button 
-                variant={viewMode === "grid" ? "secondary" : "ghost"}
-                size="sm"
-                className="rounded-none flex-1"
-                onClick={() => setViewMode("grid")}
-              >
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Grade
-              </Button>
-              <Button 
-                variant={viewMode === "list" ? "secondary" : "ghost"}
-                size="sm"
-                className="rounded-none flex-1"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4 mr-2" />
-                Lista
-              </Button>
-            </div>
-            
-            <Button 
-              variant="default" 
-              onClick={openNewDialog}
-              className="w-full sm:w-auto"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Aula
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div>
-          ) : (
-            viewMode === "grid" && !isMobile ? renderGridView() : renderListView()
-          )}
-        </CardContent>
-      </Card>
-      
-      {renderClassDialog(true)}
-      {renderClassDialog(false)}
-    </div>
-  );
-};
-
-export default ScheduleTab;
+                </Popover

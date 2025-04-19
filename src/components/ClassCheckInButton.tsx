@@ -11,12 +11,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AlertTriangle, Check } from "lucide-react";
+import { AlertTriangle, Check, Clock } from "lucide-react";
 
 interface ClassCheckInButtonProps {
   isCheckedIn: boolean;
   canCheckIn: boolean;
   processing: boolean;
+  isClassTimeExpired: boolean;
   onCheckIn: () => void;
   onCancelCheckIn: () => void;
   showChangeDialog: boolean;
@@ -28,6 +29,7 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
   isCheckedIn,
   canCheckIn,
   processing,
+  isClassTimeExpired,
   onCheckIn,
   onCancelCheckIn,
   showChangeDialog,
@@ -53,13 +55,22 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
             </Button>
           </div>
         ) : (
-          <Button
-            className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700"
-            disabled={!canCheckIn || processing}
-            onClick={onCheckIn}
-          >
-            {processing ? "Confirmando..." : "Confirmar Check-in"}
-          </Button>
+          <>
+            {isClassTimeExpired ? (
+              <div className="flex items-center justify-center gap-2 py-4 bg-orange-50 rounded-md text-orange-700">
+                <Clock className="h-5 w-5" />
+                <span>Acabou o tempo de confirmar check-in.</span>
+              </div>
+            ) : (
+              <Button
+                className="w-full py-6 text-base bg-blue-600 hover:bg-blue-700"
+                disabled={!canCheckIn || processing}
+                onClick={onCheckIn}
+              >
+                {processing ? "Confirmando..." : "Confirmar Check-in"}
+              </Button>
+            )}
+          </>
         )}
       </div>
 
@@ -85,7 +96,7 @@ const ClassCheckInButton: React.FC<ClassCheckInButtonProps> = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {!canCheckIn && !isCheckedIn && (
+      {!canCheckIn && !isCheckedIn && !isClassTimeExpired && (
         <p className="text-center text-red-500 text-sm mt-2">
           Esta aula está lotada.
         </p>

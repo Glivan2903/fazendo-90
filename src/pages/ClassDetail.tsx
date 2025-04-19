@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import ClassCheckInButton from "@/components/ClassCheckInButton";
 
 const ClassDetail = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -20,8 +21,12 @@ const ClassDetail = () => {
     loading,
     processing,
     isCheckedIn,
+    isClassTimeExpired,
+    showChangeDialog,
+    setShowChangeDialog,
     handleCheckIn,
     handleCancelCheckIn,
+    handleConfirmChange,
   } = useClassDetail(classId);
 
   if (loading) {
@@ -110,14 +115,17 @@ const ClassDetail = () => {
           ))}
         </div>
 
-        <Button 
-          className="w-full" 
-          size="lg"
-          onClick={isCheckedIn ? handleCancelCheckIn : handleCheckIn}
-          disabled={processing}
-        >
-          {isCheckedIn ? "Cancelar Check-in" : "Confirmar Check-in"}
-        </Button>
+        <ClassCheckInButton
+          isCheckedIn={isCheckedIn}
+          canCheckIn={classDetail.attendeeCount < classDetail.maxCapacity}
+          processing={processing}
+          isClassTimeExpired={isClassTimeExpired}
+          onCheckIn={handleCheckIn}
+          onCancelCheckIn={handleCancelCheckIn}
+          showChangeDialog={showChangeDialog}
+          onCloseDialog={() => setShowChangeDialog(false)}
+          onConfirmChange={handleConfirmChange}
+        />
       </div>
     </div>
   );

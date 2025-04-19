@@ -1,8 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { checkInToClass, cancelCheckIn, fetchClassDetails } from "../../api/classApi";
 import { ClassDetail, Attendee } from "../../types";
 import { toast } from "sonner";
+import { isPast } from "date-fns";
 
 export const useClassDetail = (classId: string | undefined) => {
   const [classDetail, setClassDetail] = useState<ClassDetail | null>(null);
@@ -12,6 +14,7 @@ export const useClassDetail = (classId: string | undefined) => {
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [showChangeDialog, setShowChangeDialog] = useState(false);
   const [previousClassId, setPreviousClassId] = useState<string | null>(null);
+  const [isClassTimeExpired, setIsClassTimeExpired] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -20,19 +23,25 @@ export const useClassDetail = (classId: string | undefined) => {
 
       setLoading(true);
       try {
-        console.log("Fetching details for class:", classId);
         const { classDetail: details, attendees: attendeesList } = await fetchClassDetails(classId);
-        console.log("Class details received:", details);
-        console.log("Attendees received:", attendeesList);
         
         setClassDetail(details);
         setAttendees(attendeesList);
+        
+        // Check if class time has passed
+        if (details && isPast(details.endTime)) {
+          setIsClassTimeExpired(true);
+        } else if (details && isPast(details.startTime)) {
+          // Class has started but not ended
+          setIsClassTimeExpired(false);
+        } else {
+          setIsClassTimeExpired(false);
+        }
         
         if (user) {
           const isUserCheckedIn = attendeesList.some(
             (attendee) => attendee.id === user.id
           );
-          console.log("Is user checked in:", isUserCheckedIn, "User ID:", user.id);
           setIsCheckedIn(isUserCheckedIn);
         }
       } catch (error) {
@@ -48,6 +57,12 @@ export const useClassDetail = (classId: string | undefined) => {
 
   const handleCheckIn = async () => {
     if (!classId || !classDetail) return;
+    
+    // Prevent check-in if class time has expired
+    if (isClassTimeExpired) {
+      toast.error("O tempo para confirmar check-in acabou");
+      return;
+    }
 
     setProcessing(true);
     try {
@@ -134,6 +149,7 @@ export const useClassDetail = (classId: string | undefined) => {
     processing,
     isCheckedIn,
     showChangeDialog,
+    isClassTimeExpired,
     setShowChangeDialog,
     handleCheckIn,
     handleCancelCheckIn,
