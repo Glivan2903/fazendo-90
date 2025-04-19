@@ -81,10 +81,10 @@ export default function ApproveUserDialog({
         .delete()
         .eq('user_id', userId);
 
-      // 4. Update user status to Pendente
+      // 4. Update user status to Ativo
       const { error: statusError } = await supabase
         .from('profiles')
-        .update({ status: 'Pendente' })
+        .update({ status: 'Ativo' })
         .eq('id', userId);
 
       if (statusError) throw statusError;
@@ -119,7 +119,7 @@ export default function ApproveUserDialog({
       
       const invoiceNumber = invoiceNumberData || "";
 
-      // 7. Create bank invoice for the plan
+      // 7. Create only one bank invoice for the plan
       const { data: bankInvoice, error: bankInvoiceError } = await supabase
         .from('bank_invoices')
         .insert({

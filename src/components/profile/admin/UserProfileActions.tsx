@@ -82,13 +82,12 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
       toast.success('Usuário deletado com sucesso');
       setIsDeleteDialogOpen(false);
       
-      // Use setTimeout to ensure the state is updated before navigation
-      setTimeout(() => {
-        navigate('/teacher-dashboard', { replace: true });
-      }, 100);
+      // Navigate first, then set state to avoid state updates on unmounted components
+      navigate('/teacher-dashboard', { replace: true });
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Erro ao deletar usuário');
+      setIsDeleteDialogOpen(false);
     } finally {
       setIsDeleting(false);
     }

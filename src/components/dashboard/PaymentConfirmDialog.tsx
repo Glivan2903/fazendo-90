@@ -83,16 +83,21 @@ export default function PaymentConfirmDialog({
       if (profileError) throw profileError;
 
       // 5. Atualizar a assinatura para ativa, se existir
+      let updatedSubscription = null;
+      
       if (subscriptionData) {
-        const { error: updateSubscriptionError } = await supabase
+        const { data, error: updateSubscriptionError } = await supabase
           .from('subscriptions')
           .update({ 
             status: 'active',
             updated_at: new Date().toISOString()
           })
-          .eq('id', subscriptionData.id);
+          .eq('id', subscriptionData.id)
+          .select()
+          .single();
 
         if (updateSubscriptionError) throw updateSubscriptionError;
+        updatedSubscription = data;
       } else {
         // Buscar todas as assinaturas do usuário
         const { data: allSubscriptions, error: allSubsError } = await supabase
@@ -104,15 +109,18 @@ export default function PaymentConfirmDialog({
         
         if (!allSubsError && allSubscriptions && allSubscriptions.length > 0) {
           // Atualizar a assinatura mais recente para ativa
-          const { error: updateSubError } = await supabase
+          const { data, error: updateSubError } = await supabase
             .from('subscriptions')
             .update({ 
               status: 'active',
               updated_at: new Date().toISOString()
             })
-            .eq('id', allSubscriptions[0].id);
+            .eq('id', allSubscriptions[0].id)
+            .select()
+            .single();
           
-          if (updateSubError) console.error('Error updating subscription:', updateSubError);
+          if (updateSubError) throw updateSubError;
+          updatedSubscription = data;
         }
       }
 
@@ -140,6 +148,18 @@ export default function PaymentConfirmDialog({
           .eq('id', paymentData.id);
 
         if (updatePaymentError) throw updatePaymentError;
+      }
+      
+      // 8. Atualizar o profile com o subscription_id se a assinatura foi atualizada
+      if (updatedSubscription) {
+        const { error: updateProfileError } = await supabase
+          .from('profiles')
+          .update({ 
+            subscription_id: updatedSubscription.id
+          })
+          .eq('id', userId);
+          
+        if (updateProfileError) throw updateProfileError;
       }
 
       toast.success(`Pagamento confirmado para ${userName}`);

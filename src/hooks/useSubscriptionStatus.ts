@@ -69,15 +69,37 @@ export const useSubscriptionStatus = (userId?: string) => {
           )
         `)
         .eq('user_id', userId)
+        .eq('status', 'active') // Specifically look for active subscriptions only
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
         
       if (subError) {
         if (subError.code === 'PGRST116') {
-          // No subscription found
-          console.log("No subscription found for user:", userId);
-          return null;
+          // No subscription found, try to get any subscription
+          const { data: anySubscription, error: anySubError } = await supabase
+            .from('subscriptions')
+            .select(`
+              *,
+              plans (
+                id,
+                name,
+                amount,
+                periodicity,
+                days_validity
+              )
+            `)
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (anySubError && anySubError.code !== 'PGRST116') {
+            console.error("Error fetching any subscription:", anySubError);
+            throw anySubError;
+          }
+          
+          return anySubscription || null;
         }
         console.error("Error fetching subscription:", subError);
         throw subError;
@@ -90,25 +112,24 @@ export const useSubscriptionStatus = (userId?: string) => {
       
       console.log("Fetched subscription:", subscription);
       
-      // Check if there are any pending payments only if the subscription is not active
+      // Check if there are any pending payments only if needed
       let pendingPayments = [];
-      if (subscription.status !== 'active') {
-        // Get payments for this subscription that are pending
-        const { data: paymentsData, error: paymentsError } = await supabase
-          .from('payments')
-          .select('*')
-          .eq('subscription_id', subscription.id)
-          .eq('status', 'pending')
-          .order('due_date', { ascending: true });
-          
-        if (paymentsError) {
-          console.error("Error fetching payments:", paymentsError);
-          throw paymentsError;
-        }
-
-        console.log("Fetched payments:", paymentsData);
-        pendingPayments = paymentsData || [];
+      
+      // Get payments for this subscription that are pending
+      const { data: paymentsData, error: paymentsError } = await supabase
+        .from('payments')
+        .select('*')
+        .eq('subscription_id', subscription.id)
+        .eq('status', 'pending')
+        .order('due_date', { ascending: true });
+        
+      if (paymentsError) {
+        console.error("Error fetching payments:", paymentsError);
+        throw paymentsError;
       }
+
+      console.log("Fetched payments:", paymentsData);
+      pendingPayments = paymentsData || [];
 
       // Transform the data to match our types
       const payments = pendingPayments ? pendingPayments.map(payment => ({
@@ -179,10 +200,8 @@ function formatSubscription(subscription: Subscription): SubscriptionWithStatus 
   
   const daysUntilExpiration = isExpired ? null : differenceInDays(endDate, today);
   
-  // Only check for unpaid payments if the subscription status is not active
-  // This prevents the "pending payments" message from appearing after payment
-  const hasUnpaidPayments = subscription.status !== 'active' && 
-                           (subscription.payments?.some(p => p.status === 'pending') || false);
+  // Check for unpaid payments based on actual payment records, not subscription status
+  const hasUnpaidPayments = (subscription.payments?.some(p => p.status === 'pending') || false);
   
   let statusColor = 'green';
   if (isExpired) {
