@@ -1,28 +1,29 @@
-
 import React from "react";
 import { User } from "@/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { UserCheck } from "lucide-react";
+import { UserCheck, DollarSign } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import PaymentConfirmDialog from "./PaymentConfirmDialog";
 
 interface UsersTableProps {
   users: User[];
   onUserClick: (userId: string) => void;
   onApproveUser?: (userId: string, userName: string) => void;
+  onRefresh: () => Promise<void>;
 }
 
-const UsersTable: React.FC<UsersTableProps> = ({ users, onUserClick, onApproveUser }) => {
-  if (!users || users.length === 0) {
-    return (
-      <div className="text-center p-8 border rounded-md">
-        <p className="text-muted-foreground">Nenhum usuário encontrado.</p>
-      </div>
-    );
-  }
+const UsersTable: React.FC<UsersTableProps> = ({ 
+  users, 
+  onUserClick, 
+  onApproveUser,
+  onRefresh 
+}) => {
+  const [selectedUser, setSelectedUser] = React.useState<{id: string, name: string} | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = React.useState(false);
 
   // Function to get user initials for avatar fallback
   const getUserInitials = (name: string) => {
@@ -65,6 +66,11 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, onUserClick, onApproveUs
     } catch (e) {
       return "Data inválida";
     }
+  };
+
+  const handlePaymentClick = (userId: string, userName: string) => {
+    setSelectedUser({ id: userId, name: userName });
+    setShowPaymentDialog(true);
   };
 
   return (
@@ -110,24 +116,51 @@ const UsersTable: React.FC<UsersTableProps> = ({ users, onUserClick, onApproveUs
               </TableCell>
               <TableCell>
                 {user.status === "Pendente" && onApproveUser && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="flex items-center gap-1 border-amber-300 hover:bg-amber-100 text-amber-800"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onApproveUser(user.id, user.name);
-                    }}
-                  >
-                    <UserCheck className="h-4 w-4" />
-                    <span>Aprovar</span>
-                  </Button>
+                  <>
+                    {!user.plan ? (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-1 border-amber-300 hover:bg-amber-100 text-amber-800"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onApproveUser(user.id, user.name);
+                        }}
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        <span>Aprovar</span>
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex items-center gap-1 border-green-300 hover:bg-green-100 text-green-800"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePaymentClick(user.id, user.name);
+                        }}
+                      >
+                        <DollarSign className="h-4 w-4" />
+                        <span>Pagamento</span>
+                      </Button>
+                    )}
+                  </>
                 )}
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {selectedUser && (
+        <PaymentConfirmDialog 
+          open={showPaymentDialog}
+          onOpenChange={setShowPaymentDialog}
+          userId={selectedUser.id}
+          userName={selectedUser.name}
+          onConfirmed={onRefresh}
+        />
+      )}
     </div>
   );
 };

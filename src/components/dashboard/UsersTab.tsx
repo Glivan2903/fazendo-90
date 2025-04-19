@@ -142,6 +142,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
         users={filteredUsers}
         onUserClick={setSelectedUserId}
         onApproveUser={handleApproveUser}
+        onRefresh={handleRefresh}
       />
       
       <CreateUserDialog
