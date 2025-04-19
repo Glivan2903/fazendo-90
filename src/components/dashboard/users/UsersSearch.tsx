@@ -1,7 +1,7 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Search } from "lucide-react";
 
 interface UsersSearchProps {
@@ -10,44 +10,42 @@ interface UsersSearchProps {
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
   showPendingFilter?: boolean;
+  showPaymentIssuesFilter?: boolean;
 }
 
-const UsersSearch: React.FC<UsersSearchProps> = ({ 
-  searchTerm, 
-  onSearchChange, 
-  statusFilter, 
+const UsersSearch: React.FC<UsersSearchProps> = ({
+  searchTerm,
+  onSearchChange,
+  statusFilter,
   onStatusFilterChange,
-  showPendingFilter = false
+  showPendingFilter = false,
+  showPaymentIssuesFilter = false
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-4">
       <div className="relative flex-1">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
         <Input
-          type="search"
           placeholder="Buscar por nome, e-mail ou função..."
-          className="pl-8"
+          className="pl-10"
           value={searchTerm}
           onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-      
-      <Select
-        value={statusFilter}
-        onValueChange={onStatusFilterChange}
-      >
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Filtrar por status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos os Status</SelectItem>
-          <SelectItem value="active">Ativos</SelectItem>
-          <SelectItem value="inactive">Inativos</SelectItem>
-          {showPendingFilter && (
-            <SelectItem value="pending">Pendentes</SelectItem>
-          )}
-        </SelectContent>
-      </Select>
+      <div className="w-full md:w-52">
+        <Select value={statusFilter} onValueChange={onStatusFilterChange}>
+          <SelectTrigger>
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os Status</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            {showPendingFilter && <SelectItem value="pending">Pendentes</SelectItem>}
+            {showPaymentIssuesFilter && <SelectItem value="payment_issues">Pagamento Pendente</SelectItem>}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 };

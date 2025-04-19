@@ -7,6 +7,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { Button } from "@/components/ui/button";
 import { NewExpenseDialog } from './components/dialogs/NewExpenseDialog';
 import { NewIncomeDialog } from './components/dialogs/NewIncomeDialog';
+import { EditTransactionDialog } from './components/dialogs/EditTransactionDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -16,7 +17,11 @@ const CashFlowPage = () => {
     loading, 
     handleEditTransaction, 
     handleDeleteTransaction,
-    fetchTransactions
+    fetchTransactions,
+    editingTransaction,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    handleUpdateTransaction
   } = useTransactions();
 
   const [totalPaidIncome, setTotalPaidIncome] = useState(0);
@@ -376,6 +381,15 @@ const CashFlowPage = () => {
         setCalendarOpen={setCalendarOpen}
         users={users}
       />
+      
+      {editingTransaction && (
+        <EditTransactionDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          transaction={editingTransaction}
+          onSave={handleUpdateTransaction}
+        />
+      )}
     </div>
   );
 };

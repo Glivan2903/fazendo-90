@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { User } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Plus, RefreshCcw, UserCheck } from "lucide-react";
+import { Plus, RefreshCcw, UserCheck, AlertCircle, DollarSign } from 'lucide-react';
 import UsersProfileView from "./UsersProfileView";
 import UsersSearch from "./users/UsersSearch";
 import UsersTable from "./users/UsersTable";
@@ -11,6 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ApproveUserDialog from "./ApproveUserDialog";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { usePaymentHistory } from "@/hooks/usePaymentHistory";
 
 interface UsersTabProps {
   users: User[];
@@ -26,10 +28,28 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
   const [userToApprove, setUserToApprove] = useState<{id: string, name: string} | null>(null);
+  const [usersWithPaymentIssues, setUsersWithPaymentIssues] = useState<User[]>([]);
+  
+  // Fetch payment data to identify users with payment issues
+  const { payments } = usePaymentHistory();
   
   useEffect(() => {
     setUsers(initialUsers);
   }, [initialUsers]);
+  
+  useEffect(() => {
+    if (payments && users.length > 0) {
+      // Find users with overdue or pending payments
+      const userIds = new Set(
+        payments
+          .filter(payment => payment.status === 'pending' || payment.status === 'overdue')
+          .map(payment => payment.user_id)
+      );
+      
+      const usersWithIssues = users.filter(user => userIds.has(user.id));
+      setUsersWithPaymentIssues(usersWithIssues);
+    }
+  }, [payments, users]);
 
   const handleApproveUser = (userId: string, userName: string) => {
     setUserToApprove({ id: userId, name: userName });
@@ -49,7 +69,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
       statusFilter === "all" || 
       (statusFilter === "active" && user.status === "Ativo") ||
       (statusFilter === "inactive" && user.status === "Inativo") ||
-      (statusFilter === "pending" && user.status === "Pendente");
+      (statusFilter === "pending" && user.status === "Pendente") ||
+      (statusFilter === "payment_issues" && usersWithPaymentIssues.some(u => u.id === user.id));
       
     return matchesSearch && matchesStatus;
   });
@@ -102,6 +123,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   const activeUsersCount = users.filter(user => user.status === "Ativo").length;
   const inactiveUsersCount = users.filter(user => user.status === "Inativo").length;
   const pendingUsersCount = users.filter(user => user.status === "Pendente").length;
+  const paymentIssuesCount = usersWithPaymentIssues.length;
   
   // Show profile view if a user is selected
   if (selectedUserId) {
@@ -159,8 +181,36 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
         </div>
       )}
       
+      {/* Payment issues notification */}
+      {paymentIssuesCount > 0 && (
+        <Card className="bg-red-50 border border-red-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-base font-medium flex items-center">
+              <DollarSign className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-red-800">
+                {paymentIssuesCount} {paymentIssuesCount === 1 ? 'usuário' : 'usuários'} com pagamento pendente
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-between items-center">
+              <p className="text-red-700 text-sm">
+                Existem {paymentIssuesCount} usuários com pagamentos pendentes ou atrasados que precisam de atenção.
+              </p>
+              <Button 
+                size="sm" 
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={() => setStatusFilter("payment_issues")}
+              >
+                Ver usuários
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* User stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="border rounded-lg p-4 bg-white">
           <div className="text-sm font-medium text-gray-500">Total de Usuários</div>
           <div className="text-2xl font-bold mt-1">{users.length}</div>
@@ -173,6 +223,10 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
           <div className="text-sm font-medium text-gray-500">Usuários Pendentes</div>
           <div className="text-2xl font-bold mt-1 text-amber-600">{pendingUsersCount}</div>
         </div>
+        <div className="border rounded-lg p-4 bg-white">
+          <div className="text-sm font-medium text-gray-500">Pagamentos Pendentes</div>
+          <div className="text-2xl font-bold mt-1 text-red-600">{paymentIssuesCount}</div>
+        </div>
       </div>
       
       <UsersSearch 
@@ -181,12 +235,14 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         showPendingFilter={true}
+        showPaymentIssuesFilter={true}
       />
       
       <UsersTable 
         users={filteredUsers}
         onUserClick={setSelectedUserId}
         onApproveUser={handleApproveUser}
+        usersWithPaymentIssues={usersWithPaymentIssues}
       />
       
       <CreateUserDialog

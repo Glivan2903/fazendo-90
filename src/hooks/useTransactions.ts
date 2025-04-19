@@ -7,6 +7,8 @@ import { Transaction } from '@/components/financial/types';
 export const useTransactions = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   // Fetch transactions from the database
   const fetchTransactions = async () => {
@@ -47,8 +49,41 @@ export const useTransactions = () => {
 
   // Edit transaction
   const handleEditTransaction = (transaction: Transaction) => {
-    // Here you would normally open a dialog or navigate to an edit page
-    console.log('Edit transaction:', transaction);
+    setEditingTransaction(transaction);
+    setIsEditDialogOpen(true);
+  };
+
+  // Update transaction
+  const handleUpdateTransaction = async (updatedTransaction: Transaction) => {
+    try {
+      const { error } = await supabase
+        .from('bank_invoices')
+        .update({
+          due_date: updatedTransaction.date,
+          category: updatedTransaction.category,
+          description: updatedTransaction.description,
+          total_amount: updatedTransaction.amount,
+          status: updatedTransaction.status,
+          payment_method: updatedTransaction.payment_method,
+          fornecedor: updatedTransaction.fornecedor,
+          bank_account: updatedTransaction.bank_account
+        })
+        .eq('id', updatedTransaction.id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setTransactions(transactions.map(t => 
+        t.id === updatedTransaction.id ? updatedTransaction : t
+      ));
+      
+      setIsEditDialogOpen(false);
+      setEditingTransaction(null);
+      toast.success('Transação atualizada com sucesso');
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      toast.error('Erro ao atualizar transação');
+    }
   };
 
   // Delete transaction
@@ -80,6 +115,10 @@ export const useTransactions = () => {
     loading,
     handleEditTransaction,
     handleDeleteTransaction,
-    fetchTransactions
+    fetchTransactions,
+    editingTransaction,
+    isEditDialogOpen,
+    setIsEditDialogOpen,
+    handleUpdateTransaction
   };
 };
