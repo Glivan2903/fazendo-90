@@ -172,6 +172,7 @@ function formatSubscription(subscription: Subscription): SubscriptionWithStatus 
   
   const daysUntilExpiration = isExpired ? null : differenceInDays(endDate, today);
   
+  // Verificar pagamentos pendentes apenas se não forem pagos
   const hasUnpaidPayments = subscription.payments?.some(
     payment => payment.status === 'pending' || payment.status === 'overdue'
   ) || false;

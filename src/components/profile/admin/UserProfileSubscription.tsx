@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -108,15 +109,12 @@ const UserProfileSubscription: React.FC<UserProfileSubscriptionProps> = ({
                   <Badge className="mr-2">
                     {currentSubscription.plans?.periodicity}
                   </Badge>
-                  <Badge 
-                    variant="outline" 
-                    className={
-                      currentSubscription.status === 'active' ? 
-                      'bg-green-100 text-green-800' : 
-                      'bg-amber-100 text-amber-800'
-                    }
-                  >
-                    {currentSubscription.status === 'active' ? 'Ativo' : 'Aguardando Pagamento'}
+                  <Badge variant="outline" className={
+                    currentSubscription.status === 'active' ? 
+                    'bg-green-100 text-green-800' : 
+                    'bg-amber-100 text-amber-800'
+                  }>
+                    {currentSubscription.status === 'active' ? 'Ativo' : 'Pendente'}
                   </Badge>
                 </div>
               </div>

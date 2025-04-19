@@ -63,7 +63,45 @@ export default function ApproveUserDialog({
 
       setLoading(true);
 
-      // 1. Update user status to Pendente
+      // 1. Verificar se já existe assinatura ou fatura para evitar duplicações
+      const { data: existingSubscriptions, error: subCheckError } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', userId);
+        
+      if (subCheckError) throw subCheckError;
+      
+      if (existingSubscriptions && existingSubscriptions.length > 0) {
+        // Cancela qualquer assinatura existente
+        const { error: cancelError } = await supabase
+          .from('subscriptions')
+          .update({ status: 'canceled', updated_at: new Date().toISOString() })
+          .eq('user_id', userId);
+          
+        if (cancelError) throw cancelError;
+      }
+      
+      // Verificar faturas existentes
+      const { data: existingInvoices, error: invCheckError } = await supabase
+        .from('bank_invoices')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'pending');
+        
+      if (invCheckError) throw invCheckError;
+      
+      if (existingInvoices && existingInvoices.length > 0) {
+        // Cancelar faturas pendentes existentes
+        const { error: cancelInvError } = await supabase
+          .from('bank_invoices')
+          .update({ status: 'canceled', updated_at: new Date().toISOString() })
+          .eq('user_id', userId)
+          .eq('status', 'pending');
+          
+        if (cancelInvError) throw cancelInvError;
+      }
+
+      // 2. Update user status to Pendente
       const { error: statusError } = await supabase
         .from('profiles')
         .update({ status: 'Pendente' })
@@ -71,7 +109,7 @@ export default function ApproveUserDialog({
 
       if (statusError) throw statusError;
 
-      // 2. Create subscription for user based on selected plan with status pending
+      // 3. Create subscription for user based on selected plan with status pending
       const selectedPlan = plans.find(p => p.id === selectedPlanId);
       if (!selectedPlan) throw new Error("Plano não encontrado");
       
@@ -93,7 +131,7 @@ export default function ApproveUserDialog({
 
       if (subscriptionError) throw subscriptionError;
 
-      // 3. Generate invoice number
+      // 4. Generate invoice number
       const { data: invoiceNumberData, error: invoiceNumberError } = await supabase
         .rpc('generate_invoice_number');
         
@@ -101,7 +139,7 @@ export default function ApproveUserDialog({
       
       const invoiceNumber = invoiceNumberData || "";
 
-      // 4. Create bank invoice for the plan
+      // 5. Create bank invoice for the plan
       const { data: bankInvoice, error: bankInvoiceError } = await supabase
         .from('bank_invoices')
         .insert({
@@ -121,7 +159,7 @@ export default function ApproveUserDialog({
 
       if (bankInvoiceError) throw bankInvoiceError;
 
-      // 5. Create payment record
+      // 6. Create payment record
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -135,6 +173,17 @@ export default function ApproveUserDialog({
         }]);
 
       if (paymentError) throw paymentError;
+      
+      // 7. Update profile plan
+      const { error: updatePlanError } = await supabase
+        .from('profiles')
+        .update({ 
+          plan: selectedPlan.name,
+          subscription_id: subscription.id
+        })
+        .eq('id', userId);
+        
+      if (updatePlanError) throw updatePlanError;
 
       toast.success(`Plano atribuído a ${userName} com sucesso! Aguardando confirmação de pagamento.`);
       onApproved();
