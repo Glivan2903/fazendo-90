@@ -64,36 +64,22 @@ export default function ApproveUserDialog({
       setLoading(true);
 
       // 1. Primeiro, cancelar todas as assinaturas existentes
-      const { error: cancelSubError } = await supabase
+      await supabase
         .from('subscriptions')
         .delete()
         .eq('user_id', userId);
       
-      if (cancelSubError) {
-        console.error("Error canceling existing subscriptions:", cancelSubError);
-      }
-      
       // 2. Cancelar todas as faturas pendentes existentes
-      const { error: cancelInvError } = await supabase
+      await supabase
         .from('bank_invoices')
         .delete()
-        .eq('user_id', userId)
-        .eq('status', 'pending');
+        .eq('user_id', userId);
       
-      if (cancelInvError) {
-        console.error("Error canceling pending invoices:", cancelInvError);
-      }
-
       // 3. Também cancelar todos os pagamentos pendentes
-      const { error: cancelPayError } = await supabase
+      await supabase
         .from('payments')
         .delete()
-        .eq('user_id', userId)
-        .eq('status', 'pending');
-      
-      if (cancelPayError) {
-        console.error("Error canceling pending payments:", cancelPayError);
-      }
+        .eq('user_id', userId);
 
       // 4. Update user status to Pendente
       const { error: statusError } = await supabase
@@ -103,7 +89,7 @@ export default function ApproveUserDialog({
 
       if (statusError) throw statusError;
 
-      // 5. Create subscription for user based on selected plan with status pending
+      // 5. Create subscription for user based on selected plan with status active
       const selectedPlan = plans.find(p => p.id === selectedPlanId);
       if (!selectedPlan) throw new Error("Plano não encontrado");
       
@@ -118,7 +104,7 @@ export default function ApproveUserDialog({
           plan_id: selectedPlanId,
           start_date: startDate.toISOString().split('T')[0],
           end_date: endDate.toISOString().split('T')[0],
-          status: 'pending'
+          status: 'active'  // Set as active immediately
         }])
         .select()
         .single();
@@ -140,7 +126,8 @@ export default function ApproveUserDialog({
           user_id: userId,
           total_amount: selectedPlan.amount,
           due_date: startDate.toISOString().split('T')[0],
-          status: 'pending',
+          status: 'paid',  // Set as paid immediately
+          payment_date: startDate.toISOString().split('T')[0],
           category: 'Mensalidade',
           buyer_name: userName,
           transaction_type: 'income',
@@ -153,7 +140,7 @@ export default function ApproveUserDialog({
 
       if (bankInvoiceError) throw bankInvoiceError;
 
-      // 8. Create payment record
+      // 8. Create payment record as already paid
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -161,25 +148,27 @@ export default function ApproveUserDialog({
           subscription_id: subscription.id,
           amount: selectedPlan.amount,
           due_date: startDate.toISOString().split('T')[0],
-          status: 'pending',
+          payment_date: startDate.toISOString().split('T')[0],
+          status: 'paid',
           reference: `Mensalidade - ${userName}`,
           bank_invoice_id: bankInvoice.id
         }]);
 
       if (paymentError) throw paymentError;
       
-      // 9. Update profile plan
+      // 9. Update profile plan and status
       const { error: updatePlanError } = await supabase
         .from('profiles')
         .update({ 
           plan: selectedPlan.name,
-          subscription_id: subscription.id
+          subscription_id: subscription.id,
+          status: 'Ativo'  // Set user as active immediately
         })
         .eq('id', userId);
         
       if (updatePlanError) throw updatePlanError;
 
-      toast.success(`Plano atribuído a ${userName} com sucesso! Aguardando confirmação de pagamento.`);
+      toast.success(`Plano atribuído a ${userName} com sucesso!`);
       onApproved();
       onOpenChange(false);
 
@@ -213,7 +202,7 @@ export default function ApproveUserDialog({
               onValueChange={setSelectedPlanId}
               disabled={loading || plans.length === 0}
             >
-              <SelectTrigger>
+              <SelectTrigger id="plan">
                 <SelectValue placeholder="Selecione um plano" />
               </SelectTrigger>
               <SelectContent>

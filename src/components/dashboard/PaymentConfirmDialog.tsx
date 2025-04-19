@@ -32,7 +32,7 @@ export default function PaymentConfirmDialog({
     try {
       setLoading(true);
 
-      // 1. Buscar informações de assinatura e pagamento pendentes
+      // 1. Buscar informações de assinatura pendente
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
         .select('*')
@@ -44,7 +44,6 @@ export default function PaymentConfirmDialog({
 
       if (subscriptionError && subscriptionError.code !== 'PGRST116') {
         console.error('Error fetching subscription:', subscriptionError);
-        throw subscriptionError;
       }
 
       // 2. Buscar fatura bancária pendente
@@ -59,7 +58,6 @@ export default function PaymentConfirmDialog({
 
       if (invoiceError && invoiceError.code !== 'PGRST116') {
         console.error('Error fetching invoice:', invoiceError);
-        throw invoiceError;
       }
 
       // 3. Buscar pagamento pendente
@@ -74,7 +72,6 @@ export default function PaymentConfirmDialog({
 
       if (paymentError && paymentError.code !== 'PGRST116') {
         console.error('Error fetching payment:', paymentError);
-        throw paymentError;
       }
 
       // 4. Atualizar status do usuário para Ativo
@@ -96,6 +93,27 @@ export default function PaymentConfirmDialog({
           .eq('id', subscriptionData.id);
 
         if (updateSubscriptionError) throw updateSubscriptionError;
+      } else {
+        // Buscar todas as assinaturas do usuário
+        const { data: allSubscriptions, error: allSubsError } = await supabase
+          .from('subscriptions')
+          .select('*')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (!allSubsError && allSubscriptions && allSubscriptions.length > 0) {
+          // Atualizar a assinatura mais recente para ativa
+          const { error: updateSubError } = await supabase
+            .from('subscriptions')
+            .update({ 
+              status: 'active',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', allSubscriptions[0].id);
+          
+          if (updateSubError) console.error('Error updating subscription:', updateSubError);
+        }
       }
 
       // 6. Atualizar fatura bancária para paga, se existir
