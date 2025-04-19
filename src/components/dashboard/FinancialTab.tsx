@@ -3,9 +3,7 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PlansManagement from "@/components/financial/PlansManagement";
 import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
-import PaymentHistory from "@/components/financial/PaymentHistory";
-import SubscriptionsManagement from "@/components/financial/SubscriptionsManagement";
-import { CreditCard, BarChart2, FileText, UsersRound, ArrowUpDown } from "lucide-react";
+import { BarChart2, FileText, ArrowUpDown } from "lucide-react";
 import CashFlowPage from "@/components/financial/CashFlowPage";
 import { Card } from '@/components/ui/card';
 
@@ -36,20 +34,6 @@ const FinancialTab = () => {
               <span>Planos</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="subscriptions" 
-              className="flex items-center data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-            >
-              <UsersRound className="w-4 h-4 mr-2" />
-              <span>Adesões</span>
-            </TabsTrigger>
-            <TabsTrigger 
-              value="payments" 
-              className="flex items-center data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-            >
-              <CreditCard className="w-4 h-4 mr-2" />
-              <span>Pagamentos</span>
-            </TabsTrigger>
-            <TabsTrigger 
               value="cashflow" 
               className="flex items-center data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
             >
@@ -64,14 +48,6 @@ const FinancialTab = () => {
 
           <TabsContent value="plans" className="space-y-4 mt-6">
             <PlansManagement />
-          </TabsContent>
-          
-          <TabsContent value="subscriptions" className="space-y-4 mt-6">
-            <SubscriptionsManagement />
-          </TabsContent>
-
-          <TabsContent value="payments" className="space-y-4 mt-6">
-            <PaymentHistory />
           </TabsContent>
           
           <TabsContent value="cashflow" className="space-y-4 mt-6">
