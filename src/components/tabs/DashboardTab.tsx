@@ -1,7 +1,6 @@
 
 import React from "react";
-import { Calendar, BarChart2, User, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Calendar, BarChart2, User } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Class } from "@/types";
 import { format } from "date-fns";
@@ -41,13 +40,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
         </CardHeader>
         <CardContent>
           <div className="border rounded-lg p-4 mb-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-medium text-lg">Próxima aula</h3>
-              <Button variant="link" size="sm" className="text-blue-600 p-0" onClick={() => onTabChange("aulas")}>
-                Ver todas
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
+            <h3 className="font-medium text-lg mb-2">Próxima aula</h3>
             
             {upcomingClass ? (
               <div className="mt-2 flex items-center border-l-4 border-blue-600 pl-3">
@@ -62,7 +55,12 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
                     {upcomingClass.coachName}
                   </div>
                 </div>
-                <Button onClick={() => onClassClick(upcomingClass.id)}>Check-in</Button>
+                <button 
+                  onClick={() => onClassClick(upcomingClass.id)}
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
+                >
+                  Check-in
+                </button>
               </div>
             ) : (
               <div className="mt-2 py-4 text-center text-gray-500">
