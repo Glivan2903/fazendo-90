@@ -1,3 +1,4 @@
+
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -297,6 +298,40 @@ export const checkInToClass = async (classId: string): Promise<boolean | string>
     if (!user) {
       console.error("No authenticated user");
       toast.error("Você precisa estar logado para fazer check-in");
+      return false;
+    }
+
+    // Verificar se o usuário tem pagamentos pendentes
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .select('id, status')
+      .eq('user_id', user.id)
+      .eq('status', 'active')
+      .single();
+    
+    if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+      console.error("Erro ao verificar assinatura:", subscriptionError);
+    }
+    
+    if (!subscription) {
+      toast.error("Você não possui assinatura ativa");
+      return false;
+    }
+    
+    // Verificar se existem pagamentos pendentes para esta assinatura
+    const { data: pendingPayments, error: paymentsError } = await supabase
+      .from('payments')
+      .select('id, status')
+      .eq('user_id', user.id)
+      .in('status', ['pending', 'overdue'])
+      .limit(1);
+    
+    if (paymentsError) {
+      console.error("Erro ao verificar pagamentos:", paymentsError);
+    }
+    
+    if (pendingPayments && pendingPayments.length > 0) {
+      toast.error("Você possui pagamentos pendentes. Por favor, regularize sua situação.");
       return false;
     }
 
