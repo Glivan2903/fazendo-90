@@ -140,7 +140,7 @@ export const useSubscriptionStatus = (userId?: string) => {
       // Ensure subscription status is one of the allowed types
       return {
         ...subscription,
-        status: (subscription.status as SubscriptionStatus),
+        status: subscription.status as SubscriptionStatus,
         payments
       };
     },
@@ -180,7 +180,7 @@ export const useSubscriptionStatus = (userId?: string) => {
     enabled: !!subscriptionWithPayments?.id,
   });
   
-  const processedSubscription = subscriptionWithPayments ? formatSubscription(subscriptionWithPayments) : null;
+  const processedSubscription = subscriptionWithPayments ? formatSubscription(subscriptionWithPayments as Subscription) : null;
   
   const refreshData = () => {
     setRefreshTrigger(prev => prev + 1);
