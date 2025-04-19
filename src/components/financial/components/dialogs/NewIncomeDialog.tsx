@@ -23,7 +23,8 @@ export const NewIncomeDialog = ({
   handleDateChange,
   users,
   calendarOpen,
-  setCalendarOpen
+  setCalendarOpen,
+  categories = []
 }: NewIncomeDialogProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -100,10 +101,18 @@ export const NewIncomeDialog = ({
                 <SelectValue placeholder="Selecione uma categoria" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="Sem categoria">Sem categoria</SelectItem>
                 <SelectItem value="Mensalidade">Mensalidade</SelectItem>
                 <SelectItem value="Adesão">Adesão</SelectItem>
                 <SelectItem value="Taxa extra">Taxa extra</SelectItem>
                 <SelectItem value="Produto">Produto</SelectItem>
+                {categories.map((category, index) => {
+                  // Only add categories that aren't already in the default list
+                  if (!['Mensalidade', 'Adesão', 'Taxa extra', 'Produto', 'Sem categoria'].includes(category)) {
+                    return <SelectItem key={index} value={category}>{category}</SelectItem>;
+                  }
+                  return null;
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -129,7 +138,7 @@ export const NewIncomeDialog = ({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="paid">Pago</SelectItem>
-                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="pending">Pagamento</SelectItem>
                 <SelectItem value="overdue">Atrasado</SelectItem>
               </SelectContent>
             </Select>
@@ -160,6 +169,7 @@ export const NewIncomeDialog = ({
               <SelectContent>
                 <SelectItem value="Nubank">Nubank</SelectItem>
                 <SelectItem value="Bradesco">Bradesco</SelectItem>
+                <SelectItem value="Conta Principal">Conta Principal</SelectItem>
               </SelectContent>
             </Select>
           </div>

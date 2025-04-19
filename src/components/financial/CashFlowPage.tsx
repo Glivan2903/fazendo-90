@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransactionTable } from './components/TransactionTable';
-import { ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle, Plus } from 'lucide-react';
+import { ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle, Plus, TagIcon } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Button } from "@/components/ui/button";
 import { NewExpenseDialog } from './components/dialogs/NewExpenseDialog';
@@ -10,6 +10,7 @@ import { NewIncomeDialog } from './components/dialogs/NewIncomeDialog';
 import { EditTransactionDialog } from './components/dialogs/EditTransactionDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import CategoryManagementDialog from './components/dialogs/CategoryManagementDialog';
 
 const CashFlowPage = () => {
   const { 
@@ -27,10 +28,12 @@ const CashFlowPage = () => {
   const [totalPaidIncome, setTotalPaidIncome] = useState(0);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [pendingIncome, setPendingIncome] = useState(0);
-  const [paidAndPendingIncome, setPaidAndPendingIncome] = useState(0);
+  const [paidOnly, setPaidOnly] = useState(true); // Only show paid transactions in total by default
   const [isNewExpenseDialogOpen, setIsNewExpenseDialogOpen] = useState(false);
   const [isNewIncomeDialogOpen, setIsNewIncomeDialogOpen] = useState(false);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [suppliers, setSuppliers] = useState([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [users, setUsers] = useState([]);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [expenseFormValues, setExpenseFormValues] = useState({
@@ -66,20 +69,21 @@ const CashFlowPage = () => {
       .reduce((acc, curr) => acc + Number(curr.amount), 0);
     
     const pending = transactions
-      .filter(t => t.transaction_type === 'income' && t.status === 'pending')
+      .filter(t => t.transaction_type === 'income' && (t.status === 'pending' || t.status === 'overdue'))
       .reduce((acc, curr) => acc + Number(curr.amount), 0);
     
-    const total = paid + pending;
+    // Only include paid income in the total balance calculation
+    const total = paidOnly ? paid - expenses : paid + pending - expenses;
     
     setTotalPaidIncome(paid);
     setTotalExpenses(expenses);
     setPendingIncome(pending);
-    setPaidAndPendingIncome(total);
-  }, [transactions]);
+  }, [transactions, paidOnly]);
 
   useEffect(() => {
     fetchSuppliers();
     fetchUsers();
+    fetchCategories();
   }, []);
 
   const fetchSuppliers = async () => {
@@ -93,6 +97,25 @@ const CashFlowPage = () => {
     } catch (error) {
       console.error('Error fetching suppliers:', error);
       toast.error('Erro ao carregar fornecedores');
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      // Get unique categories from bank_invoices
+      const { data, error } = await supabase
+        .from('bank_invoices')
+        .select('category')
+        .not('category', 'is', null);
+      
+      if (error) throw error;
+      
+      // Extract unique categories
+      const uniqueCategories = new Set(data.map(item => item.category).filter(Boolean));
+      setCategories(Array.from(uniqueCategories));
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      toast.error('Erro ao carregar categorias');
     }
   };
 
@@ -239,6 +262,7 @@ const CashFlowPage = () => {
       toast.success('Receita adicionada com sucesso!');
       setIsNewIncomeDialogOpen(false);
       fetchTransactions();
+      fetchCategories();
       
       // Reset form
       setIncomeFormValues({
@@ -258,11 +282,24 @@ const CashFlowPage = () => {
     }
   };
 
+  const handleCategoryCreated = () => {
+    fetchCategories();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Fluxo de Caixa</h2>
         <div className="flex space-x-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex items-center"
+            onClick={() => setIsCategoryDialogOpen(true)}
+          >
+            <TagIcon className="h-4 w-4 mr-1" />
+            Categorias
+          </Button>
           <Button 
             size="sm" 
             variant="outline" 
@@ -335,7 +372,16 @@ const CashFlowPage = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              R$ {paidAndPendingIncome.toFixed(2)}
+              R$ {(totalPaidIncome - totalExpenses).toFixed(2)}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              <Button 
+                variant="link" 
+                className="p-0 h-auto text-xs"
+                onClick={() => setPaidOnly(!paidOnly)}
+              >
+                {paidOnly ? "Mostrar saldo com pendentes" : "Mostrar apenas recebidos"}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -367,6 +413,7 @@ const CashFlowPage = () => {
         calendarOpen={calendarOpen}
         setCalendarOpen={setCalendarOpen}
         fetchSuppliers={fetchSuppliers}
+        categories={categories}
       />
 
       <NewIncomeDialog
@@ -380,6 +427,14 @@ const CashFlowPage = () => {
         calendarOpen={calendarOpen}
         setCalendarOpen={setCalendarOpen}
         users={users}
+        categories={categories}
+      />
+      
+      <CategoryManagementDialog
+        isOpen={isCategoryDialogOpen}
+        onClose={() => setIsCategoryDialogOpen(false)}
+        categories={categories}
+        onCategoryCreated={handleCategoryCreated}
       />
       
       {editingTransaction && (
@@ -388,6 +443,7 @@ const CashFlowPage = () => {
           onClose={() => setIsEditDialogOpen(false)}
           transaction={editingTransaction}
           onSave={handleUpdateTransaction}
+          categories={categories}
         />
       )}
     </div>

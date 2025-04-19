@@ -31,11 +31,16 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   const [usersWithPaymentIssues, setUsersWithPaymentIssues] = useState<User[]>([]);
   
   // Fetch payment data to identify users with payment issues
-  const { payments } = usePaymentHistory();
+  const { payments, isLoading: paymentsLoading, refetch } = usePaymentHistory();
   
   useEffect(() => {
     setUsers(initialUsers);
   }, [initialUsers]);
+  
+  useEffect(() => {
+    // Fetch payment issues on component mount
+    refetch();
+  }, [refetch]);
   
   useEffect(() => {
     if (payments && users.length > 0) {
@@ -110,6 +115,10 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
         }));
         
         setUsers(transformedUsers);
+        
+        // Also refresh the payment data to update users with payment issues
+        refetch();
+        
         toast.success("Lista de usuários atualizada com sucesso!");
       }
     } catch (error) {
