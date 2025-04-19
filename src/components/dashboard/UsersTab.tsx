@@ -1,16 +1,17 @@
-
 import React, { useState, useEffect } from "react";
 import { User } from "@/types";
-import { Button } from "@/components/ui/button";
-import { Plus, RefreshCcw, UserCheck } from "lucide-react";
 import UsersProfileView from "./UsersProfileView";
 import UsersSearch from "./users/UsersSearch";
 import UsersTable from "./users/UsersTable";
 import CreateUserDialog from "./users/CreateUserDialog";
-import { Badge } from "@/components/ui/badge";
+import ApproveUserDialog from "./ApproveUserDialog";
+import UsersHeader from "./users/UsersHeader";
+import UserStats from "./users/UserStats";
+import PendingUsersAlert from "./users/PendingUsersAlert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import ApproveUserDialog from "./ApproveUserDialog";
+import { UserCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface UsersTabProps {
   users: User[];
@@ -36,6 +37,8 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
     setApproveDialogOpen(true);
   };
 
+  const pendingUsersCount = users.filter(user => user.status === "Pendente").length;
+  
   const filteredUsers = users.filter((user) => {
     // Apply text search filter
     const search = searchTerm.toLowerCase();
@@ -98,11 +101,7 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
       setIsRefreshing(false);
     }
   };
-  
-  const activeUsersCount = users.filter(user => user.status === "Ativo").length;
-  const inactiveUsersCount = users.filter(user => user.status === "Inativo").length;
-  const pendingUsersCount = users.filter(user => user.status === "Pendente").length;
-  
+
   // Show profile view if a user is selected
   if (selectedUserId) {
     return (
@@ -115,65 +114,21 @@ const UsersTab: React.FC<UsersTabProps> = ({ users: initialUsers, onEditUser }) 
   
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Usuários</h2>
-          <p className="text-gray-500">Gerenciar alunos, professores e administradores</p>
-        </div>
-        <div className="flex space-x-2">
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCcw className="mr-2 h-4 w-4" />
-            {isRefreshing ? "Atualizando..." : "Atualizar"}
-          </Button>
-          <Button 
-            className="bg-blue-600 text-white hover:bg-blue-700" 
-            onClick={() => setShowNewUserDialog(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" /> Novo Usuário
-          </Button>
-        </div>
-      </div>
+      <UsersHeader 
+        onRefresh={handleRefresh}
+        onNewUser={() => setShowNewUserDialog(true)}
+        isRefreshing={isRefreshing}
+      />
       
-      {/* Pending users notification */}
-      {pendingUsersCount > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <UserCheck className="h-5 w-5 text-amber-600 mr-2" />
-            <span className="text-amber-800">
-              {pendingUsersCount} {pendingUsersCount === 1 ? 'usuário pendente' : 'usuários pendentes'} de aprovação
-            </span>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="border-amber-300 hover:bg-amber-100 text-amber-800"
-            onClick={() => setStatusFilter("pending")}
-          >
-            Ver pendentes
-          </Button>
-        </div>
-      )}
+      <PendingUsersAlert
+        pendingUsersCount={pendingUsersCount}
+        onViewPending={() => setStatusFilter("pending")}
+      />
       
-      {/* User stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="border rounded-lg p-4 bg-white">
-          <div className="text-sm font-medium text-gray-500">Total de Usuários</div>
-          <div className="text-2xl font-bold mt-1">{users.length}</div>
-        </div>
-        <div className="border rounded-lg p-4 bg-white">
-          <div className="text-sm font-medium text-gray-500">Usuários Ativos</div>
-          <div className="text-2xl font-bold mt-1 text-green-600">{activeUsersCount}</div>
-        </div>
-        <div className="border rounded-lg p-4 bg-white">
-          <div className="text-sm font-medium text-gray-500">Usuários Pendentes</div>
-          <div className="text-2xl font-bold mt-1 text-amber-600">{pendingUsersCount}</div>
-        </div>
-      </div>
+      <UserStats 
+        users={users}
+        pendingUsersCount={pendingUsersCount}
+      />
       
       <UsersSearch 
         searchTerm={searchTerm}
