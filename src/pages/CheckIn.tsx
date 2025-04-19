@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import CheckInHeader from "../components/CheckInHeader";
-import BottomNavigation from "../components/BottomNavigation";
 import DashboardTab from "../components/tabs/DashboardTab";
 import ClassesTab from "../components/tabs/ClassesTab";
 import TrainingTab from "../components/tabs/TrainingTab";
@@ -55,7 +54,7 @@ const CheckIn = () => {
   }
   
   return (
-    <div className="max-w-md mx-auto px-4 pb-20">
+    <div className="max-w-md mx-auto px-4">
       <CheckInHeader 
         onTabChange={handleTabChange}
         onSignOut={signOut}
@@ -86,12 +85,6 @@ const CheckIn = () => {
           <ProfileTab onSignOut={signOut} />
         </TabsContent>
       </Tabs>
-      
-      {/* Bottom Navigation */}
-      <BottomNavigation 
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-      />
     </div>
   );
 };
