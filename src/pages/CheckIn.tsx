@@ -23,10 +23,7 @@ const CheckIn = () => {
   
   return (
     <div className="max-w-md mx-auto px-4 pb-16">
-      <CheckInHeader 
-        onTabChange={handleTabChange}
-        onSignOut={signOut}
-      />
+      <CheckInHeader />
       
       <CheckInTabs
         activeTab={activeTab}
