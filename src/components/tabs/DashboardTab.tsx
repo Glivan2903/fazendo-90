@@ -1,10 +1,14 @@
 
 import React from "react";
-import { Calendar, BarChart2, User } from "lucide-react";
+import { Calendar, BarChart2, User, DollarSign } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Class } from "@/types";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardTabProps {
   classes: Class[];
@@ -17,6 +21,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
   onTabChange,
   onClassClick
 }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { subscription } = useSubscriptionStatus(user?.id);
+  
   // Get the next scheduled class (if any)
   const now = new Date();
   const upcomingClass = classes.find(cls => new Date(cls.startTime) > now);
@@ -33,6 +41,78 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Resumo Financeiro Card - Para usuários com assinatura */}
+      {subscription && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center text-lg">
+              <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+              Resumo Financeiro
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="border rounded-lg p-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm text-gray-500">Plano Atual</h4>
+                    <p className="font-medium">{subscription.plans?.name || "Plano Padrão"}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm text-gray-500">Status</h4>
+                    <Badge className={`${
+                      subscription.status === 'active' ? 'bg-green-100 text-green-800' : 
+                      subscription.status === 'expired' ? 'bg-red-100 text-red-800' : 
+                      'bg-amber-100 text-amber-800'
+                    }`}>
+                      {subscription.status === 'active' ? 'Ativo' : 
+                       subscription.status === 'expired' ? 'Vencido' : 
+                       'Pendente'}
+                    </Badge>
+                  </div>
+                  <div>
+                    <h4 className="text-sm text-gray-500">Validade</h4>
+                    <p>{subscription.formattedEndDate}</p>
+                  </div>
+                  <div>
+                    <h4 className="text-sm text-gray-500">Valor</h4>
+                    <p className="font-medium text-green-600">
+                      {subscription.plans?.amount 
+                        ? `R$ ${subscription.plans.amount.toFixed(2)}` 
+                        : "--"}
+                    </p>
+                  </div>
+                </div>
+                
+                {subscription.hasUnpaidPayments && (
+                  <div className="mt-4 border-t pt-3">
+                    <div className="flex items-center justify-between">
+                      <div className="text-amber-700">
+                        <p className="font-medium">Você possui pagamentos pendentes</p>
+                      </div>
+                      <button 
+                        onClick={() => navigate('/profile/' + user?.id)}
+                        className="bg-blue-600 text-white px-3 py-1 text-sm rounded hover:bg-blue-700 transition-colors"
+                      >
+                        Ver detalhes
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {subscription.daysUntilExpiration !== null && subscription.daysUntilExpiration <= 7 && (
+                  <div className="mt-4 border-t pt-3">
+                    <div className="text-amber-700">
+                      <p className="font-medium">Sua assinatura vence em {subscription.daysUntilExpiration} dias</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Welcome Card */}
       <Card>
         <CardHeader>

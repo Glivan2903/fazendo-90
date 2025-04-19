@@ -3,10 +3,9 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileEdit, Eye } from 'lucide-react';
+import { FileEdit, Eye, Calendar, DollarSign, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface MovementsTableProps {
   movements: any[];
@@ -56,93 +55,97 @@ export const MovementsTable: React.FC<MovementsTableProps> = ({
     }
   };
 
+  const getMovementTypeIcon = (movement: any) => {
+    if (movement.bank_invoice) {
+      return <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1">
+        <DollarSign className="h-3 w-3" />
+        Venda
+      </Badge>;
+    } else {
+      return <Badge className="bg-green-100 text-green-800 flex items-center gap-1">
+        <Calendar className="h-3 w-3" />
+        Mensalidade
+      </Badge>;
+    }
+  };
+
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-[50px] text-center"></TableHead>
-            <TableHead>Número</TableHead>
-            <TableHead>Forma pagto</TableHead>
-            <TableHead>Venda</TableHead>
-            <TableHead>Observação</TableHead>
-            <TableHead>Data de vencimento</TableHead>
-            <TableHead>Valor bruto</TableHead>
-            <TableHead>Valor da taxa</TableHead>
-            <TableHead>Desc Parcela</TableHead>
-            <TableHead>Valor líquido</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="w-[100px]"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {movements.length > 0 ? (
-            movements.map((movement) => {
-              const displayNumber = movement.bank_invoice?.invoice_number || 
-                                   (movement.reference ? movement.reference : movement.id.substring(0, 8));
-              
-              return (
-                <TableRow key={movement.id} className="cursor-pointer hover:bg-gray-50" onClick={() => onSaleClick(movement)}>
-                  <TableCell className="text-center">
-                    <input type="checkbox" className="rounded border-gray-300" onClick={(e) => e.stopPropagation()} />
-                  </TableCell>
-                  <TableCell>{displayNumber}</TableCell>
-                  <TableCell>{getPaymentMethodText(movement.payment_method)}</TableCell>
-                  <TableCell>
-                    {movement.bank_invoice?.invoice_number ? (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                        {movement.bank_invoice.invoice_number}
-                      </Badge>
-                    ) : (
-                      '-'
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge className="bg-blue-100 text-blue-800 rounded-full">
-                      {movement.bank_invoice ? 'Venda' : 'Pagamento'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(movement.due_date)}</TableCell>
-                  <TableCell>{formatCurrency(movement.bank_invoice?.total_amount || movement.amount)}</TableCell>
-                  <TableCell>{formatCurrency(0)}</TableCell>
-                  <TableCell>{formatCurrency(0)}</TableCell>
-                  <TableCell>{formatCurrency(movement.amount)}</TableCell>
-                  <TableCell>{getStatusBadge(movement.status)}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSaleClick(movement);
-                        }}
-                      >
-                        <FileEdit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          ) : (
-            <TableRow>
-              <TableCell colSpan={12} className="text-center py-6">
-                Nenhuma movimentação encontrada
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+    <div className="space-y-4">
+      {movements.length === 0 ? (
+        <div className="border rounded-md p-6 text-center text-gray-500">
+          <AlertCircle className="h-12 w-12 mx-auto mb-2 text-gray-400" />
+          <h3 className="text-lg font-medium">Nenhuma movimentação encontrada</h3>
+          <p className="text-sm">Este aluno ainda não possui movimentações financeiras registradas.</p>
+        </div>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Número</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Vencimento</TableHead>
+                <TableHead>Pagamento</TableHead>
+                <TableHead>Forma</TableHead>
+                <TableHead>Valor</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[100px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {movements.map((movement) => {
+                const displayNumber = movement.bank_invoice?.invoice_number 
+                  ? `#${movement.bank_invoice.invoice_number.padStart(4, '0')}`
+                  : `#${movement.id.substring(0, 8)}`;
+                
+                return (
+                  <TableRow key={movement.id} className="cursor-pointer hover:bg-gray-50" onClick={() => onSaleClick(movement)}>
+                    <TableCell>{displayNumber}</TableCell>
+                    <TableCell>{getMovementTypeIcon(movement)}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">
+                      {movement.notes || 
+                       (movement.bank_invoice ? `Venda - ${movement.bank_invoice.invoice_number}` : 'Pagamento')}
+                    </TableCell>
+                    <TableCell>{formatDate(movement.due_date)}</TableCell>
+                    <TableCell>
+                      {movement.payment_date ? formatDate(movement.payment_date) : '--/--/----'}
+                    </TableCell>
+                    <TableCell>{getPaymentMethodText(movement.payment_method)}</TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(movement.amount)}
+                    </TableCell>
+                    <TableCell>{getStatusBadge(movement.status)}</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSaleClick(movement);
+                          }}
+                        >
+                          <FileEdit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8" 
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 };
