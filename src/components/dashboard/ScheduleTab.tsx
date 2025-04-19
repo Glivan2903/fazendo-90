@@ -858,4 +858,4 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {formData.date ? format(formData.date, "dd/MM/yyyy") : <span>Selecione uma data</span>}
                   </Button>
-                </Popover
+                </PopoverTrigger>
