@@ -21,6 +21,7 @@ export interface Subscription {
     amount: number;
     periodicity: string;
     days_validity: number;
+    auto_renewal?: boolean;
   };
   payments?: Payment[];
 }

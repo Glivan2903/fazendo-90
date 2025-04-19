@@ -36,7 +36,8 @@ const UserPlansManagement: React.FC<UserPlansManagementProps> = ({ userId }) => 
             name,
             amount,
             periodicity,
-            days_validity
+            days_validity,
+            auto_renewal
           )
         `)
         .eq('user_id', userId)

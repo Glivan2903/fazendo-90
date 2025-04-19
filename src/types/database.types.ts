@@ -85,6 +85,8 @@ export type Tables = {
     amount: number;
     periodicity: string;
     active?: boolean;
+    auto_renewal?: boolean;
+    days_validity?: number;
     created_at?: string;
     updated_at?: string;
   };
@@ -102,6 +104,7 @@ export type Tables = {
       id: string;
       name: string;
       periodicity: string;
+      auto_renewal?: boolean;
     };
   };
 
