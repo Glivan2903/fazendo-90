@@ -24,7 +24,7 @@ export const useTransactions = () => {
         id: item.id,
         date: item.due_date,
         category: item.category || 'Sem categoria',
-        description: item.buyer_name || 'Sem descrição',
+        description: item.description || item.buyer_name || 'Sem descrição',
         amount: item.total_amount,
         status: item.status,
         payment_method: item.payment_method || 'Não definido',

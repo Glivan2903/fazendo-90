@@ -154,20 +154,29 @@ const CashFlowPage = () => {
   const handleExpenseSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Generate invoice number (could be done on the server side with a function)
+      const timestamp = new Date().getTime();
+      const invoiceNumber = `EXP-${timestamp}`;
+      
       const newExpense = {
-        date: expenseFormValues.date.toISOString(),
+        due_date: expenseFormValues.date.toISOString(),
         fornecedor: expenseFormValues.fornecedor,
+        buyer_name: "Despesa", // Default value for expenses
         description: expenseFormValues.description,
         category: expenseFormValues.category,
-        amount: Number(expenseFormValues.amount),
+        total_amount: Number(expenseFormValues.amount),
+        discount_amount: 0,
         status: expenseFormValues.status,
         payment_method: expenseFormValues.payment_method,
         bank_account: expenseFormValues.bank_account,
-        transaction_type: 'expense'
+        transaction_type: 'expense',
+        invoice_number: invoiceNumber,
+        user_id: (users && users.length > 0) ? users[0].id : '00000000-0000-0000-0000-000000000000', // First user as default or a placeholder
+        sale_date: new Date().toISOString().split('T')[0]
       };
 
       const { error } = await supabase
-        .from('transactions')
+        .from('bank_invoices')
         .insert([newExpense]);
 
       if (error) throw error;
@@ -196,21 +205,28 @@ const CashFlowPage = () => {
   const handleIncomeSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Generate invoice number
+      const timestamp = new Date().getTime();
+      const invoiceNumber = `INC-${timestamp}`;
+      
       const newIncome = {
-        date: incomeFormValues.date.toISOString(),
+        due_date: incomeFormValues.date.toISOString(),
         buyer_name: incomeFormValues.buyer_name,
-        user_id: incomeFormValues.user_id,
+        user_id: incomeFormValues.user_id || (users && users.length > 0 ? users[0].id : '00000000-0000-0000-0000-000000000000'),
         description: incomeFormValues.description,
         category: incomeFormValues.category,
-        amount: Number(incomeFormValues.amount),
+        total_amount: Number(incomeFormValues.amount),
+        discount_amount: 0,
         status: incomeFormValues.status,
         payment_method: incomeFormValues.payment_method,
         bank_account: incomeFormValues.bank_account,
-        transaction_type: 'income'
+        transaction_type: 'income',
+        invoice_number: invoiceNumber,
+        sale_date: new Date().toISOString().split('T')[0]
       };
 
       const { error } = await supabase
-        .from('transactions')
+        .from('bank_invoices')
         .insert([newIncome]);
 
       if (error) throw error;
