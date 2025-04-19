@@ -1,4 +1,3 @@
-
 import { Class, ClassDetail, Attendee } from "../types";
 import { generateClassesForDay, generateAttendees } from "./mockData";
 import { addDays, format, isValid } from "date-fns";
@@ -303,7 +302,7 @@ export const checkInToClass = async (classId: string): Promise<boolean | string>
 
     const { data: classData, error: classError } = await supabase
       .from('classes')
-      .select('date, start_time, end_time, check_in_settings')
+      .select('date, start_time, end_time')
       .eq('id', classId)
       .single();
 
@@ -324,25 +323,8 @@ export const checkInToClass = async (classId: string): Promise<boolean | string>
       return false;
     }
     
-    // Check if there's a check-in time limit configuration
-    if (classData.check_in_settings) {
-      const settings = classData.check_in_settings;
-      
-      if (settings.closeCheckInMinutes) {
-        const closeMinutes = settings.closeCheckInMinutes;
-        const closeWhen = settings.closeCheckInWhen || 'after';
-        
-        // Calculate limit time based on settings
-        const limitTime = new Date(closeWhen === 'before' ? 
-          startTime.getTime() - (closeMinutes * 60 * 1000) : 
-          startTime.getTime() + (closeMinutes * 60 * 1000));
-        
-        if (now > limitTime) {
-          toast.error("O tempo para confirmar check-in acabou");
-          return false;
-        }
-      }
-    }
+    // Note: Check-in settings functionality will be implemented after the column exists
+    // For now we'll use a default behavior where check-in is allowed before the class ends
 
     const { data: existingCheckins, error: checkinsError } = await supabase
       .from('checkins')

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Class } from "@/types";
 import { format, parseISO, startOfWeek, addDays, isValid } from "date-fns";
@@ -156,7 +155,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               coachName: cls.profiles?.name || "Coach",
               startTime: now,
               endTime: new Date(now.getTime() + 3600000),
-              maxCapacity: cls.max_capacity || 15,
+              maxCapacity: cls.max_capacity,
               attendeeCount: cls.checkins ? cls.checkins.length : 0,
               spotsLeft: (cls.max_capacity || 15) - (cls.checkins ? cls.checkins.length : 0),
               isCheckedIn: false,
@@ -364,14 +363,15 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
       const startTimeStr = `${formData.startHour}:${formData.startMinute}:00`;
       const endTimeStr = `${formData.endHour}:${formData.endMinute}:00`;
       
+      const checkInSettings = formData.checkInSettings;
+      
       const classDataToSave = {
         date: dateStr,
         start_time: startTimeStr,
         end_time: endTimeStr,
         max_capacity: formData.maxCapacity,
         program_id: formData.programId,
-        coach_id: formData.coachId,
-        check_in_settings: formData.checkInSettings
+        coach_id: formData.coachId
       };
       
       if (selectedClass?.id) {
@@ -871,7 +871,6 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
               </Popover>
             </div>
             
-            {/* Time selection fields */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Hora Início</Label>
