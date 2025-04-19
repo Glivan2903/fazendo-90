@@ -1,6 +1,6 @@
 
 import React from "react";
-import { format, addDays } from "date-fns";
+import { format, addDays, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Plus, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
