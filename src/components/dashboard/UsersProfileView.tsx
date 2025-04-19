@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -14,7 +15,7 @@ import { CalendarX, Clock, AlertTriangle } from 'lucide-react';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import UserHistoryDialog from './attendance/UserHistoryDialog';
-import UserFinancialMovements from './users/UserFinancialMovements';
+import UserPlansManagement from './users/UserPlansManagement';
 import UserCheckinHistory from './users/UserCheckinHistory';
 import UserBankInvoices from './users/UserBankInvoices';
 
@@ -171,9 +172,9 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-transparent border-b w-full justify-start">
             <TabsTrigger value="profile">Perfil</TabsTrigger>
+            <TabsTrigger value="plans">Planos</TabsTrigger>
             <TabsTrigger value="bank-invoices">Faturas</TabsTrigger>
             <TabsTrigger value="checkins">Check-ins</TabsTrigger>
-            <TabsTrigger value="movements">Movimentações</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="mt-0 space-y-6">
@@ -319,16 +320,16 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
             </div>
           </TabsContent>
 
+          <TabsContent value="plans" className="mt-0">
+            <UserPlansManagement userId={userId} />
+          </TabsContent>
+
           <TabsContent value="bank-invoices" className="mt-0">
             <UserBankInvoices userId={userId} />
           </TabsContent>
 
           <TabsContent value="checkins" className="mt-0">
             <UserCheckinHistory userId={userId} checkins={userCheckinHistory} />
-          </TabsContent>
-
-          <TabsContent value="movements" className="mt-0">
-            <UserFinancialMovements userId={userId} />
           </TabsContent>
         </Tabs>
       </div>

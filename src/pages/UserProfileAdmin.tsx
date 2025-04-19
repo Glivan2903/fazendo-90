@@ -9,8 +9,10 @@ import UserProfileNotes from '@/components/profile/admin/UserProfileNotes';
 import UserProfileActions from '@/components/profile/admin/UserProfileActions';
 import { Card } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import UserFinancialMovements from '@/components/dashboard/users/UserFinancialMovements';
+import UserPlansManagement from '@/components/dashboard/users/UserPlansManagement';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import UserCheckinHistory from '@/components/dashboard/users/UserCheckinHistory';
+import UserBankInvoices from '@/components/dashboard/users/UserBankInvoices';
 
 interface UserProfile {
   id: string;
@@ -139,7 +141,8 @@ const UserProfileAdmin = () => {
           <Tabs defaultValue="profile" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="mb-4">
               <TabsTrigger value="profile">Perfil</TabsTrigger>
-              <TabsTrigger value="financials">Movimentações</TabsTrigger>
+              <TabsTrigger value="plans">Planos</TabsTrigger>
+              <TabsTrigger value="financials">Faturas</TabsTrigger>
               <TabsTrigger value="checkins">Check-ins</TabsTrigger>
             </TabsList>
             
@@ -162,15 +165,19 @@ const UserProfileAdmin = () => {
               </Card>
             </TabsContent>
             
+            <TabsContent value="plans">
+              <UserPlansManagement userId={userId} />
+            </TabsContent>
+            
             <TabsContent value="financials">
-              <UserFinancialMovements userId={userId} />
+              <UserBankInvoices userId={userId} />
             </TabsContent>
             
             <TabsContent value="checkins">
-              <Card className="p-6">
-                <h2 className="text-xl font-bold mb-4">Histórico de Check-ins</h2>
-                <p>Histórico de check-ins do usuário será exibido aqui.</p>
-              </Card>
+              <UserCheckinHistory 
+                userId={userId} 
+                checkins={[]} 
+              />
             </TabsContent>
           </Tabs>
         </div>
