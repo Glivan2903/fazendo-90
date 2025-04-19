@@ -39,8 +39,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     }
   };
 
-  // Check user status from user.user_metadata?.status or directly from user object
-  const userStatus = user?.user_metadata?.status || user?.status || 'Ativo';
+  // Check user status from user metadata or context
+  // Since the User type doesn't have a status property directly,
+  // we need to handle it through user_metadata or fallback to a default
+  const userStatus = user?.user_metadata?.status || 'Ativo';
 
   return (
     <div className="space-y-6">

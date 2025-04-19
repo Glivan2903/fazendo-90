@@ -19,6 +19,7 @@ export const useTransactions = () => {
         
       if (error) throw error;
       
+      // Type-safe mapping with explicit casting for transaction_type
       const formattedData = data.map(item => ({
         id: item.id,
         date: item.due_date,
@@ -29,9 +30,11 @@ export const useTransactions = () => {
         payment_method: item.payment_method || 'Não definido',
         fornecedor: item.fornecedor || null,
         bank_account: item.bank_account || 'Conta Principal',
-        transaction_type: item.transaction_type || 'income',
+        transaction_type: (item.transaction_type === 'income' || item.transaction_type === 'expense') 
+          ? item.transaction_type 
+          : 'income' as 'income' | 'expense', // Default to 'income' if invalid value
         buyer_name: item.buyer_name
-      }));
+      })) as Transaction[];
       
       setTransactions(formattedData);
     } catch (error) {
