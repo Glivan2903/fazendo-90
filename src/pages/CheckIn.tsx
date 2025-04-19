@@ -3,6 +3,7 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import CheckInHeader from "../components/CheckInHeader";
 import CheckInTabs from "../components/check-in/CheckInTabs";
+import BottomNavigation from "../components/BottomNavigation";
 import { useCheckInPage } from "@/hooks/useCheckInPage";
 
 const CheckIn = () => {
@@ -21,7 +22,7 @@ const CheckIn = () => {
   }
   
   return (
-    <div className="max-w-md mx-auto px-4">
+    <div className="max-w-md mx-auto px-4 pb-16">
       <CheckInHeader 
         onTabChange={handleTabChange}
         onSignOut={signOut}
@@ -34,6 +35,11 @@ const CheckIn = () => {
         onTabChange={handleTabChange}
         onClassClick={handleClassClick}
         onSignOut={signOut}
+      />
+      
+      <BottomNavigation 
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
       />
     </div>
   );

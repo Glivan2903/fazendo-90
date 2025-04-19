@@ -18,9 +18,7 @@ const CheckInHeader: React.FC<CheckInHeaderProps> = ({ onTabChange, onSignOut })
   return (
     <header className="py-6 flex justify-between items-center">
       <div className="flex-1"></div>
-      <div className="text-center flex-1">
-        <h1 className="font-bold text-lg text-center">Cross Box Fênix</h1>
-      </div>
+      <div className="text-center flex-1"></div>
       
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
