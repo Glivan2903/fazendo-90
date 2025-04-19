@@ -39,10 +39,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     }
   };
 
-  // Check user status from user metadata or context
-  // Since the User type doesn't have a status property directly,
-  // we need to handle it through user_metadata or fallback to a default
-  const userStatus = user?.user_metadata?.status || 'Ativo';
+  // Check subscription status to determine user status
+  // If the user has pending payments or expired subscription, show as Pendente
+  const hasPaymentIssues = subscription?.hasUnpaidPayments || subscription?.isExpired;
+  const userStatus = hasPaymentIssues ? 'Pendente' : (user?.user_metadata?.status || 'Ativo');
 
   return (
     <div className="space-y-6">
@@ -51,11 +51,11 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center text-amber-800">
               <AlertCircle className="h-5 w-5 mr-2" />
-              Conta Pendente de Aprovação
+              Pagamento Pendente
             </CardTitle>
           </CardHeader>
           <CardContent className="text-amber-800">
-            <p>Sua conta está aguardando aprovação do administrador. Você será notificado assim que sua conta for aprovada.</p>
+            <p>Você possui pagamentos pendentes. Por favor, regularize sua situação para continuar usando todos os recursos.</p>
           </CardContent>
         </Card>
       ) : subscription ? (

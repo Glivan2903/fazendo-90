@@ -2,8 +2,11 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TransactionTable } from './components/TransactionTable';
-import { ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle, Plus } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
+import { Button } from "@/components/ui/button";
+import NewExpenseDialog from './components/dialogs/NewExpenseDialog';
+import NewIncomeDialog from './components/dialogs/NewIncomeDialog';
 
 const CashFlowPage = () => {
   const { 
@@ -17,6 +20,8 @@ const CashFlowPage = () => {
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [pendingIncome, setPendingIncome] = useState(0);
   const [paidAndPendingIncome, setPaidAndPendingIncome] = useState(0);
+  const [isNewExpenseDialogOpen, setIsNewExpenseDialogOpen] = useState(false);
+  const [isNewIncomeDialogOpen, setIsNewIncomeDialogOpen] = useState(false);
 
   useEffect(() => {
     // Calculate totals when transactions change
@@ -42,6 +47,29 @@ const CashFlowPage = () => {
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Fluxo de Caixa</h2>
+        <div className="flex space-x-2">
+          <Button 
+            size="sm" 
+            variant="outline" 
+            className="flex items-center" 
+            onClick={() => setIsNewExpenseDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Despesa
+          </Button>
+          <Button 
+            size="sm" 
+            className="flex items-center" 
+            onClick={() => setIsNewIncomeDialogOpen(true)}
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Nova Receita
+          </Button>
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -113,6 +141,16 @@ const CashFlowPage = () => {
           />
         </CardContent>
       </Card>
+
+      <NewExpenseDialog 
+        isOpen={isNewExpenseDialogOpen}
+        onClose={() => setIsNewExpenseDialogOpen(false)}
+      />
+
+      <NewIncomeDialog
+        isOpen={isNewIncomeDialogOpen}
+        onClose={() => setIsNewIncomeDialogOpen(false)}
+      />
     </div>
   );
 };
