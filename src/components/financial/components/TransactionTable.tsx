@@ -45,7 +45,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       case 'paid':
         return <Badge className="bg-green-100 text-green-800">Pago</Badge>;
       case 'pending':
-        return <Badge className="bg-red-100 text-red-800">Pagamento</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>;
       case 'overdue':
         return <Badge className="bg-red-100 text-red-800">Atrasado</Badge>;
       default:

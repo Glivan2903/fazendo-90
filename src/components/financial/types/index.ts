@@ -1,5 +1,4 @@
-
-export type Transaction = {
+export interface Transaction {
   id: string;
   date: string;
   category: string;
@@ -7,11 +6,16 @@ export type Transaction = {
   amount: number;
   status: string;
   payment_method?: string;
+  fornecedor?: string;
   bank_account?: string;
   transaction_type: 'income' | 'expense';
-  fornecedor?: string | null;
-  buyer_name?: string;
-};
+  buyer_name: string;
+}
+
+export interface Supplier {
+  id: string;
+  name: string;
+}
 
 export interface NewIncomeDialogProps {
   isOpen: boolean;
@@ -19,20 +23,43 @@ export interface NewIncomeDialogProps {
   onSubmit: (e: React.FormEvent) => void;
   formValues: {
     date: Date;
-    buyer_name: string;
-    user_id: string;
-    description: string;
     category: string;
+    description: string;
     amount: string;
     status: string;
     payment_method: string;
+    fornecedor: string;
+    user_id: string;
     bank_account: string;
   };
-  handleFormChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   handleSelectChange: (name: string, value: string) => void;
   handleDateChange: (date: Date | undefined) => void;
-  users: any[];
+  users: Array<{ id: string; name: string; email: string }>;
   calendarOpen: boolean;
   setCalendarOpen: (open: boolean) => void;
-  categories?: string[];
+}
+
+export interface NewExpenseDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  formValues: {
+    date: Date;
+    category: string;
+    description: string;
+    amount: string;
+    status: string;
+    payment_method: string;
+    fornecedor: string;
+    user_id: string;
+    bank_account: string;
+  };
+  handleFormChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  handleSelectChange: (name: string, value: string) => void;
+  handleDateChange: (date: Date | undefined) => void;
+  suppliers: Supplier[];
+  calendarOpen: boolean;
+  setCalendarOpen: (open: boolean) => void;
+  fetchSuppliers: () => void;
 }

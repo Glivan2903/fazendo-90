@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Calendar, BarChart2, User, DollarSign, AlertCircle } from "lucide-react";
+import { Calendar, BarChart2, User, DollarSign } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Class } from "@/types";
 import { format } from "date-fns";
@@ -39,26 +39,10 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     }
   };
 
-  // Check subscription status to determine user status
-  // If the user has pending payments or expired subscription, show as Pendente
-  const hasPaymentIssues = subscription?.hasUnpaidPayments || subscription?.isExpired;
-  const userStatus = hasPaymentIssues ? 'Pendente' : (user?.user_metadata?.status || 'Ativo');
-
   return (
     <div className="space-y-6">
-      {userStatus === 'Pendente' ? (
-        <Card className="border-amber-200 bg-amber-50">
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center text-amber-800">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              Pagamento Pendente
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-amber-800">
-            <p>Você possui pagamentos pendentes. Por favor, regularize sua situação para continuar usando todos os recursos.</p>
-          </CardContent>
-        </Card>
-      ) : subscription ? (
+      {/* Resumo Financeiro Card - Para usuários com assinatura */}
+      {subscription && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center text-lg">
@@ -127,7 +111,7 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
           </CardContent>
         </Card>
-      ) : null}
+      )}
       
       {/* Welcome Card */}
       <Card>

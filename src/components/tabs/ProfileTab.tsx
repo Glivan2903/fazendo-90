@@ -118,10 +118,6 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
     }
   };
 
-  // Determine user status based on subscription
-  const hasPaymentIssues = subscription?.hasUnpaidPayments || subscription?.isExpired;
-  const profileStatus = hasPaymentIssues ? 'Pendente' : (userProfile?.status || 'Ativo');
-
   // Create user info object with proper typing
   const userInfoData = {
     name: userProfile?.name || user?.user_metadata?.name,
@@ -160,13 +156,11 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
         </Button>
       </div>
 
-      {hasPaymentIssues && (
+      {subscription?.isExpired && (
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            {subscription?.isExpired 
-              ? 'Sua assinatura está vencida. Por favor, entre em contato com a administração para renovar.'
-              : 'Você possui pagamentos pendentes. Por favor, regularize sua situação.'}
+            Sua assinatura está vencida. Por favor, entre em contato com a administração para renovar.
           </AlertDescription>
         </Alert>
       )}
@@ -186,12 +180,10 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ onSignOut }) => {
                 <span className="text-gray-500">Status:</span>
                 <Badge className={
                   subscription.isExpired ? "bg-red-100 text-red-800" : 
-                  subscription.hasUnpaidPayments ? "bg-amber-100 text-amber-800" :
                   subscription.status === 'active' ? "bg-green-100 text-green-800" : 
                   "bg-amber-100 text-amber-800"
                 }>
                   {subscription.isExpired ? "Vencido" : 
-                   subscription.hasUnpaidPayments ? "Pendente" :
                    subscription.status === 'active' ? "Ativo" : "Inativo"}
                 </Badge>
               </div>
