@@ -12,16 +12,56 @@ import { Button } from '@/components/ui/button';
 import { MoreVertical, Trash2, Mail, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2 } from 'lucide-react';
 
 interface UserProfileActionsProps {
   userId: string;
 }
 
 const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
-  const handleDeleteUser = async () => {
-    if (!confirm('Tem certeza que deseja deletar este usuário?')) return;
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = React.useState(false);
+  const [isDeleting, setIsDeleting] = React.useState(false);
 
+  const handleDeleteUser = async () => {
+    // Prevent deleting your own admin account
+    if (user?.id === userId) {
+      toast.error('Você não pode deletar sua própria conta de administrador');
+      return;
+    }
+
+    setIsDeleting(true);
     try {
+      // Delete related data first
+      await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('user_id', userId);
+
+      await supabase
+        .from('checkins')
+        .delete()
+        .eq('user_id', userId);
+
+      await supabase
+        .from('payments')
+        .delete()
+        .eq('user_id', userId);
+
+      // Finally delete the profile
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -30,11 +70,13 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
       if (error) throw error;
 
       toast.success('Usuário deletado com sucesso');
-      // Redirect to users list or dashboard
-      window.location.href = '/teacher-dashboard';
+      navigate('/teacher-dashboard');
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Erro ao deletar usuário');
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
     }
   };
 
@@ -47,34 +89,65 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
   };
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="w-full mt-4">
-          <MoreVertical className="w-4 h-4 mr-2" />
-          Ações
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuLabel>Ações do Usuário</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleResetPassword}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Resetar Senha
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={handleSendNotification}>
-          <Mail className="w-4 h-4 mr-2" />
-          Enviar Notificação
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={handleDeleteUser}
-          className="text-red-600 focus:text-red-600"
-        >
-          <Trash2 className="w-4 h-4 mr-2" />
-          Deletar Usuário
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="w-full mt-4">
+            <MoreVertical className="w-4 h-4 mr-2" />
+            Ações
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuLabel>Ações do Usuário</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={handleResetPassword}>
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Resetar Senha
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleSendNotification}>
+            <Mail className="w-4 h-4 mr-2" />
+            Enviar Notificação
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={() => setIsDeleteDialogOpen(true)}
+            className="text-red-600 focus:text-red-600"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Deletar Usuário
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação não pode ser desfeita. Isso excluirá permanentemente o usuário
+              e todos os dados associados a ele.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deletando...
+                </>
+              ) : (
+                'Sim, deletar usuário'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 
