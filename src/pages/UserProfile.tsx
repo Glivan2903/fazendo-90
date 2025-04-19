@@ -12,9 +12,10 @@ import UserStats from '@/components/profile/UserStats';
 import { useSubscriptionStatus } from '@/hooks/useSubscriptionStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CalendarX, AlertTriangle } from 'lucide-react';
+import { Clock, CalendarX, AlertTriangle, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import AvatarUpload from '@/components/profile/AvatarUpload';
 
 const UserProfile = () => {
   const { userId } = useParams<{ userId: string }>();
@@ -99,18 +100,44 @@ const UserProfile = () => {
     }
   };
 
+  const handleAvatarUpdate = (url: string) => {
+    setUser(prev => ({
+      ...prev,
+      avatar_url: url
+    }));
+  };
+
   return (
-    <div className="max-w-md mx-auto px-4 py-6">
-      <ProfileHeader
-        name={user?.name || 'Usuário'}
-        memberSince={memberSince}
-        avatarUrl={user?.avatar_url}
-        initials={initials}
-        isEditing={isEditing}
-        isOwnProfile={isOwnProfile}
-        onBackClick={() => navigate(-1)}
-        onEditToggle={() => setIsEditing(!isEditing)}
-      />
+    <div className="max-w-md mx-auto px-4 py-6 pb-20">
+      <div className="mb-6">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="flex items-center text-sm font-medium text-gray-600 mb-4"
+        >
+          ← Voltar
+        </button>
+        
+        <div className="flex flex-col items-center text-center">
+          <AvatarUpload
+            avatarUrl={user?.avatar_url}
+            userId={userId || ''}
+            userInitials={initials}
+            onAvatarUpdate={handleAvatarUpdate}
+          />
+          
+          <h1 className="text-2xl font-bold mt-4">{user?.name || 'Usuário'}</h1>
+          <p className="text-sm text-gray-500">Membro desde {memberSince}</p>
+          
+          {isOwnProfile && (
+            <button 
+              onClick={() => setIsEditing(!isEditing)} 
+              className="mt-4 inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium bg-white hover:bg-gray-50"
+            >
+              {isEditing ? 'Cancelar' : 'Editar Perfil'}
+            </button>
+          )}
+        </div>
+      </div>
       
       {/* Subscription Card */}
       {!subscriptionLoading && subscription && (

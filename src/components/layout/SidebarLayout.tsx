@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Bell, Home, LogOut, CheckCircle, UserCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import BottomNavigation from '@/components/BottomNavigation';
+import { useCheckInPage } from '@/hooks/useCheckInPage';
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -22,10 +24,34 @@ interface SidebarLayoutProps {
 const SidebarLayout = ({ children }: SidebarLayoutProps) => {
   const { user, signOut, userRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const [pendingUsers, setPendingUsers] = useState(0);
   const [expiringSubscriptions, setExpiringSubscriptions] = useState(0);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  
+  // Get active tab from location
+  const getActiveTabFromLocation = () => {
+    const path = location.pathname;
+    if (path.includes('profile')) return 'perfil';
+    if (path.includes('check-in')) return 'inicio';
+    if (path.includes('aulas')) return 'aulas';
+    if (path.includes('treinos')) return 'treinos';
+    return 'inicio';
+  };
+  
+  const [activeTab, setActiveTab] = useState(getActiveTabFromLocation());
+  
+  useEffect(() => {
+    setActiveTab(getActiveTabFromLocation());
+  }, [location]);
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    if (tab === 'inicio') navigate('/check-in');
+    else if (tab === 'perfil' && user) navigate(`/profile/${user.id}`);
+    // Add other navigation options as needed
+  };
 
   useEffect(() => {
     if (userRole === 'admin') {
@@ -198,9 +224,14 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto bg-gray-50">
-        <div className="container mx-auto p-4 md:p-6">
+        <div className="container mx-auto p-4 md:p-6 pb-20">
           {children}
         </div>
+      </div>
+
+      {/* Bottom Navigation Bar - Always visible on mobile */}
+      <div className="md:hidden">
+        <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
     </div>
   );
