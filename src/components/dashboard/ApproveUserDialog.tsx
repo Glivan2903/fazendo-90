@@ -93,24 +93,35 @@ export default function ApproveUserDialog({
 
       if (subscriptionError) throw subscriptionError;
 
-      // 3. Create bank invoice for the plan
+      // 3. Generate invoice number
+      const { data: invoiceNumberData, error: invoiceNumberError } = await supabase
+        .rpc('generate_invoice_number');
+        
+      if (invoiceNumberError) throw invoiceNumberError;
+      
+      const invoiceNumber = invoiceNumberData || "";
+
+      // 4. Create bank invoice for the plan
       const { data: bankInvoice, error: bankInvoiceError } = await supabase
         .from('bank_invoices')
-        .insert([{
+        .insert({
           user_id: userId,
           total_amount: selectedPlan.amount,
           due_date: startDate.toISOString().split('T')[0],
           status: 'pending',
           category: 'Mensalidade',
           buyer_name: userName,
-          transaction_type: 'income'
-        }])
+          transaction_type: 'income',
+          invoice_number: invoiceNumber,
+          discount_amount: 0,
+          seller_name: 'Cross Box Fênix'
+        })
         .select()
         .single();
 
       if (bankInvoiceError) throw bankInvoiceError;
 
-      // 4. Create payment record
+      // 5. Create payment record
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([{
