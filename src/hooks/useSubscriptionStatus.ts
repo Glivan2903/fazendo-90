@@ -69,37 +69,15 @@ export const useSubscriptionStatus = (userId?: string) => {
           )
         `)
         .eq('user_id', userId)
-        .eq('status', 'active') // Specifically look for active subscriptions only
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
         
       if (subError) {
         if (subError.code === 'PGRST116') {
-          // No subscription found, try to get any subscription
-          const { data: anySubscription, error: anySubError } = await supabase
-            .from('subscriptions')
-            .select(`
-              *,
-              plans (
-                id,
-                name,
-                amount,
-                periodicity,
-                days_validity
-              )
-            `)
-            .eq('user_id', userId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-            
-          if (anySubError && anySubError.code !== 'PGRST116') {
-            console.error("Error fetching any subscription:", anySubError);
-            throw anySubError;
-          }
-          
-          return anySubscription || null;
+          // No subscription found
+          console.log("No subscription found for user:", userId);
+          return null;
         }
         console.error("Error fetching subscription:", subError);
         throw subError;
@@ -112,15 +90,12 @@ export const useSubscriptionStatus = (userId?: string) => {
       
       console.log("Fetched subscription:", subscription);
       
-      // Check if there are any pending payments only if needed
-      let pendingPayments = [];
-      
-      // Get payments for this subscription that are pending
+      // Get payments for this subscription
       const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select('*')
         .eq('subscription_id', subscription.id)
-        .eq('status', 'pending')
+        .eq('status', 'pending') // Only get pending payments
         .order('due_date', { ascending: true });
         
       if (paymentsError) {
@@ -129,10 +104,9 @@ export const useSubscriptionStatus = (userId?: string) => {
       }
 
       console.log("Fetched payments:", paymentsData);
-      pendingPayments = paymentsData || [];
 
       // Transform the data to match our types
-      const payments = pendingPayments ? pendingPayments.map(payment => ({
+      const payments = paymentsData ? paymentsData.map(payment => ({
         ...payment,
         status: payment.status as PaymentStatus
       })) : [];
@@ -140,12 +114,11 @@ export const useSubscriptionStatus = (userId?: string) => {
       // Ensure subscription status is one of the allowed types
       return {
         ...subscription,
-        status: subscription.status as SubscriptionStatus,
+        status: (subscription.status as SubscriptionStatus),
         payments
       };
     },
     enabled: !!userId,
-    staleTime: 10000, // Reduce refetching frequency
   });
   
   // Check if subscription is expired and update status in database if needed
@@ -180,7 +153,7 @@ export const useSubscriptionStatus = (userId?: string) => {
     enabled: !!subscriptionWithPayments?.id,
   });
   
-  const processedSubscription = subscriptionWithPayments ? formatSubscription(subscriptionWithPayments as Subscription) : null;
+  const processedSubscription = subscriptionWithPayments ? formatSubscription(subscriptionWithPayments) : null;
   
   const refreshData = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -200,8 +173,9 @@ function formatSubscription(subscription: Subscription): SubscriptionWithStatus 
   
   const daysUntilExpiration = isExpired ? null : differenceInDays(endDate, today);
   
-  // Check for unpaid payments based on actual payment records, not subscription status
-  const hasUnpaidPayments = (subscription.payments?.some(p => p.status === 'pending') || false);
+  // Verificar pagamentos pendentes apenas se a assinatura não for ativa
+  const hasUnpaidPayments = subscription.status !== 'active' && 
+                           (subscription.payments?.length > 0 || false);
   
   let statusColor = 'green';
   if (isExpired) {

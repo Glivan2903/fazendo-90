@@ -81,13 +81,11 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
 
       toast.success('Usuário deletado com sucesso');
       setIsDeleteDialogOpen(false);
-      
-      // Navigate first, then set state to avoid state updates on unmounted components
+      // Navigate after successful deletion
       navigate('/teacher-dashboard', { replace: true });
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Erro ao deletar usuário');
-      setIsDeleteDialogOpen(false);
     } finally {
       setIsDeleting(false);
     }
@@ -144,10 +142,7 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault(); // Prevent form submission
-                handleDeleteUser();
-              }}
+              onClick={handleDeleteUser}
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >

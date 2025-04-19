@@ -64,32 +64,46 @@ export default function ApproveUserDialog({
       setLoading(true);
 
       // 1. Primeiro, cancelar todas as assinaturas existentes
-      await supabase
+      const { error: cancelSubError } = await supabase
         .from('subscriptions')
         .delete()
         .eq('user_id', userId);
       
+      if (cancelSubError) {
+        console.error("Error canceling existing subscriptions:", cancelSubError);
+      }
+      
       // 2. Cancelar todas as faturas pendentes existentes
-      await supabase
+      const { error: cancelInvError } = await supabase
         .from('bank_invoices')
         .delete()
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('status', 'pending');
       
+      if (cancelInvError) {
+        console.error("Error canceling pending invoices:", cancelInvError);
+      }
+
       // 3. Também cancelar todos os pagamentos pendentes
-      await supabase
+      const { error: cancelPayError } = await supabase
         .from('payments')
         .delete()
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .eq('status', 'pending');
+      
+      if (cancelPayError) {
+        console.error("Error canceling pending payments:", cancelPayError);
+      }
 
-      // 4. Update user status to Ativo
+      // 4. Update user status to Pendente
       const { error: statusError } = await supabase
         .from('profiles')
-        .update({ status: 'Ativo' })
+        .update({ status: 'Pendente' })
         .eq('id', userId);
 
       if (statusError) throw statusError;
 
-      // 5. Create subscription for user based on selected plan with status active
+      // 5. Create subscription for user based on selected plan with status pending
       const selectedPlan = plans.find(p => p.id === selectedPlanId);
       if (!selectedPlan) throw new Error("Plano não encontrado");
       
@@ -104,7 +118,7 @@ export default function ApproveUserDialog({
           plan_id: selectedPlanId,
           start_date: startDate.toISOString().split('T')[0],
           end_date: endDate.toISOString().split('T')[0],
-          status: 'active'  // Set as active immediately
+          status: 'pending'
         }])
         .select()
         .single();
@@ -119,15 +133,14 @@ export default function ApproveUserDialog({
       
       const invoiceNumber = invoiceNumberData || "";
 
-      // 7. Create only one bank invoice for the plan
+      // 7. Create bank invoice for the plan
       const { data: bankInvoice, error: bankInvoiceError } = await supabase
         .from('bank_invoices')
         .insert({
           user_id: userId,
           total_amount: selectedPlan.amount,
           due_date: startDate.toISOString().split('T')[0],
-          status: 'paid',  // Set as paid immediately
-          payment_date: startDate.toISOString().split('T')[0],
+          status: 'pending',
           category: 'Mensalidade',
           buyer_name: userName,
           transaction_type: 'income',
@@ -140,7 +153,7 @@ export default function ApproveUserDialog({
 
       if (bankInvoiceError) throw bankInvoiceError;
 
-      // 8. Create payment record as already paid
+      // 8. Create payment record
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -148,27 +161,25 @@ export default function ApproveUserDialog({
           subscription_id: subscription.id,
           amount: selectedPlan.amount,
           due_date: startDate.toISOString().split('T')[0],
-          payment_date: startDate.toISOString().split('T')[0],
-          status: 'paid',
+          status: 'pending',
           reference: `Mensalidade - ${userName}`,
           bank_invoice_id: bankInvoice.id
         }]);
 
       if (paymentError) throw paymentError;
       
-      // 9. Update profile plan and status
+      // 9. Update profile plan
       const { error: updatePlanError } = await supabase
         .from('profiles')
         .update({ 
           plan: selectedPlan.name,
-          subscription_id: subscription.id,
-          status: 'Ativo'  // Set user as active immediately
+          subscription_id: subscription.id
         })
         .eq('id', userId);
         
       if (updatePlanError) throw updatePlanError;
 
-      toast.success(`Plano atribuído a ${userName} com sucesso!`);
+      toast.success(`Plano atribuído a ${userName} com sucesso! Aguardando confirmação de pagamento.`);
       onApproved();
       onOpenChange(false);
 
@@ -202,7 +213,7 @@ export default function ApproveUserDialog({
               onValueChange={setSelectedPlanId}
               disabled={loading || plans.length === 0}
             >
-              <SelectTrigger id="plan">
+              <SelectTrigger>
                 <SelectValue placeholder="Selecione um plano" />
               </SelectTrigger>
               <SelectContent>
