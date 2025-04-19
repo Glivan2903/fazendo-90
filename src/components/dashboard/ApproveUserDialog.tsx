@@ -63,7 +63,7 @@ export default function ApproveUserDialog({
 
       setLoading(true);
 
-      // 1. Update user status to Pendente (instead of Ativo)
+      // 1. Update user status to Pendente
       const { error: statusError } = await supabase
         .from('profiles')
         .update({ status: 'Pendente' })
@@ -79,17 +79,51 @@ export default function ApproveUserDialog({
       const endDate = new Date();
       endDate.setDate(endDate.getDate() + selectedPlan.days_validity);
       
-      const { error: subscriptionError } = await supabase
+      const { data: subscription, error: subscriptionError } = await supabase
         .from('subscriptions')
         .insert([{
           user_id: userId,
           plan_id: selectedPlanId,
           start_date: startDate.toISOString().split('T')[0],
           end_date: endDate.toISOString().split('T')[0],
-          status: 'pending'  // Start with pending status
-        }]);
+          status: 'pending'
+        }])
+        .select()
+        .single();
 
       if (subscriptionError) throw subscriptionError;
+
+      // 3. Create bank invoice for the plan
+      const { data: bankInvoice, error: bankInvoiceError } = await supabase
+        .from('bank_invoices')
+        .insert([{
+          user_id: userId,
+          total_amount: selectedPlan.amount,
+          due_date: startDate.toISOString().split('T')[0],
+          status: 'pending',
+          category: 'Mensalidade',
+          buyer_name: userName,
+          transaction_type: 'income'
+        }])
+        .select()
+        .single();
+
+      if (bankInvoiceError) throw bankInvoiceError;
+
+      // 4. Create payment record
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert([{
+          user_id: userId,
+          subscription_id: subscription.id,
+          amount: selectedPlan.amount,
+          due_date: startDate.toISOString().split('T')[0],
+          status: 'pending',
+          reference: `Mensalidade - ${userName}`,
+          bank_invoice_id: bankInvoice.id
+        }]);
+
+      if (paymentError) throw paymentError;
 
       toast.success(`Plano atribuído a ${userName} com sucesso! Aguardando confirmação de pagamento.`);
       onApproved();
