@@ -39,8 +39,8 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     }
   };
 
-  // Check user status from user.raw_user_meta_data?.status or directly from user object
-  const userStatus = user?.raw_user_meta_data?.status || user?.status || 'Ativo';
+  // Check user status from user.user_metadata?.status or directly from user object
+  const userStatus = user?.user_metadata?.status || user?.status || 'Ativo';
 
   return (
     <div className="space-y-6">
