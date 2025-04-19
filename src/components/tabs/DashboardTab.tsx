@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Calendar, BarChart2, User, DollarSign, AlertCircle } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -38,9 +39,12 @@ const DashboardTab: React.FC<DashboardTabProps> = ({
     }
   };
 
+  // Check user status from user.raw_user_meta_data?.status or directly from user object
+  const userStatus = user?.raw_user_meta_data?.status || user?.status || 'Ativo';
+
   return (
     <div className="space-y-6">
-      {user?.status === 'Pendente' ? (
+      {userStatus === 'Pendente' ? (
         <Card className="border-amber-200 bg-amber-50">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center text-amber-800">
