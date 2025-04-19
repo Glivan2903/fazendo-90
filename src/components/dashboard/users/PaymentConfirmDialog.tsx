@@ -32,7 +32,21 @@ export default function PaymentConfirmDialog({
     try {
       setLoading(true);
 
-      // Update profile status to Ativo
+      // First check if there are any pending payments or invoices
+      const { data: pendingInvoices, error: invoiceCheckError } = await supabase
+        .from('bank_invoices')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'pending');
+
+      if (invoiceCheckError) throw invoiceCheckError;
+
+      if (!pendingInvoices || pendingInvoices.length === 0) {
+        toast.error("Não há faturas pendentes para este usuário");
+        return;
+      }
+
+      // 1. Update profile status to Ativo
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ status: 'Ativo' })
@@ -40,7 +54,34 @@ export default function PaymentConfirmDialog({
 
       if (profileError) throw profileError;
 
-      // Update bank invoice status to paid
+      // 2. Get the pending subscription for this user
+      const { data: subscription, error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (subscriptionError && subscriptionError.code !== 'PGRST116') {
+        throw subscriptionError;
+      }
+
+      // 3. If subscription exists, update it to active
+      if (subscription) {
+        const { error: updateSubError } = await supabase
+          .from('subscriptions')
+          .update({ 
+            status: 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', subscription.id);
+
+        if (updateSubError) throw updateSubError;
+      }
+
+      // 4. Update bank invoice status to paid (only update pending invoices)
       const { error: invoiceError } = await supabase
         .from('bank_invoices')
         .update({ 
@@ -51,6 +92,18 @@ export default function PaymentConfirmDialog({
         .eq('status', 'pending');
 
       if (invoiceError) throw invoiceError;
+
+      // 5. Update payments status to paid (only update pending payments)
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .update({ 
+          status: 'paid',
+          payment_date: new Date().toISOString().split('T')[0]
+        })
+        .eq('user_id', userId)
+        .eq('status', 'pending');
+
+      if (paymentError) throw paymentError;
 
       toast.success(`Pagamento confirmado para ${userName}`);
       onConfirmed();

@@ -63,39 +63,80 @@ export default function ApproveUserDialog({
 
       setLoading(true);
 
-      // 1. Primeiro, cancelar todas as assinaturas existentes
-      const { error: cancelSubError } = await supabase
+      // 1. Check existing items first before deleting
+      const { data: existingItems, error: checkError } = await supabase
         .from('subscriptions')
-        .delete()
+        .select('id')
         .eq('user_id', userId);
-      
-      if (cancelSubError) {
-        console.error("Error canceling existing subscriptions:", cancelSubError);
+        
+      if (checkError) {
+        console.error("Error checking existing subscriptions:", checkError);
       }
       
-      // 2. Cancelar todas as faturas pendentes existentes
-      const { error: cancelInvError } = await supabase
+      // Only proceed with deletions if items exist
+      if (existingItems && existingItems.length > 0) {
+        // 2. Cancel all existing subscriptions
+        const { error: cancelSubError } = await supabase
+          .from('subscriptions')
+          .delete()
+          .eq('user_id', userId);
+        
+        if (cancelSubError) {
+          console.error("Error canceling existing subscriptions:", cancelSubError);
+        }
+      }
+      
+      // Check for pending invoices before deleting
+      const { data: pendingInvoices, error: checkInvError } = await supabase
         .from('bank_invoices')
-        .delete()
+        .select('id')
         .eq('user_id', userId)
         .eq('status', 'pending');
+        
+      if (checkInvError) {
+        console.error("Error checking pending invoices:", checkInvError);
+      }
       
-      if (cancelInvError) {
-        console.error("Error canceling pending invoices:", cancelInvError);
+      // Only delete if pending invoices exist
+      if (pendingInvoices && pendingInvoices.length > 0) {
+        // 3. Cancel all pending invoices
+        const { error: cancelInvError } = await supabase
+          .from('bank_invoices')
+          .delete()
+          .eq('user_id', userId)
+          .eq('status', 'pending');
+        
+        if (cancelInvError) {
+          console.error("Error canceling pending invoices:", cancelInvError);
+        }
       }
 
-      // 3. Também cancelar todos os pagamentos pendentes
-      const { error: cancelPayError } = await supabase
+      // Check for pending payments before deleting
+      const { data: pendingPayments, error: checkPayError } = await supabase
         .from('payments')
-        .delete()
+        .select('id')
         .eq('user_id', userId)
         .eq('status', 'pending');
+        
+      if (checkPayError) {
+        console.error("Error checking pending payments:", checkPayError);
+      }
       
-      if (cancelPayError) {
-        console.error("Error canceling pending payments:", cancelPayError);
+      // Only delete if pending payments exist
+      if (pendingPayments && pendingPayments.length > 0) {
+        // 4. Cancel all pending payments
+        const { error: cancelPayError } = await supabase
+          .from('payments')
+          .delete()
+          .eq('user_id', userId)
+          .eq('status', 'pending');
+        
+        if (cancelPayError) {
+          console.error("Error canceling pending payments:", cancelPayError);
+        }
       }
 
-      // 4. Update user status to Pendente
+      // 5. Update user status to Pendente
       const { error: statusError } = await supabase
         .from('profiles')
         .update({ status: 'Pendente' })
@@ -103,7 +144,7 @@ export default function ApproveUserDialog({
 
       if (statusError) throw statusError;
 
-      // 5. Create subscription for user based on selected plan with status pending
+      // 6. Create subscription for user based on selected plan with status pending
       const selectedPlan = plans.find(p => p.id === selectedPlanId);
       if (!selectedPlan) throw new Error("Plano não encontrado");
       
@@ -125,7 +166,7 @@ export default function ApproveUserDialog({
 
       if (subscriptionError) throw subscriptionError;
 
-      // 6. Generate invoice number
+      // 7. Generate invoice number
       const { data: invoiceNumberData, error: invoiceNumberError } = await supabase
         .rpc('generate_invoice_number');
         
@@ -133,7 +174,7 @@ export default function ApproveUserDialog({
       
       const invoiceNumber = invoiceNumberData || "";
 
-      // 7. Create bank invoice for the plan
+      // 8. Create only one bank invoice for the plan
       const { data: bankInvoice, error: bankInvoiceError } = await supabase
         .from('bank_invoices')
         .insert({
@@ -153,7 +194,7 @@ export default function ApproveUserDialog({
 
       if (bankInvoiceError) throw bankInvoiceError;
 
-      // 8. Create payment record
+      // 9. Create only one payment record linked to the invoice
       const { error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -168,7 +209,7 @@ export default function ApproveUserDialog({
 
       if (paymentError) throw paymentError;
       
-      // 9. Update profile plan
+      // 10. Update profile plan
       const { error: updatePlanError } = await supabase
         .from('profiles')
         .update({ 

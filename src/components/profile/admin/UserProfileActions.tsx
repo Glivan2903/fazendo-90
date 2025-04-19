@@ -47,42 +47,83 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
     try {
       // Delete all data in the correct order to respect foreign key constraints
       
+      // First, check if user exists
+      const { data: userExists, error: userCheckError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+        
+      if (userCheckError && userCheckError.code !== 'PGRST116') {
+        throw userCheckError;
+      }
+      
+      if (!userExists) {
+        toast.error('Usuário não encontrado ou já foi deletado');
+        setIsDeleteDialogOpen(false);
+        navigate('/teacher-dashboard', { replace: true });
+        return;
+      }
+      
       // 1. Delete checkins first
-      await supabase
+      const { error: checkinError } = await supabase
         .from('checkins')
         .delete()
         .eq('user_id', userId);
+        
+      if (checkinError) {
+        console.error('Error deleting checkins:', checkinError);
+      }
       
       // 2. Delete payments
-      await supabase
+      const { error: paymentError } = await supabase
         .from('payments')
         .delete()
         .eq('user_id', userId);
+        
+      if (paymentError) {
+        console.error('Error deleting payments:', paymentError);
+      }
       
       // 3. Delete bank invoices
-      await supabase
+      const { error: invoiceError } = await supabase
         .from('bank_invoices')
         .delete()
         .eq('user_id', userId);
+        
+      if (invoiceError) {
+        console.error('Error deleting bank invoices:', invoiceError);
+      }
       
       // 4. Delete subscriptions
-      await supabase
+      const { error: subscriptionError } = await supabase
         .from('subscriptions')
         .delete()
         .eq('user_id', userId);
+        
+      if (subscriptionError) {
+        console.error('Error deleting subscriptions:', subscriptionError);
+      }
       
       // 5. Finally delete the profile
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId);
 
-      if (error) throw error;
+      if (profileError) {
+        console.error('Error deleting profile:', profileError);
+        throw profileError;
+      }
 
       toast.success('Usuário deletado com sucesso');
       setIsDeleteDialogOpen(false);
-      // Navigate after successful deletion
-      navigate('/teacher-dashboard', { replace: true });
+      
+      // First set dialog to closed, then navigate with slight delay to prevent UI issues
+      setTimeout(() => {
+        navigate('/teacher-dashboard', { replace: true });
+      }, 100);
+      
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Erro ao deletar usuário');
@@ -142,7 +183,10 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteUser}
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteUser();
+              }}
               disabled={isDeleting}
               className="bg-red-600 hover:bg-red-700"
             >

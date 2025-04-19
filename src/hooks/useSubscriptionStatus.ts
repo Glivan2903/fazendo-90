@@ -55,7 +55,7 @@ export const useSubscriptionStatus = (userId?: string) => {
 
       console.log("Fetching subscription status for user:", userId);
 
-      // Get user's active subscription
+      // Get user's active or pending subscription
       const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
         .select(`
@@ -69,6 +69,7 @@ export const useSubscriptionStatus = (userId?: string) => {
           )
         `)
         .eq('user_id', userId)
+        .in('status', ['active', 'pending'])
         .order('created_at', { ascending: false })
         .limit(1)
         .single();
@@ -116,7 +117,7 @@ export const useSubscriptionStatus = (userId?: string) => {
         ...subscription,
         status: (subscription.status as SubscriptionStatus),
         payments
-      };
+      } as Subscription;
     },
     enabled: !!userId,
   });
@@ -173,7 +174,7 @@ function formatSubscription(subscription: Subscription): SubscriptionWithStatus 
   
   const daysUntilExpiration = isExpired ? null : differenceInDays(endDate, today);
   
-  // Verificar pagamentos pendentes apenas se a assinatura não for ativa
+  // Check for pending payments only if status is not 'active'
   const hasUnpaidPayments = subscription.status !== 'active' && 
                            (subscription.payments?.length > 0 || false);
   
