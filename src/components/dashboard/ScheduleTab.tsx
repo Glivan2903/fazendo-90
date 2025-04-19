@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Class } from "@/types";
 import { format, parseISO, startOfWeek, addDays, isValid } from "date-fns";
@@ -859,3 +860,224 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ classes: initialClasses }) =>
                     {formData.date ? format(formData.date, "dd/MM/yyyy") : <span>Selecione uma data</span>}
                   </Button>
                 </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={formData.date}
+                    onSelect={handleDateChange}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            
+            {/* Time selection fields */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Hora Início</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.startHour}
+                    onValueChange={(value) => handleTimeChange("startHour", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Hora" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                        <SelectItem key={hour} value={hour.toString().padStart(2, "0")}>
+                          {hour.toString().padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={formData.startMinute}
+                    onValueChange={(value) => handleTimeChange("startMinute", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Min" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["00", "15", "30", "45"].map((minute) => (
+                        <SelectItem key={minute} value={minute}>
+                          {minute}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Hora Fim</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.endHour}
+                    onValueChange={(value) => handleTimeChange("endHour", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Hora" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+                        <SelectItem key={hour} value={hour.toString().padStart(2, "0")}>
+                          {hour.toString().padStart(2, "0")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={formData.endMinute}
+                    onValueChange={(value) => handleTimeChange("endMinute", value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Min" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["00", "15", "30", "45"].map((minute) => (
+                        <SelectItem key={minute} value={minute}>
+                          {minute}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="coach">Coach</Label>
+              <Select
+                value={formData.coachId}
+                onValueChange={handleCoachChange}
+              >
+                <SelectTrigger id="coach">
+                  <SelectValue placeholder="Selecione um coach" />
+                </SelectTrigger>
+                <SelectContent>
+                  {coaches.map(coach => (
+                    <SelectItem key={coach.id} value={coach.id}>
+                      {coach.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="capacity">Capacidade máxima</Label>
+              <Input
+                id="capacity"
+                type="number"
+                min="1"
+                value={formData.maxCapacity}
+                onChange={(e) => handleCapacityChange(e.target.value)}
+              />
+            </div>
+            
+            <CheckInSettings 
+              settings={formData.checkInSettings}
+              onSettingsChange={(settings) => 
+                setFormData(prev => ({ ...prev, checkInSettings: settings }))
+              }
+            />
+          </div>
+          
+          <DialogFooter className="mt-6 flex gap-2">
+            {!isNew && (
+              <Button 
+                variant="destructive" 
+                onClick={handleDeleteClass} 
+                disabled={deleteLoading}
+                className="mr-auto"
+              >
+                {deleteLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Excluindo...
+                  </>
+                ) : (
+                  <>
+                    <Trash className="h-4 w-4 mr-2" />
+                    Excluir
+                  </>
+                )}
+              </Button>
+            )}
+            <DialogClose asChild>
+              <Button variant="outline" type="button">Cancelar</Button>
+            </DialogClose>
+            <Button 
+              onClick={handleSaveClass} 
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Salvar
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+  
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap justify-between gap-2 mb-4">
+        <div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mr-2"
+            onClick={openNewDialog}
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Aula
+          </Button>
+        </div>
+        
+        <div className="flex items-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`mr-2 ${viewMode === "grid" ? "bg-gray-100" : ""}`}
+            onClick={() => setViewMode("grid")}
+          >
+            <LayoutGrid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className={viewMode === "list" ? "bg-gray-100" : ""}
+            onClick={() => setViewMode("list")}
+          >
+            <List className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      
+      {loading ? (
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+        </div>
+      ) : viewMode === "grid" ? (
+        renderGridView()
+      ) : (
+        renderListView()
+      )}
+      
+      {renderClassDialog(true)}
+      {renderClassDialog(false)}
+    </div>
+  );
+};
+
+export default ScheduleTab;
