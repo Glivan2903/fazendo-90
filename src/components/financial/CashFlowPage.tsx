@@ -5,8 +5,8 @@ import { TransactionTable } from './components/TransactionTable';
 import { ArrowUpFromLine, ArrowDownToLine, AlertCircle, CheckCircle, Plus } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Button } from "@/components/ui/button";
-import NewExpenseDialog from './components/dialogs/NewExpenseDialog';
-import NewIncomeDialog from './components/dialogs/NewIncomeDialog';
+import { NewExpenseDialog } from './components/dialogs/NewExpenseDialog';
+import { NewIncomeDialog } from './components/dialogs/NewIncomeDialog';
 
 const CashFlowPage = () => {
   const { 
