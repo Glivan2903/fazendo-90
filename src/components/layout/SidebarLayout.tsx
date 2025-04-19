@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Home, LogOut, CheckCircle, UserCheck } from 'lucide-react';
+import { Bell, Home, LogOut, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -24,12 +24,10 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [pendingUsers, setPendingUsers] = useState(0);
-  const [expiringSubscriptions, setExpiringSubscriptions] = useState(0);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   useEffect(() => {
     if (userRole === 'admin') {
-      // Subscribe to pending users notifications
       const channel = supabase
         .channel('pending-users')
         .on(
@@ -47,7 +45,6 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
         .subscribe();
 
       checkPendingUsers();
-      checkExpiringSubscriptions();
 
       return () => {
         supabase.removeChannel(channel);
@@ -66,32 +63,6 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
     }
   };
 
-  const checkExpiringSubscriptions = async () => {
-    const threeDaysFromNow = new Date();
-    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-
-    const { data, error } = await supabase
-      .from('subscriptions')
-      .select('id')
-      .eq('status', 'active')
-      .lt('end_date', threeDaysFromNow.toISOString())
-      .gt('end_date', new Date().toISOString());
-
-    if (!error && data) {
-      setExpiringSubscriptions(data.length);
-    }
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      ?.split(' ')
-      .map((n) => n[0])
-      .join('')
-      .toUpperCase();
-  };
-
-  const totalNotifications = pendingUsers + expiringSubscriptions;
-
   const handleLogout = async () => {
     await signOut();
     navigate('/auth');
@@ -106,12 +77,12 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
       <div className="space-y-6">
         <div className="flex flex-col items-center space-y-2">
           <Avatar className="h-20 w-20">
-            <AvatarImage src={user?.user_metadata?.avatar_url} />
-            <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
+            <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.name} />
+            <AvatarFallback>{user?.user_metadata?.name?.[0]?.toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="text-center">
-            <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
-            <p className="text-sm text-muted-foreground truncate max-w-[200px]">{user?.email}</p>
+            <p className="font-medium">{user?.user_metadata?.name}</p>
+            <p className="text-sm text-muted-foreground">{user?.email}</p>
           </div>
         </div>
 
@@ -125,39 +96,12 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
             Início
           </Button>
 
-          {(userRole === 'admin' || userRole === 'coach') && (
-            <>
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => navigate('/teacher-dashboard')}
-              >
-                <Bell className="mr-2 h-5 w-5" />
-                Dashboard
-                {userRole === 'admin' && totalNotifications > 0 && (
-                  <Badge variant="destructive" className="ml-2">
-                    {totalNotifications}
-                  </Badge>
-                )}
-              </Button>
-
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => navigate('/check-in')}
-              >
-                <UserCheck className="mr-2 h-5 w-5" />
-                Check-in
-              </Button>
-            </>
-          )}
-
           <Button
             variant="ghost"
             className="w-full justify-start"
             onClick={() => navigate(`/profile/${user?.id}`)}
           >
-            <CheckCircle className="mr-2 h-5 w-5" />
+            <Clock className="mr-2 h-5 w-5" />
             Meu Perfil
           </Button>
         </div>
@@ -181,7 +125,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
         {sidebarContent}
       </div>
 
-      {/* Mobile Menu Button (only show if mobile sidebar is not open) */}
+      {/* Mobile Menu Button */}
       {!showMobileMenu && (
         <Button variant="ghost" className="md:hidden fixed top-4 left-4 z-50 p-2"
           onClick={() => setShowMobileMenu(true)}>
