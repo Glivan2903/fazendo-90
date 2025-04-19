@@ -7,13 +7,16 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { Button } from "@/components/ui/button";
 import { NewExpenseDialog } from './components/dialogs/NewExpenseDialog';
 import { NewIncomeDialog } from './components/dialogs/NewIncomeDialog';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const CashFlowPage = () => {
   const { 
     transactions, 
     loading, 
     handleEditTransaction, 
-    handleDeleteTransaction 
+    handleDeleteTransaction,
+    fetchTransactions
   } = useTransactions();
 
   const [totalPaidIncome, setTotalPaidIncome] = useState(0);
@@ -22,6 +25,30 @@ const CashFlowPage = () => {
   const [paidAndPendingIncome, setPaidAndPendingIncome] = useState(0);
   const [isNewExpenseDialogOpen, setIsNewExpenseDialogOpen] = useState(false);
   const [isNewIncomeDialogOpen, setIsNewIncomeDialogOpen] = useState(false);
+  const [suppliers, setSuppliers] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [calendarOpen, setCalendarOpen] = useState(false);
+  const [expenseFormValues, setExpenseFormValues] = useState({
+    date: new Date(),
+    fornecedor: '',
+    description: '',
+    category: '',
+    amount: '',
+    status: 'paid',
+    payment_method: 'pix',
+    bank_account: 'Nubank'
+  });
+  const [incomeFormValues, setIncomeFormValues] = useState({
+    date: new Date(),
+    buyer_name: '',
+    user_id: '',
+    description: '',
+    category: '',
+    amount: '',
+    status: 'paid',
+    payment_method: 'pix',
+    bank_account: 'Nubank'
+  });
 
   useEffect(() => {
     // Calculate totals when transactions change
@@ -44,6 +71,171 @@ const CashFlowPage = () => {
     setPendingIncome(pending);
     setPaidAndPendingIncome(total);
   }, [transactions]);
+
+  useEffect(() => {
+    fetchSuppliers();
+    fetchUsers();
+  }, []);
+
+  const fetchSuppliers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('*');
+      
+      if (error) throw error;
+      setSuppliers(data || []);
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      toast.error('Erro ao carregar fornecedores');
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, email');
+      
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Erro ao carregar usuários');
+    }
+  };
+
+  const handleExpenseFormChange = (e) => {
+    const { name, value } = e.target;
+    setExpenseFormValues({
+      ...expenseFormValues,
+      [name]: value
+    });
+  };
+
+  const handleIncomeFormChange = (e) => {
+    const { name, value } = e.target;
+    setIncomeFormValues({
+      ...incomeFormValues,
+      [name]: value
+    });
+  };
+
+  const handleExpenseSelectChange = (name, value) => {
+    setExpenseFormValues({
+      ...expenseFormValues,
+      [name]: value
+    });
+  };
+
+  const handleIncomeSelectChange = (name, value) => {
+    setIncomeFormValues({
+      ...incomeFormValues,
+      [name]: value
+    });
+  };
+
+  const handleExpenseDateChange = (date) => {
+    setExpenseFormValues({
+      ...expenseFormValues,
+      date: date
+    });
+    setCalendarOpen(false);
+  };
+
+  const handleIncomeDateChange = (date) => {
+    setIncomeFormValues({
+      ...incomeFormValues,
+      date: date
+    });
+    setCalendarOpen(false);
+  };
+
+  const handleExpenseSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const newExpense = {
+        date: expenseFormValues.date.toISOString(),
+        fornecedor: expenseFormValues.fornecedor,
+        description: expenseFormValues.description,
+        category: expenseFormValues.category,
+        amount: Number(expenseFormValues.amount),
+        status: expenseFormValues.status,
+        payment_method: expenseFormValues.payment_method,
+        bank_account: expenseFormValues.bank_account,
+        transaction_type: 'expense'
+      };
+
+      const { error } = await supabase
+        .from('transactions')
+        .insert([newExpense]);
+
+      if (error) throw error;
+
+      toast.success('Despesa adicionada com sucesso!');
+      setIsNewExpenseDialogOpen(false);
+      fetchTransactions();
+      
+      // Reset form
+      setExpenseFormValues({
+        date: new Date(),
+        fornecedor: '',
+        description: '',
+        category: '',
+        amount: '',
+        status: 'paid',
+        payment_method: 'pix',
+        bank_account: 'Nubank'
+      });
+    } catch (error) {
+      console.error('Error adding expense:', error);
+      toast.error('Erro ao adicionar despesa');
+    }
+  };
+
+  const handleIncomeSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const newIncome = {
+        date: incomeFormValues.date.toISOString(),
+        buyer_name: incomeFormValues.buyer_name,
+        user_id: incomeFormValues.user_id,
+        description: incomeFormValues.description,
+        category: incomeFormValues.category,
+        amount: Number(incomeFormValues.amount),
+        status: incomeFormValues.status,
+        payment_method: incomeFormValues.payment_method,
+        bank_account: incomeFormValues.bank_account,
+        transaction_type: 'income'
+      };
+
+      const { error } = await supabase
+        .from('transactions')
+        .insert([newIncome]);
+
+      if (error) throw error;
+
+      toast.success('Receita adicionada com sucesso!');
+      setIsNewIncomeDialogOpen(false);
+      fetchTransactions();
+      
+      // Reset form
+      setIncomeFormValues({
+        date: new Date(),
+        buyer_name: '',
+        user_id: '',
+        description: '',
+        category: '',
+        amount: '',
+        status: 'paid',
+        payment_method: 'pix',
+        bank_account: 'Nubank'
+      });
+    } catch (error) {
+      console.error('Error adding income:', error);
+      toast.error('Erro ao adicionar receita');
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -145,11 +337,28 @@ const CashFlowPage = () => {
       <NewExpenseDialog 
         isOpen={isNewExpenseDialogOpen}
         onClose={() => setIsNewExpenseDialogOpen(false)}
+        onSubmit={handleExpenseSubmit}
+        formValues={expenseFormValues}
+        handleFormChange={handleExpenseFormChange}
+        handleSelectChange={handleExpenseSelectChange}
+        handleDateChange={handleExpenseDateChange}
+        suppliers={suppliers}
+        calendarOpen={calendarOpen}
+        setCalendarOpen={setCalendarOpen}
+        fetchSuppliers={fetchSuppliers}
       />
 
       <NewIncomeDialog
         isOpen={isNewIncomeDialogOpen}
         onClose={() => setIsNewIncomeDialogOpen(false)}
+        onSubmit={handleIncomeSubmit}
+        formValues={incomeFormValues}
+        handleFormChange={handleIncomeFormChange}
+        handleSelectChange={handleIncomeSelectChange}
+        handleDateChange={handleIncomeDateChange}
+        calendarOpen={calendarOpen}
+        setCalendarOpen={setCalendarOpen}
+        users={users}
       />
     </div>
   );

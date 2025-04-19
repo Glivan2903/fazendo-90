@@ -57,12 +57,12 @@ export interface NewIncomeDialogProps {
     status: string;
     payment_method: string;
     bank_account: string;
-    user_id?: string; // Added missing property
+    user_id: string; // Added user_id property
   };
   handleFormChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleSelectChange: (name: string, value: string) => void;
   handleDateChange: (date: Date | undefined) => void;
   calendarOpen: boolean;
   setCalendarOpen: (open: boolean) => void;
-  users?: any[]; // Added missing property
+  users: any[]; // Added users property
 }
