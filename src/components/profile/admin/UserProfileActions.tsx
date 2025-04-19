@@ -45,23 +45,33 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
 
     setIsDeleting(true);
     try {
-      // Delete related data first
-      await supabase
-        .from('subscriptions')
-        .delete()
-        .eq('user_id', userId);
-
+      // Delete all data in the correct order to respect foreign key constraints
+      
+      // 1. Delete checkins first
       await supabase
         .from('checkins')
         .delete()
         .eq('user_id', userId);
-
+      
+      // 2. Delete payments
       await supabase
         .from('payments')
         .delete()
         .eq('user_id', userId);
-
-      // Finally delete the profile
+      
+      // 3. Delete bank invoices
+      await supabase
+        .from('bank_invoices')
+        .delete()
+        .eq('user_id', userId);
+      
+      // 4. Delete subscriptions
+      await supabase
+        .from('subscriptions')
+        .delete()
+        .eq('user_id', userId);
+      
+      // 5. Finally delete the profile
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -70,13 +80,14 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
       if (error) throw error;
 
       toast.success('Usuário deletado com sucesso');
-      navigate('/teacher-dashboard');
+      setIsDeleteDialogOpen(false);
+      // Navigate after successful deletion
+      navigate('/teacher-dashboard', { replace: true });
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Erro ao deletar usuário');
     } finally {
       setIsDeleting(false);
-      setIsDeleteDialogOpen(false);
     }
   };
 

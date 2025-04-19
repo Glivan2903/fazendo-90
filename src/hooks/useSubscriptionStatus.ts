@@ -95,6 +95,7 @@ export const useSubscriptionStatus = (userId?: string) => {
         .from('payments')
         .select('*')
         .eq('subscription_id', subscription.id)
+        .eq('status', 'pending') // Only get pending payments
         .order('due_date', { ascending: true });
         
       if (paymentsError) {
@@ -172,10 +173,9 @@ function formatSubscription(subscription: Subscription): SubscriptionWithStatus 
   
   const daysUntilExpiration = isExpired ? null : differenceInDays(endDate, today);
   
-  // Verificar pagamentos pendentes apenas se não forem pagos
-  const hasUnpaidPayments = subscription.payments?.some(
-    payment => payment.status === 'pending' || payment.status === 'overdue'
-  ) || false;
+  // Verificar pagamentos pendentes apenas se a assinatura não for ativa
+  const hasUnpaidPayments = subscription.status !== 'active' && 
+                           (subscription.payments?.length > 0 || false);
   
   let statusColor = 'green';
   if (isExpired) {
