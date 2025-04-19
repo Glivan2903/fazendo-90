@@ -63,15 +63,15 @@ export default function ApproveUserDialog({
 
       setLoading(true);
 
-      // 1. Update user status to active
+      // 1. Update user status to Pendente (instead of Ativo)
       const { error: statusError } = await supabase
         .from('profiles')
-        .update({ status: 'Ativo' })
+        .update({ status: 'Pendente' })
         .eq('id', userId);
 
       if (statusError) throw statusError;
 
-      // 2. Create subscription for user based on selected plan
+      // 2. Create subscription for user based on selected plan with status pending
       const selectedPlan = plans.find(p => p.id === selectedPlanId);
       if (!selectedPlan) throw new Error("Plano não encontrado");
       
@@ -86,12 +86,12 @@ export default function ApproveUserDialog({
           plan_id: selectedPlanId,
           start_date: startDate.toISOString().split('T')[0],
           end_date: endDate.toISOString().split('T')[0],
-          status: 'active'
+          status: 'pending'  // Start with pending status
         }]);
 
       if (subscriptionError) throw subscriptionError;
 
-      toast.success(`Usuário ${userName} aprovado com sucesso!`);
+      toast.success(`Plano atribuído a ${userName} com sucesso! Aguardando confirmação de pagamento.`);
       onApproved();
       onOpenChange(false);
 
