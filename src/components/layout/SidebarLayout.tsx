@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -33,7 +32,6 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const isMobile = useIsMobile();
   
-  // Get active tab from location
   const getActiveTabFromLocation = () => {
     const path = location.pathname;
     if (path.includes('profile')) return 'perfil';
@@ -59,7 +57,6 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
 
   useEffect(() => {
     if (userRole === 'admin') {
-      // Subscribe to pending users notifications
       const channel = supabase
         .channel('pending-users')
         .on(
@@ -131,7 +128,6 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
     });
   };
 
-  // Desktop sidebar content
   const desktopSidebarContent = (
     <div className="h-full flex flex-col bg-white">
       <div className="p-4 border-b">
@@ -216,29 +212,26 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
     </div>
   );
 
-  // Mobile menu content
   const mobileMenuContent = (
     <div className="flex flex-col h-full">
-      <div className="border-b p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Menu className="h-6 w-6 md:hidden" />
-            Check-in
-          </h2>          
-          <Button variant="ghost" size="icon" onClick={() => setShowMobileMenu(false)}>
-            <X className="h-5 w-5" />
-          </Button>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <Avatar className="h-12 w-12">
-            <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.name || 'User'} />
-            <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
-            <p className="text-sm text-muted-foreground truncate max-w-[180px]">{user?.email}</p>
-          </div>
+      <div className="border-b p-4 flex items-center justify-between">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Menu className="h-6 w-6 md:hidden" />
+          Check-in
+        </h2>
+        <Button variant="ghost" size="icon" onClick={() => setShowMobileMenu(false)} aria-label="Fechar menu">
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
+      
+      <div className="flex items-center space-x-4">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.name || 'User'} />
+          <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
+        </Avatar>
+        <div>
+          <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
+          <p className="text-sm text-muted-foreground truncate max-w-[180px]">{user?.email}</p>
         </div>
       </div>
       
@@ -347,37 +340,34 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
 
   return (
     <div className="flex h-screen">
-      {/* Desktop Sidebar */}
       <div className="hidden md:flex w-64 border-r overflow-hidden">
         {desktopSidebarContent}
       </div>
 
-      {/* Mobile Menu Button (only show if mobile sidebar is not open) */}
       {!showMobileMenu && (
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="md:hidden fixed top-4 left-4 z-50 p-2"
-          onClick={() => setShowMobileMenu(true)}>
+          onClick={() => setShowMobileMenu(true)}
+          aria-label="Abrir menu"
+        >
           <Menu className="h-6 w-6" />
         </Button>
       )}
 
-      {/* Mobile Sidebar */}
       <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
         <SheetContent side="left" className="p-0 w-72">
           {mobileMenuContent}
         </SheetContent>
       </Sheet>
 
-      {/* Main Content */}
       <div className="flex-1 overflow-auto bg-gray-50">
         <div className="container mx-auto p-4 md:p-6 pb-20">
           {children}
         </div>
       </div>
 
-      {/* Bottom Navigation Bar - Always visible on mobile */}
       <div className="md:hidden">
         <BottomNavigation activeTab={activeTab} onTabChange={handleTabChange} />
       </div>
