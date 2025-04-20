@@ -29,6 +29,11 @@ const PaymentHistory = () => {
     setIsNewPaymentOpen(true);
   };
 
+  // Calculate pagination stats
+  const paymentCount = payments?.length || 0;
+  const showingStart = paymentCount > 0 ? 1 : 0;
+  const showingEnd = paymentCount;
+
   if (isLoading) {
     return (
       <div className="space-y-4">
