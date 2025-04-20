@@ -435,6 +435,158 @@ export type Database = {
         }
         Relationships: []
       }
+      sales: {
+        Row: {
+          created_at: string
+          discount_amount: number
+          id: string
+          sale_code: string
+          sale_date: string
+          seller_name: string
+          status: string
+          total: number
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          sale_code: string
+          sale_date?: string
+          seller_name: string
+          status?: string
+          total: number
+          total_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          sale_code?: string
+          sale_date?: string
+          seller_name?: string
+          status?: string
+          total?: number
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sales_items: {
+        Row: {
+          created_at: string
+          description: string
+          discount: number
+          id: string
+          is_renewal: boolean | null
+          item_type: string
+          period_end: string | null
+          period_start: string | null
+          plan_id: string | null
+          quantity: number
+          sale_id: string
+          subtotal: number
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          discount?: number
+          id?: string
+          is_renewal?: boolean | null
+          item_type: string
+          period_end?: string | null
+          period_start?: string | null
+          plan_id?: string | null
+          quantity?: number
+          sale_id: string
+          subtotal: number
+          total: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          discount?: number
+          id?: string
+          is_renewal?: boolean | null
+          item_type?: string
+          period_end?: string | null
+          period_start?: string | null
+          plan_id?: string | null
+          quantity?: number
+          sale_id?: string
+          subtotal?: number
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_items_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          due_date: string
+          id: string
+          payment_date: string | null
+          payment_method: string
+          sale_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          due_date: string
+          id?: string
+          payment_date?: string | null
+          payment_method: string
+          sale_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          due_date?: string
+          id?: string
+          payment_date?: string | null
+          payment_method?: string
+          sale_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string | null
@@ -536,6 +688,10 @@ export type Database = {
     }
     Functions: {
       generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      generate_sale_code: {
         Args: Record<PropertyKey, never>
         Returns: string
       }
