@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,20 +28,18 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
       if (!userId) return;
 
       setLoading(true);
-      const { data, error } = await supabase
+      
+      const { data: invoicesData, error: invoicesError } = await supabase
         .from('bank_invoices')
-        .select(`
-          *,
-          bank_invoice_items (*)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('due_date', { ascending: false });
 
-      if (error) throw error;
-      
+      if (invoicesError) throw invoicesError;
+
       const uniqueInvoices = new Map();
       
-      data?.forEach((invoice) => {
+      invoicesData?.forEach((invoice) => {
         const monthYear = new Date(invoice.due_date).toISOString().substring(0, 7);
         const key = `${invoice.user_id}_${monthYear}`;
         
@@ -52,7 +49,7 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
           uniqueInvoices.set(key, invoice);
         }
       });
-      
+
       setInvoices(Array.from(uniqueInvoices.values()));
     } catch (error) {
       console.error('Error fetching invoices:', error);
@@ -77,9 +74,21 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
     }).format(value);
   };
 
-  const handleInvoiceClick = (invoice: any) => {
-    setSelectedInvoice(invoice);
-    setIsDialogOpen(true);
+  const handleInvoiceClick = async (invoice: any) => {
+    try {
+      const { data: items, error: itemsError } = await supabase
+        .from('bank_invoice_items')
+        .select('*')
+        .eq('invoice_id', invoice.id);
+
+      if (itemsError) throw itemsError;
+
+      setSelectedInvoice({ ...invoice, bank_invoice_items: items });
+      setIsDialogOpen(true);
+    } catch (error) {
+      console.error('Error fetching invoice items:', error);
+      toast.error('Erro ao carregar detalhes da fatura');
+    }
   };
 
   const getStatusBadge = (status: string) => {

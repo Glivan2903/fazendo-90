@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -73,13 +72,12 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
           {invoice.bank_invoice_items && invoice.bank_invoice_items.length > 0 && (
             <div className="border rounded-lg p-4">
               <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
-                <Tag className="h-4 w-4 mr-2" /> ITEM(S) DE VENDA
+                <Tag className="h-4 w-4 mr-2" /> DETALHES DO PLANO
               </h3>
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
-                    <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
                     <TableHead>Período</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
@@ -89,11 +87,6 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
                   {invoice.bank_invoice_items.map((item: any, index: number) => (
                     <TableRow key={index}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-slate-100">
-                          {item.item_type}
-                        </Badge>
-                      </TableCell>
                       <TableCell>{item.description}</TableCell>
                       <TableCell>
                         {item.period_start && item.period_end ? 
