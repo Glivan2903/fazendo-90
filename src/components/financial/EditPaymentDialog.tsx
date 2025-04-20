@@ -23,7 +23,7 @@ const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
   payment,
   onPaymentUpdated
 }) => {
-  const [formData, setFormData] = useState<Payment>({
+  const [formData, setFormData] = useState<Partial<Payment>>({
     id: "",
     user_id: "",
     subscription_id: "",
@@ -40,8 +40,9 @@ const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
 
   useEffect(() => {
     if (payment) {
+      const { profiles, subscriptions, bank_invoice, formattedAmount, formattedDueDate, formattedPaymentDate, ...basicPayment } = payment;
       setFormData({
-        ...payment,
+        ...basicPayment,
         payment_date: payment.payment_date || null,
         payment_method: payment.payment_method || "",
         notes: payment.notes || "",
@@ -77,7 +78,14 @@ const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
     setIsLoading(true);
 
     try {
-      await onPaymentUpdated(formData);
+      // Reconstruct complete Payment object before passing it
+      if (payment) {
+        const updatedPayment: Payment = {
+          ...payment,
+          ...formData as any, // Use type assertion since we know the required fields are there
+        };
+        await onPaymentUpdated(updatedPayment);
+      }
     } catch (error) {
       console.error("Erro ao atualizar pagamento:", error);
       toast.error("Erro ao atualizar pagamento");

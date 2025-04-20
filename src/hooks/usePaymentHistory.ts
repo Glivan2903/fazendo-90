@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useState } from 'react';
@@ -24,6 +23,19 @@ export interface Payment {
   formattedAmount: string;
   formattedDueDate: string;
   formattedPaymentDate: string | null;
+  profiles?: {
+    name?: string;
+    email?: string;
+    plan?: string;
+  };
+  subscriptions?: {
+    start_date?: string;
+    end_date?: string;
+    plans?: {
+      name?: string;
+      periodicity?: string;
+    };
+  };
 }
 
 export const usePaymentHistory = () => {
@@ -63,7 +75,6 @@ export const usePaymentHistory = () => {
         endDate.setMonth(endDate.getMonth() + 1);
         endDate.setDate(0);
       } else if (dateRange === 'all') {
-        // Não aplicar filtro de data
         startDate = null;
         endDate = null;
       } else {
@@ -94,7 +105,6 @@ export const usePaymentHistory = () => {
         `)
         .order('due_date', { ascending: false });
       
-      // Aplicar filtro de data apenas se startDate e endDate não forem nulos
       if (startDate && endDate) {
         query = query
           .gte('due_date', startDate.toISOString())
@@ -105,15 +115,13 @@ export const usePaymentHistory = () => {
 
       if (error) throw error;
       
-      // Ensure we only have one payment per user per month - MODIFICAÇÃO AQUI
       const uniquePayments = new Map();
       
       data?.forEach((payment: any) => {
         const userId = payment.user_id;
-        const monthYear = new Date(payment.due_date).toISOString().substring(0, 7); // YYYY-MM format
+        const monthYear = new Date(payment.due_date).toISOString().substring(0, 7);
         const key = `${userId}_${monthYear}`;
         
-        // Priorizar pagamentos com status "paid" sobre outros status
         if (!uniquePayments.has(key) || 
             (payment.status === 'paid') ||
             (uniquePayments.get(key).status !== 'paid' && payment.status === 'pending')) {
@@ -121,7 +129,6 @@ export const usePaymentHistory = () => {
         }
       });
       
-      // Calcular pagamentos atrasados (due_date passada e sem payment_date)
       const today = new Date();
       const paymentsWithOverdueStatus = Array.from(uniquePayments.values()).map((payment: any) => {
         if (
@@ -135,7 +142,20 @@ export const usePaymentHistory = () => {
         return payment;
       });
       
-      return paymentsWithOverdueStatus as Payment[];
+      const processedPayments = paymentsWithOverdueStatus.map((payment: any) => {
+        return {
+          ...payment,
+          formattedAmount: new Intl.NumberFormat('pt-BR', {
+            style: 'currency',
+            currency: 'BRL'
+          }).format(payment.amount),
+          formattedDueDate: new Date(payment.due_date).toLocaleDateString('pt-BR'),
+          formattedPaymentDate: payment.payment_date ? 
+            new Date(payment.payment_date).toLocaleDateString('pt-BR') : null
+        };
+      });
+      
+      return processedPayments as Payment[];
     },
   });
 
