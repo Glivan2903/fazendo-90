@@ -1,13 +1,18 @@
 
 import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { format } from 'date-fns';
 
 interface ApproveUserDialogProps {
@@ -26,7 +31,7 @@ export default function ApproveUserDialog({
   onApproved
 }: ApproveUserDialogProps) {
   const [loading, setLoading] = useState(false);
-  const [selectedPlanId, setSelectedPlanId] = useState("");
+  const [selectedPlan, setSelectedPlan] = useState("");
   const [plans, setPlans] = useState<any[]>([]);
 
   React.useEffect(() => {
@@ -46,7 +51,7 @@ export default function ApproveUserDialog({
       if (error) throw error;
       setPlans(data || []);
       if (data && data.length > 0) {
-        setSelectedPlanId(data[0].id);
+        setSelectedPlan(data[0].id);
       }
     } catch (error) {
       console.error("Erro ao carregar planos:", error);
@@ -64,27 +69,48 @@ export default function ApproveUserDialog({
     try {
       setLoading(true);
       
-      if (!selectedPlanId) {
+      if (!selectedPlan) {
         toast.error("Selecione um plano");
         return;
       }
 
-      const selectedPlan = plans.find(p => p.id === selectedPlanId);
-      if (!selectedPlan) throw new Error("Plano não encontrado");
+      const selectedPlanData = plans.find(p => p.id === selectedPlan);
+      if (!selectedPlanData) throw new Error("Plano não encontrado");
 
       const startDate = new Date();
       const endDate = new Date(startDate);
-      endDate.setDate(endDate.getDate() + selectedPlan.days_validity);
+      endDate.setDate(endDate.getDate() + selectedPlanData.days_validity);
 
-      // Gerar número da fatura
+      // Check for existing subscriptions and invoices in current month
+      const currentMonth = startDate.getMonth();
+      const currentYear = startDate.getFullYear();
+      
+      const { data: existingInvoices, error: checkError } = await supabase
+        .from('bank_invoices')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+        .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
+        .lte('created_at', new Date(currentYear, currentMonth + 1, 0).toISOString());
+
+      if (checkError) throw checkError;
+
+      if (existingInvoices && existingInvoices.length > 0) {
+        // Already has an invoice this month
+        toast.info("Usuário já possui uma fatura pendente para este mês");
+        onOpenChange(false);
+        return;
+      }
+
+      // Generate invoice number
       const invoiceNumber = await generateInvoiceNumber();
 
-      // Criar assinatura
+      // Create subscription
       const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
         .insert({
           user_id: userId,
-          plan_id: selectedPlanId,
+          plan_id: selectedPlan,
           start_date: format(startDate, 'yyyy-MM-dd'),
           end_date: format(endDate, 'yyyy-MM-dd'),
           status: 'pending'
@@ -94,13 +120,13 @@ export default function ApproveUserDialog({
 
       if (subscriptionError) throw subscriptionError;
 
-      // Criar fatura bancária
+      // Create bank invoice
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('bank_invoices')
         .insert({
           user_id: userId,
           invoice_number: invoiceNumber,
-          total_amount: selectedPlan.amount,
+          total_amount: selectedPlanData.amount,
           due_date: format(startDate, 'yyyy-MM-dd'),
           status: 'pending',
           buyer_name: userName,
@@ -112,27 +138,25 @@ export default function ApproveUserDialog({
 
       if (invoiceError) throw invoiceError;
 
-      // Criar pagamento
-      const { data: paymentData, error: paymentError } = await supabase
+      // Create payment
+      const { error: paymentError } = await supabase
         .from('payments')
         .insert({
           user_id: userId,
           subscription_id: subscriptionData.id,
-          amount: selectedPlan.amount,
+          amount: selectedPlanData.amount,
           due_date: format(startDate, 'yyyy-MM-dd'),
           status: 'pending',
-          reference: `Plano ${selectedPlan.name} - ${userName}`
-        })
-        .select()
-        .single();
+          reference: `Plano ${selectedPlanData.name} - ${userName}`
+        });
 
       if (paymentError) throw paymentError;
 
-      // Atualizar perfil do usuário
+      // Update profile
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          plan: selectedPlan.name,
+          plan: selectedPlanData.name,
           status: 'Pendente',
           subscription_id: subscriptionData.id
         })
@@ -170,8 +194,8 @@ export default function ApproveUserDialog({
           <div className="space-y-2">
             <Label htmlFor="plan">Selecione um Plano</Label>
             <Select 
-              value={selectedPlanId} 
-              onValueChange={setSelectedPlanId}
+              value={selectedPlan} 
+              onValueChange={setSelectedPlan}
               disabled={loading || plans.length === 0}
             >
               <SelectTrigger>
@@ -187,7 +211,7 @@ export default function ApproveUserDialog({
             </Select>
           </div>
           
-          {selectedPlanId && (
+          {selectedPlan && (
             <Alert className="bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription>
@@ -198,7 +222,6 @@ export default function ApproveUserDialog({
           
           <DialogFooter>
             <Button 
-              type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               disabled={loading}
@@ -207,7 +230,7 @@ export default function ApproveUserDialog({
             </Button>
             <Button 
               onClick={handleApprove}
-              disabled={loading || !selectedPlanId}
+              disabled={loading || !selectedPlan}
             >
               {loading ? "Aprovando..." : "Aprovar Usuário"}
             </Button>
