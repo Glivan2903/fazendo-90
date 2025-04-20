@@ -1,17 +1,8 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import {
-  Card,
-  CardContent
-} from "@/components/ui/card";
-import { 
-  DollarSign, 
-  Users, 
-  AlertTriangle, 
-  TrendingUp 
-} from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/card";
+import { DollarSign, Users, AlertTriangle, TrendingUp } from 'lucide-react';
 import { Skeleton } from "@/components/ui/skeleton";
 
 const SubscriptionsOverview = () => {
@@ -83,7 +74,7 @@ const SubscriptionsOverview = () => {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-32" />
         ))}
@@ -92,31 +83,33 @@ const SubscriptionsOverview = () => {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <Card>
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">Assinaturas Ativas</span>
-              <Users className="h-5 w-5 text-gray-400" />
+              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold">{stats?.activeSubscriptions || 0}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold">{stats?.activeSubscriptions || 0}</h2>
               <p className="text-xs text-gray-500">alunos ativos</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">Receita Mensal</span>
-              <DollarSign className="h-5 w-5 text-gray-400" />
+              <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold">R$ {stats?.monthlyRevenue.toFixed(2) || '0.00'}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold">
+                R$ {stats?.monthlyRevenue.toFixed(2) || '0.00'}
+              </h2>
               <p className="text-xs text-gray-500">
                 {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}% em relação ao mês anterior
               </p>
@@ -125,30 +118,30 @@ const SubscriptionsOverview = () => {
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">Pagamentos Atrasados</span>
-              <AlertTriangle className="h-5 w-5 text-gray-400" />
+              <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold">{stats?.overduePayments || 0}</h2>
+              <h2 className="text-2xl sm:text-3xl font-bold">{stats?.overduePayments || 0}</h2>
               <p className="text-xs text-gray-500">pagamentos pendentes</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="overflow-hidden">
-        <CardContent className="p-6">
+      <Card>
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">Crescimento Mensal</span>
-              <TrendingUp className="h-5 w-5 text-gray-400" />
+              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold">
+              <h2 className="text-2xl sm:text-3xl font-bold">
                 {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}%
               </h2>
               <p className="text-xs text-gray-500">em relação ao mês anterior</p>

@@ -32,7 +32,7 @@ const PaymentHistory = () => {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Histórico de Pagamentos</h2>
+        <h2 className="text-lg sm:text-xl font-semibold">Histórico de Pagamentos</h2>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -42,34 +42,34 @@ const PaymentHistory = () => {
     );
   }
 
-  const paymentCount = payments?.length || 0;
-  const currentPage = 1;
-  const totalPages = Math.ceil(paymentCount / 20);
-  const showingStart = paymentCount > 0 ? 1 : 0;
-  const showingEnd = Math.min(paymentCount, 20);
-
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h2 className="text-xl font-semibold">Pagamentos dos Alunos</h2>
-          <p className="text-sm text-gray-500">
+          <h2 className="text-lg sm:text-xl font-semibold">Pagamentos dos Alunos</h2>
+          <p className="text-xs sm:text-sm text-gray-500">
             Exibindo {showingStart}-{showingEnd} de {paymentCount} itens
           </p>
         </div>
-        <div className="flex space-x-2">
-          <Button variant="outline" className="flex items-center">
+        <div className="flex w-full sm:w-auto gap-2">
+          <Button 
+            variant="outline" 
+            className="flex-1 sm:flex-none text-sm items-center justify-center"
+          >
             <CalendarRange className="h-4 w-4 mr-2" />
             {format(new Date(), 'MMMM yyyy', { locale: ptBR })}
           </Button>
-          <Button className="flex items-center" onClick={handleNewPayment}>
-            <Plus className="h-4 w-4 mr-2" /> Novo Pagamento
+          <Button 
+            className="flex-1 sm:flex-none text-sm items-center justify-center" 
+            onClick={handleNewPayment}
+          >
+            <Plus className="h-4 w-4 mr-2" /> Novo
           </Button>
         </div>
       </div>
 
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="p-3 sm:p-6">
           <PaymentFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -78,7 +78,9 @@ const PaymentHistory = () => {
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
           />
-          <PaymentTable payments={payments} />
+          <div className="overflow-x-auto">
+            <PaymentTable payments={payments} />
+          </div>
         </CardContent>
       </Card>
 
