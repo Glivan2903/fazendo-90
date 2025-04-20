@@ -19,11 +19,11 @@ const FinancialDashboard = () => {
   }, [user, userRole, navigate]);
 
   return (
-    <div className="w-full min-h-screen px-2 sm:px-4 py-4 sm:py-6">
-      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-2">Gestão Financeira</h1>
+    <div className="w-full min-h-screen px-2 sm:px-4 py-4">
+      <h1 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 px-1">Gestão Financeira</h1>
       
       <Tabs defaultValue="overview" className="space-y-4">
-        <div className="bg-white p-2 rounded-lg shadow-sm mb-4 w-[95%] sm:w-full mx-auto">
+        <div className="bg-white p-2 rounded-lg shadow-sm mb-4 w-[98%] sm:w-full mx-auto">
           <TabsList className="w-full grid grid-cols-2 gap-2">
             <TabsTrigger value="overview" className="flex items-center justify-center">
               <BarChart2 className="w-4 h-4 mr-2" />
@@ -36,12 +36,12 @@ const FinancialDashboard = () => {
           </TabsList>
         </div>
 
-        <TabsContent value="overview" className="space-y-4 mt-0 w-[95%] sm:w-full mx-auto">
+        <TabsContent value="overview" className="space-y-4 mt-0 w-[98%] sm:w-full mx-auto">
           <SubscriptionsOverview />
           <PaymentHistory />
         </TabsContent>
 
-        <TabsContent value="plans" className="space-y-4 mt-0 w-[95%] sm:w-full mx-auto">
+        <TabsContent value="plans" className="space-y-4 mt-0 w-[98%] sm:w-full mx-auto">
           <PlansManagement />
         </TabsContent>
       </Tabs>

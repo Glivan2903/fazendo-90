@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -29,7 +28,6 @@ const PaymentHistory = () => {
     setIsNewPaymentOpen(true);
   };
 
-  // Calculate pagination stats
   const paymentCount = payments?.length || 0;
   const showingStart = paymentCount > 0 ? 1 : 0;
   const showingEnd = paymentCount;
@@ -49,7 +47,7 @@ const PaymentHistory = () => {
 
   return (
     <div className="space-y-4 w-full">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
         <div>
           <h2 className="text-lg sm:text-xl font-semibold">Pagamentos dos Alunos</h2>
           <p className="text-xs sm:text-sm text-gray-500">
@@ -82,7 +80,7 @@ const PaymentHistory = () => {
             onDateRangeChange={setDateRange}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
-            className="w-full"
+            className="w-full px-1 sm:px-0"
           />
           <div className="overflow-x-auto -mx-2 sm:mx-0">
             <PaymentTable payments={payments} />
