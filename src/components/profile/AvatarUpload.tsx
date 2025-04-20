@@ -31,7 +31,20 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
 
       const file = event.target.files[0];
       const fileExt = file.name.split('.').pop();
-      const filePath = `${userId}/avatar.${fileExt}`;
+      const fileName = `${userId}_${Date.now()}.${fileExt}`;
+      const filePath = `${userId}/${fileName}`;
+
+      // Verificar se o bucket 'avatars' existe, se não, criar
+      const { data: buckets } = await supabase.storage.listBuckets();
+      const avatarBucketExists = buckets?.some(bucket => bucket.name === 'avatars');
+
+      if (!avatarBucketExists) {
+        // Criar bucket 'avatars' se não existir
+        await supabase.storage.createBucket('avatars', {
+          public: true,
+          fileSizeLimit: 1024 * 1024 * 2 // 2MB limit
+        });
+      }
 
       // Upload image to Supabase storage
       const { error: uploadError, data } = await supabase.storage
@@ -39,7 +52,8 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
-        throw uploadError;
+        console.error('Upload error:', uploadError);
+        throw new Error('Erro ao fazer upload da imagem. Por favor, tente novamente.');
       }
 
       // Get public URL
@@ -54,15 +68,16 @@ const AvatarUpload: React.FC<AvatarUploadProps> = ({
         .eq('id', userId);
 
       if (updateError) {
-        throw updateError;
+        console.error('Profile update error:', updateError);
+        throw new Error('Erro ao atualizar perfil com a nova imagem.');
       }
 
       onAvatarUpdate(publicUrl);
       toast.success('Foto atualizada com sucesso!');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading avatar:', error);
-      toast.error('Erro ao atualizar foto');
+      toast.error(error.message || 'Erro ao atualizar foto');
     } finally {
       setUploading(false);
     }

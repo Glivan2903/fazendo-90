@@ -7,27 +7,23 @@ import { addDays, addMonths, isBefore, parseISO } from 'date-fns';
 export interface Payment {
   id: string;
   user_id: string;
-  subscription_id: string;
+  subscription_id: string | null;
   amount: number;
-  payment_date: string | null;
-  due_date: string;
   status: string;
   payment_method: string | null;
-  notes: string | null;
+  payment_date: string | null;
+  due_date: string;
   reference: string | null;
-  profiles?: {
-    name: string;
-    email: string;
-    plan: string | null;
-  };
-  subscriptions?: {
-    start_date: string;
-    end_date: string;
-    plans: {
-      name: string;
-      periodicity: string;
-    };
-  };
+  notes: string | null;
+  bank_invoice: {
+    id: string;
+    invoice_number: string;
+    total_amount: number;
+    discount_amount: number;
+  } | null;
+  formattedAmount: string;
+  formattedDueDate: string;
+  formattedPaymentDate: string | null;
 }
 
 export const usePaymentHistory = () => {
@@ -109,7 +105,7 @@ export const usePaymentHistory = () => {
 
       if (error) throw error;
       
-      // Ensure we only have one payment per user per month
+      // Ensure we only have one payment per user per month - MODIFICAÇÃO AQUI
       const uniquePayments = new Map();
       
       data?.forEach((payment: any) => {
@@ -117,7 +113,10 @@ export const usePaymentHistory = () => {
         const monthYear = new Date(payment.due_date).toISOString().substring(0, 7); // YYYY-MM format
         const key = `${userId}_${monthYear}`;
         
-        if (!uniquePayments.has(key) || payment.status === 'paid') {
+        // Priorizar pagamentos com status "paid" sobre outros status
+        if (!uniquePayments.has(key) || 
+            (payment.status === 'paid') ||
+            (uniquePayments.get(key).status !== 'paid' && payment.status === 'pending')) {
           uniquePayments.set(key, payment);
         }
       });

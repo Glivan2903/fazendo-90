@@ -46,8 +46,23 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
 
       if (error) throw error;
       
+      // Mapa para armazenar uma fatura por mês para evitar duplicatas
+      const uniqueInvoices = new Map();
+      
+      data?.forEach((invoice) => {
+        const monthYear = new Date(invoice.due_date).toISOString().substring(0, 7); // YYYY-MM
+        const key = `${invoice.user_id}_${monthYear}`;
+        
+        // Se não temos uma fatura para este mês ou se essa é uma fatura paga (prioridade)
+        if (!uniqueInvoices.has(key) || 
+            (invoice.status === 'paid') ||
+            (uniqueInvoices.get(key).status !== 'paid' && invoice.status === 'pending')) {
+          uniqueInvoices.set(key, invoice);
+        }
+      });
+      
       // Map the data to match the BankInvoice interface
-      const mappedInvoices: BankInvoice[] = (data || []).map(invoice => ({
+      const mappedInvoices: BankInvoice[] = Array.from(uniqueInvoices.values()).map(invoice => ({
         id: invoice.id,
         invoice_number: invoice.invoice_number,
         due_date: invoice.due_date,

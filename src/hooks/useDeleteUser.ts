@@ -37,9 +37,16 @@ export const useDeleteUser = (userId: string) => {
 
       // Delete all related data in the correct order
       await Promise.all([
+        // Remover check-ins do usuário
         supabase.from('checkins').delete().eq('user_id', userId),
+        
+        // Remover pagamentos do usuário
         supabase.from('payments').delete().eq('user_id', userId),
+        
+        // Remover faturas do usuário
         supabase.from('bank_invoices').delete().eq('user_id', userId),
+        
+        // Remover assinaturas do usuário
         supabase.from('subscriptions').delete().eq('user_id', userId),
       ]);
 
