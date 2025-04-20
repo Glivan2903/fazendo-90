@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { format } from 'date-fns';
 
 interface ApproveUserDialogProps {
   open: boolean;
@@ -44,212 +45,107 @@ export default function ApproveUserDialog({
 
       if (error) throw error;
       setPlans(data || []);
-      // Auto select the first plan
       if (data && data.length > 0) {
         setSelectedPlanId(data[0].id);
       }
     } catch (error) {
-      console.error("Error fetching plans:", error);
+      console.error("Erro ao carregar planos:", error);
       toast.error("Erro ao carregar planos disponíveis");
     }
   };
 
-  const cleanupExistingUserData = async () => {
-    try {
-      console.log(`Limpando dados existentes para usuário: ${userId}`);
-      
-      // 1. Verificar se já existem itens de assinatura para evitar duplicação
-      const { data: existingItems, error: checkError } = await supabase
-        .from('subscriptions')
-        .select('id, status')
-        .eq('user_id', userId);
-        
-      if (checkError) {
-        console.error("Error checking existing subscriptions:", checkError);
-      }
-      
-      // Limpar assinaturas existentes antes de criar novas
-      if (existingItems && existingItems.length > 0) {
-        console.log(`Removendo ${existingItems.length} assinaturas existentes`);
-        
-        const { error: cancelSubError } = await supabase
-          .from('subscriptions')
-          .delete()
-          .eq('user_id', userId);
-        
-        if (cancelSubError) {
-          console.error("Error canceling existing subscriptions:", cancelSubError);
-        }
-      }
-      
-      // 2. Verificar por faturas existentes (pendentes e pagas)
-      const { data: existingInvoices, error: checkInvError } = await supabase
-        .from('bank_invoices')
-        .select('id, status')
-        .eq('user_id', userId);
-        
-      if (checkInvError) {
-        console.error("Error checking invoices:", checkInvError);
-      }
-
-      // Remover todas as faturas existentes para evitar duplicação
-      if (existingInvoices && existingInvoices.length > 0) {
-        console.log(`Removendo ${existingInvoices.length} faturas existentes`);
-        
-        const { error: cancelInvError } = await supabase
-          .from('bank_invoices')
-          .delete()
-          .eq('user_id', userId);
-        
-        if (cancelInvError) {
-          console.error("Error canceling invoices:", cancelInvError);
-        }
-      }
-
-      // 3. Verificar pagamentos existentes
-      const { data: existingPayments, error: checkPayError } = await supabase
-        .from('payments')
-        .select('id, status')
-        .eq('user_id', userId);
-        
-      if (checkPayError) {
-        console.error("Error checking payments:", checkPayError);
-      }
-      
-      // Remover todos os pagamentos para evitar duplicação
-      if (existingPayments && existingPayments.length > 0) {
-        console.log(`Removendo ${existingPayments.length} pagamentos existentes`);
-        
-        const { error: cancelPayError } = await supabase
-          .from('payments')
-          .delete()
-          .eq('user_id', userId);
-        
-        if (cancelPayError) {
-          console.error("Error canceling payments:", cancelPayError);
-        }
-      }
-
-      console.log('Limpeza de dados concluída com sucesso');
-      return true;
-    } catch (error) {
-      console.error("Erro durante a limpeza de dados:", error);
-      return false;
-    }
+  const generateInvoiceNumber = async () => {
+    const { data, error } = await supabase.rpc('generate_invoice_number');
+    if (error) throw error;
+    return data;
   };
 
   const handleApprove = async () => {
     try {
+      setLoading(true);
+      
       if (!selectedPlanId) {
-        toast.error("Por favor, selecione um plano");
+        toast.error("Selecione um plano");
         return;
       }
 
-      setLoading(true);
-      console.log(`Iniciando aprovação do usuário: ${userId} com plano: ${selectedPlanId}`);
-
-      // Limpar dados existentes do usuário
-      await cleanupExistingUserData();
-
-      // 1. Update user status to Pendente
-      const { error: statusError } = await supabase
-        .from('profiles')
-        .update({ status: 'Pendente' })
-        .eq('id', userId);
-
-      if (statusError) throw statusError;
-      console.log("Status do perfil atualizado para Pendente");
-
-      // 2. Create subscription for user based on selected plan with status pending
       const selectedPlan = plans.find(p => p.id === selectedPlanId);
       if (!selectedPlan) throw new Error("Plano não encontrado");
-      
+
       const startDate = new Date();
-      const endDate = new Date();
+      const endDate = new Date(startDate);
       endDate.setDate(endDate.getDate() + selectedPlan.days_validity);
-      
-      const { data: subscription, error: subscriptionError } = await supabase
+
+      // Gerar número da fatura
+      const invoiceNumber = await generateInvoiceNumber();
+
+      // Criar assinatura
+      const { data: subscriptionData, error: subscriptionError } = await supabase
         .from('subscriptions')
-        .insert([{
+        .insert({
           user_id: userId,
           plan_id: selectedPlanId,
-          start_date: startDate.toISOString().split('T')[0],
-          end_date: endDate.toISOString().split('T')[0],
+          start_date: format(startDate, 'yyyy-MM-dd'),
+          end_date: format(endDate, 'yyyy-MM-dd'),
           status: 'pending'
-        }])
+        })
         .select()
         .single();
 
       if (subscriptionError) throw subscriptionError;
-      console.log(`Nova assinatura criada: ${subscription.id}`);
 
-      // 3. Generate invoice number
-      const { data: invoiceNumberData, error: invoiceNumberError } = await supabase
-        .rpc('generate_invoice_number');
-        
-      if (invoiceNumberError) throw invoiceNumberError;
-      
-      const invoiceNumber = invoiceNumberData || "";
-      console.log(`Número da fatura gerado: ${invoiceNumber}`);
-
-      // 4. Create only one bank invoice for the plan
-      const { data: bankInvoice, error: bankInvoiceError } = await supabase
+      // Criar fatura bancária
+      const { data: invoiceData, error: invoiceError } = await supabase
         .from('bank_invoices')
         .insert({
           user_id: userId,
-          total_amount: selectedPlan.amount,
-          due_date: startDate.toISOString().split('T')[0],
-          status: 'pending',
-          category: 'Mensalidade',
-          buyer_name: userName,
-          transaction_type: 'income',
           invoice_number: invoiceNumber,
-          discount_amount: 0,
-          seller_name: 'Cross Box Fênix'
+          total_amount: selectedPlan.amount,
+          due_date: format(startDate, 'yyyy-MM-dd'),
+          status: 'pending',
+          buyer_name: userName,
+          category: 'Mensalidade',
+          transaction_type: 'income'
         })
         .select()
         .single();
 
-      if (bankInvoiceError) throw bankInvoiceError;
-      console.log(`Nova fatura bancária criada: ${bankInvoice.id}`);
+      if (invoiceError) throw invoiceError;
 
-      // 5. Create only one payment record linked to the invoice
-      const { data: payment, error: paymentError } = await supabase
+      // Criar pagamento
+      const { data: paymentData, error: paymentError } = await supabase
         .from('payments')
-        .insert([{
+        .insert({
           user_id: userId,
-          subscription_id: subscription.id,
+          subscription_id: subscriptionData.id,
           amount: selectedPlan.amount,
-          due_date: startDate.toISOString().split('T')[0],
+          due_date: format(startDate, 'yyyy-MM-dd'),
           status: 'pending',
-          reference: `Mensalidade - ${userName}`,
-          bank_invoice_id: bankInvoice.id,
-          notes: 'Mensalidade'
-        }])
+          reference: `Plano ${selectedPlan.name} - ${userName}`
+        })
         .select()
         .single();
 
       if (paymentError) throw paymentError;
-      console.log(`Novo pagamento criado: ${payment.id}`);
-      
-      // 6. Update profile plan
-      const { error: updatePlanError } = await supabase
+
+      // Atualizar perfil do usuário
+      const { error: profileError } = await supabase
         .from('profiles')
-        .update({ 
+        .update({
           plan: selectedPlan.name,
-          subscription_id: subscription.id
+          status: 'Pendente',
+          subscription_id: subscriptionData.id
         })
         .eq('id', userId);
-        
-      if (updatePlanError) throw updatePlanError;
-      console.log("Plano do perfil atualizado com sucesso");
 
-      toast.success(`Plano atribuído a ${userName} com sucesso! Aguardando confirmação de pagamento.`);
+      if (profileError) throw profileError;
+
+      toast.success(`Usuário ${userName} aprovado. Fatura gerada com sucesso!`);
       onApproved();
       onOpenChange(false);
 
     } catch (error) {
-      console.error("Error approving user:", error);
+      console.error("Erro ao aprovar usuário:", error);
       toast.error("Erro ao aprovar usuário");
     } finally {
       setLoading(false);

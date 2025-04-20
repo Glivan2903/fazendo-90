@@ -51,6 +51,84 @@ export type Database = {
         }
         Relationships: []
       }
+      bank_invoices: {
+        Row: {
+          bank_account: string | null
+          buyer_name: string
+          category: string | null
+          created_at: string | null
+          discount_amount: number
+          due_date: string
+          fornecedor: string | null
+          id: string
+          invoice_number: string
+          payment_date: string | null
+          payment_method: string | null
+          sale_date: string
+          seller_name: string
+          status: string
+          total_amount: number
+          transaction_type: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bank_account?: string | null
+          buyer_name: string
+          category?: string | null
+          created_at?: string | null
+          discount_amount?: number
+          due_date: string
+          fornecedor?: string | null
+          id?: string
+          invoice_number: string
+          payment_date?: string | null
+          payment_method?: string | null
+          sale_date?: string
+          seller_name?: string
+          status?: string
+          total_amount: number
+          transaction_type?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bank_account?: string | null
+          buyer_name?: string
+          category?: string | null
+          created_at?: string | null
+          discount_amount?: number
+          due_date?: string
+          fornecedor?: string | null
+          id?: string
+          invoice_number?: string
+          payment_date?: string | null
+          payment_method?: string | null
+          sale_date?: string
+          seller_name?: string
+          status?: string
+          total_amount?: number
+          transaction_type?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bank_invoices_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user_checkin_counts"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
       checkins: {
         Row: {
           checked_in_at: string | null
