@@ -17,6 +17,7 @@ interface PaymentFiltersProps {
   onDateRangeChange: (value: string) => void;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
+  className?: string;
 }
 
 export const PaymentFilters = ({
@@ -25,10 +26,11 @@ export const PaymentFilters = ({
   dateRange,
   onDateRangeChange,
   statusFilter,
-  onStatusFilterChange
+  onStatusFilterChange,
+  className
 }: PaymentFiltersProps) => {
   return (
-    <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-4">
+    <div className={`flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4 mb-4 ${className || ''}`}>
       <div className="relative flex-1">
         <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
