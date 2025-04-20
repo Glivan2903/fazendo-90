@@ -3,9 +3,9 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PlansManagement from "@/components/financial/PlansManagement";
 import SubscriptionsOverview from "@/components/financial/SubscriptionsOverview";
-import { BarChart2, FileText, ArrowUpDown } from "lucide-react";
-import CashFlowPage from "@/components/financial/CashFlowPage";
+import { BarChart2, FileText } from "lucide-react";
 import { Card } from '@/components/ui/card';
+import PaymentHistory from "@/components/financial/PaymentHistory";
 
 const FinancialTab = () => {
   const [activeTab, setActiveTab] = useState("overview");
@@ -33,25 +33,15 @@ const FinancialTab = () => {
               <FileText className="w-4 h-4 mr-2" />
               <span>Planos</span>
             </TabsTrigger>
-            <TabsTrigger 
-              value="cashflow" 
-              className="flex items-center data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700"
-            >
-              <ArrowUpDown className="w-4 h-4 mr-2" />
-              <span>Entradas e Saídas</span>
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-4 mt-6">
             <SubscriptionsOverview />
+            <PaymentHistory />
           </TabsContent>
 
           <TabsContent value="plans" className="space-y-4 mt-6">
             <PlansManagement />
-          </TabsContent>
-          
-          <TabsContent value="cashflow" className="space-y-4 mt-6">
-            <CashFlowPage />
           </TabsContent>
         </Tabs>
       </Card>

@@ -43,16 +43,18 @@ const PaymentHistory = () => {
   }
 
   const paymentCount = payments?.length || 0;
-  const pendingCount = payments?.filter(p => p.status === 'pending' || p.status === 'overdue').length || 0;
+  const currentPage = 1;
+  const totalPages = Math.ceil(paymentCount / 20);
+  const showingStart = paymentCount > 0 ? 1 : 0;
+  const showingEnd = Math.min(paymentCount, 20);
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-xl font-semibold">Histórico de Pagamentos</h2>
+          <h2 className="text-xl font-semibold">Pagamentos dos Alunos</h2>
           <p className="text-sm text-gray-500">
-            {paymentCount} pagamentos encontrados 
-            {pendingCount > 0 && ` • ${pendingCount} pendentes`}
+            Exibindo {showingStart}-{showingEnd} de {paymentCount} itens
           </p>
         </div>
         <div className="flex space-x-2">

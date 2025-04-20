@@ -14,6 +14,7 @@ export interface Payment {
   status: string;
   payment_method: string | null;
   notes: string | null;
+  reference: string | null;
   profiles?: {
     name: string;
     email: string;
@@ -108,9 +109,22 @@ export const usePaymentHistory = () => {
 
       if (error) throw error;
       
+      // Ensure we only have one payment per user per month
+      const uniquePayments = new Map();
+      
+      data?.forEach((payment: any) => {
+        const userId = payment.user_id;
+        const monthYear = new Date(payment.due_date).toISOString().substring(0, 7); // YYYY-MM format
+        const key = `${userId}_${monthYear}`;
+        
+        if (!uniquePayments.has(key) || payment.status === 'paid') {
+          uniquePayments.set(key, payment);
+        }
+      });
+      
       // Calcular pagamentos atrasados (due_date passada e sem payment_date)
       const today = new Date();
-      const paymentsWithOverdueStatus = (data as Payment[]).map(payment => {
+      const paymentsWithOverdueStatus = Array.from(uniquePayments.values()).map((payment: any) => {
         if (
           payment.status === 'pending' && 
           payment.due_date && 

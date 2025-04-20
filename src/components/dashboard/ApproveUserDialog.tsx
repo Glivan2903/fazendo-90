@@ -87,19 +87,36 @@ export default function ApproveUserDialog({
       const currentMonth = startDate.getMonth();
       const currentYear = startDate.getFullYear();
       
-      const { data: existingInvoices, error: checkError } = await supabase
+      // Check if user already has an invoice for the current month
+      const { data: existingInvoices, error: checkInvoiceError } = await supabase
         .from('bank_invoices')
         .select('id')
         .eq('user_id', userId)
-        .eq('status', 'pending')
+        .eq('transaction_type', 'income')
         .gte('created_at', new Date(currentYear, currentMonth, 1).toISOString())
         .lte('created_at', new Date(currentYear, currentMonth + 1, 0).toISOString());
 
-      if (checkError) throw checkError;
+      if (checkInvoiceError) throw checkInvoiceError;
+      
+      // Check if user already has a payment for the current month
+      const { data: existingPayments, error: checkPaymentError } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('user_id', userId)
+        .gte('due_date', new Date(currentYear, currentMonth, 1).toISOString())
+        .lte('due_date', new Date(currentYear, currentMonth + 1, 0).toISOString());
+        
+      if (checkPaymentError) throw checkPaymentError;
 
-      if (existingInvoices && existingInvoices.length > 0) {
-        // Already has an invoice this month
-        toast.info("Usuário já possui uma fatura pendente para este mês");
+      if ((existingInvoices && existingInvoices.length > 0) || (existingPayments && existingPayments.length > 0)) {
+        // User already has an invoice or payment for this month
+        Alert({
+          title: "Aviso",
+          description: "Usuário já possui uma fatura ou pagamento para este mês.",
+          variant: "default",
+        });
+        
+        toast.info("Usuário já possui uma fatura ou pagamento para este mês");
         onOpenChange(false);
         return;
       }

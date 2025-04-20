@@ -4,10 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  CardContent
 } from "@/components/ui/card";
 import { 
   DollarSign, 
@@ -22,35 +19,58 @@ const SubscriptionsOverview = () => {
     queryKey: ['subscription-stats'],
     queryFn: async () => {
       // Get active subscriptions count
-      const { count: activeCount } = await supabase
+      const { count: activeCount, error: activeError } = await supabase
         .from('subscriptions')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'active');
 
-      // Get total revenue from active subscriptions
-      const { data: revenue } = await supabase
+      if (activeError) throw activeError;
+
+      // Get current month's payments
+      const currentDate = new Date();
+      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+      const { data: currentMonthPayments, error: currentMonthError } = await supabase
         .from('payments')
         .select('amount')
         .eq('status', 'paid')
-        .gte('payment_date', new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString());
+        .gte('payment_date', startOfMonth.toISOString().split('T')[0])
+        .lte('payment_date', endOfMonth.toISOString().split('T')[0]);
+
+      if (currentMonthError) throw currentMonthError;
+
+      // Get previous month's payments
+      const startOfPreviousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+      const endOfPreviousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 0);
+
+      const { data: previousMonthPayments, error: previousMonthError } = await supabase
+        .from('payments')
+        .select('amount')
+        .eq('status', 'paid')
+        .gte('payment_date', startOfPreviousMonth.toISOString().split('T')[0])
+        .lte('payment_date', endOfPreviousMonth.toISOString().split('T')[0]);
+
+      if (previousMonthError) throw previousMonthError;
 
       // Get overdue payments count
-      const { count: overdueCount } = await supabase
+      const { count: overdueCount, error: overdueError } = await supabase
         .from('payments')
         .select('*', { count: 'exact', head: true })
-        .eq('status', 'overdue');
+        .in('status', ['pending', 'overdue'])
+        .lt('due_date', new Date().toISOString().split('T')[0]);
 
-      // Calculate monthly growth
-      const { data: lastMonthPayments } = await supabase
-        .from('payments')
-        .select('amount')
-        .eq('status', 'paid')
-        .gte('payment_date', new Date(new Date().setMonth(new Date().getMonth() - 2)).toISOString())
-        .lt('payment_date', new Date(new Date().setMonth(new Date().getMonth() - 1)).toISOString());
+      if (overdueError) throw overdueError;
 
-      const currentMonthTotal = revenue?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
-      const lastMonthTotal = lastMonthPayments?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
-      const growth = lastMonthTotal ? ((currentMonthTotal - lastMonthTotal) / lastMonthTotal) * 100 : 0;
+      // Calculate monthly revenue
+      const currentMonthTotal = currentMonthPayments?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+      const previousMonthTotal = previousMonthPayments?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+      
+      // Calculate growth percentage
+      let growth = 0;
+      if (previousMonthTotal > 0) {
+        growth = ((currentMonthTotal - previousMonthTotal) / previousMonthTotal) * 100;
+      }
 
       return {
         activeSubscriptions: activeCount || 0,
@@ -73,53 +93,67 @@ const SubscriptionsOverview = () => {
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Assinaturas Ativas</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats?.activeSubscriptions}</div>
-          <p className="text-xs text-muted-foreground">alunos ativos</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Receita Mensal</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            R$ {stats?.monthlyRevenue.toFixed(2)}
+      <Card className="overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-500">Assinaturas Ativas</span>
+              <Users className="h-5 w-5 text-gray-400" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold">{stats?.activeSubscriptions || 0}</h2>
+              <p className="text-xs text-gray-500">alunos ativos</p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">
-            {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}% em relação ao mês anterior
-          </p>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pagamentos Atrasados</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{stats?.overduePayments}</div>
-          <p className="text-xs text-muted-foreground">pagamentos pendentes</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Crescimento Mensal</CardTitle>
-          <TrendingUp className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}%
+      <Card className="overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-500">Receita Mensal</span>
+              <DollarSign className="h-5 w-5 text-gray-400" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold">R$ {stats?.monthlyRevenue.toFixed(2) || '0.00'}</h2>
+              <p className="text-xs text-gray-500">
+                {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}% em relação ao mês anterior
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">em relação ao mês anterior</p>
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-500">Pagamentos Atrasados</span>
+              <AlertTriangle className="h-5 w-5 text-gray-400" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold">{stats?.overduePayments || 0}</h2>
+              <p className="text-xs text-gray-500">pagamentos pendentes</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="overflow-hidden">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-500">Crescimento Mensal</span>
+              <TrendingUp className="h-5 w-5 text-gray-400" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold">
+                {stats?.monthlyGrowth > 0 ? '+' : ''}{stats?.monthlyGrowth.toFixed(1)}%
+              </h2>
+              <p className="text-xs text-gray-500">em relação ao mês anterior</p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from 'date-fns';
 
 interface PaymentConfirmDialogProps {
   open: boolean;
@@ -67,18 +66,18 @@ export default function PaymentConfirmDialog({
       }
 
       // Get the pending subscription
-      const { data: subscription, error: subscriptionError } = await supabase
+      const { data: subscriptions, error: subscriptionError } = await supabase
         .from('subscriptions')
         .select('*')
         .eq('user_id', userId)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('created_at', { ascending: false });
 
-      if (subscriptionError && subscriptionError.code !== 'PGRST116') {
-        throw subscriptionError;
-      }
+      if (subscriptionError) throw subscriptionError;
+      
+      // Find the most recent subscription (active or pending)
+      const subscription = subscriptions?.find(sub => 
+        sub.status === 'pending' || sub.status === 'active'
+      );
 
       // If subscription exists, update it to active
       if (subscription) {
@@ -93,20 +92,20 @@ export default function PaymentConfirmDialog({
         if (updateSubError) throw updateSubError;
       }
 
-      // Get the pending invoice
-      const { data: pendingInvoice, error: invoiceError } = await supabase
+      // Get the most recent pending invoice
+      const { data: pendingInvoices, error: invoiceError } = await supabase
         .from('bank_invoices')
         .select('*')
         .eq('user_id', userId)
         .eq('status', 'pending')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .order('created_at', { ascending: false });
 
       if (invoiceError) throw invoiceError;
-
-      // Update the invoice and profile
-      if (pendingInvoice) {
+      
+      // Only update one invoice to paid
+      if (pendingInvoices && pendingInvoices.length > 0) {
+        const pendingInvoice = pendingInvoices[0];
+        
         const { error: updateError } = await supabase
           .from('bank_invoices')
           .update({ 
@@ -127,18 +126,34 @@ export default function PaymentConfirmDialog({
 
         if (profileError) throw profileError;
 
-        // Update any pending payments
-        const { error: paymentError } = await supabase
+        // Update one pending payment per month to paid
+        const currentMonth = currentDate.getMonth();
+        const currentYear = currentDate.getFullYear();
+        
+        const { data: pendingPayments, error: pendingPaymentsError } = await supabase
           .from('payments')
-          .update({ 
-            status: 'paid',
-            payment_date: new Date().toISOString().split('T')[0],
-            payment_method: 'PIX'
-          })
+          .select('*')
           .eq('user_id', userId)
-          .eq('status', 'pending');
+          .eq('status', 'pending')
+          .gte('due_date', new Date(currentYear, currentMonth, 1).toISOString().split('T')[0])
+          .lte('due_date', new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0])
+          .order('created_at', { ascending: false });
+          
+        if (pendingPaymentsError) throw pendingPaymentsError;
+        
+        if (pendingPayments && pendingPayments.length > 0) {
+          // Only update the most recent payment
+          const { error: paymentError } = await supabase
+            .from('payments')
+            .update({ 
+              status: 'paid',
+              payment_date: new Date().toISOString().split('T')[0],
+              payment_method: 'PIX'
+            })
+            .eq('id', pendingPayments[0].id);
 
-        if (paymentError) throw paymentError;
+          if (paymentError) throw paymentError;
+        }
       }
 
       toast.success(`Pagamento confirmado para ${userName}`);

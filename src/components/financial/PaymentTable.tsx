@@ -18,6 +18,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import EditPaymentDialog from './EditPaymentDialog';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface PaymentTableProps {
   payments: Payment[] | undefined;
@@ -54,7 +55,7 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({ payments }) => {
   const getPaymentStatusText = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'Pago';
+        return 'RECEBIDO';
       case 'pending':
         return 'Pendente';
       case 'overdue':
@@ -154,11 +155,17 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({ payments }) => {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox />
+              </TableHead>
+              <TableHead>Data vencto</TableHead>
+              <TableHead>Forma pagto</TableHead>
+              <TableHead>Venda</TableHead>
+              <TableHead>Observação</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Plano</TableHead>
-              <TableHead>Vencimento</TableHead>
+              <TableHead>Desc Parcela</TableHead>
+              <TableHead>Taxa</TableHead>
               <TableHead>Valor</TableHead>
-              <TableHead>Pagamento</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Ações</TableHead>
             </TableRow>
@@ -167,45 +174,43 @@ export const PaymentTable: React.FC<PaymentTableProps> = ({ payments }) => {
             {payments && payments.length > 0 ? (
               payments.map((payment) => (
                 <TableRow key={payment.id}>
-                  <TableCell className="font-medium">{payment.profiles?.name || '-'}</TableCell>
-                  <TableCell>{payment.subscriptions?.plans?.name || '-'}</TableCell>
+                  <TableCell className="w-[40px]">
+                    <Checkbox />
+                  </TableCell>
                   <TableCell>{formatDate(payment.due_date)}</TableCell>
+                  <TableCell>{payment.payment_method || 'Dinheiro'}</TableCell>
+                  <TableCell className="text-blue-600">{payment.reference || '-'}</TableCell>
+                  <TableCell>Vendas</TableCell>
+                  <TableCell className="font-medium">{payment.profiles?.name || '-'}</TableCell>
+                  <TableCell>0,00</TableCell>
+                  <TableCell>0,00</TableCell>
                   <TableCell>R$ {payment.amount.toFixed(2)}</TableCell>
-                  <TableCell>{formatDate(payment.payment_date)}</TableCell>
                   <TableCell>
                     <Badge 
                       variant="outline" 
-                      className={getPaymentStatusColor(payment.status)}
+                      className={payment.status === 'paid' ? 'bg-green-500 text-white' : getPaymentStatusColor(payment.status)}
                     >
                       {getPaymentStatusText(payment.status)}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setEditingPayment(payment);
-                          setIsDialogOpen(true);
-                        }}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handlePaymentDelete(payment.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={() => {
+                        setEditingPayment(payment);
+                        setIsDialogOpen(true);
+                      }}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8">
+                <TableCell colSpan={11} className="text-center py-8">
                   Nenhum pagamento encontrado
                 </TableCell>
               </TableRow>
