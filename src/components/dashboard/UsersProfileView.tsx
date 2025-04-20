@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,6 +17,7 @@ import UserHistoryDialog from './attendance/UserHistoryDialog';
 import UserPlansManagement from './users/UserPlansManagement';
 import UserCheckinHistory from './users/UserCheckinHistory';
 import UserBankInvoices from './users/UserBankInvoices';
+import UserSales from './users/UserSales';
 
 interface UserProfileViewProps {
   userId: string | null;
@@ -167,19 +167,18 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
         <Button variant="outline" onClick={onClose}>Voltar</Button>
       </div>
 
-      {/* Menu de navegação */}
       <div className="border-b">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-transparent border-b w-full justify-start">
             <TabsTrigger value="profile">Perfil</TabsTrigger>
             <TabsTrigger value="plans">Planos</TabsTrigger>
+            <TabsTrigger value="sales">Vendas</TabsTrigger>
             <TabsTrigger value="bank-invoices">Faturas</TabsTrigger>
             <TabsTrigger value="checkins">Check-ins</TabsTrigger>
           </TabsList>
 
           <TabsContent value="profile" className="mt-0 space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left column - Profile info */}
               <div className="space-y-6">
                 <Card>
                   <CardContent className="pt-6">
@@ -219,7 +218,6 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
                   </CardContent>
                 </Card>
 
-                {/* Subscription Status Card */}
                 <Card>
                   <CardContent className="pt-6">
                     <h3 className="text-lg font-medium mb-3">Assinatura</h3>
@@ -294,7 +292,6 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
                 </div>
               </div>
 
-              {/* Right column - Form and Notes */}
               <div className="lg:col-span-2 space-y-6">
                 <Card>
                   <CardContent className="pt-6">
@@ -322,6 +319,10 @@ const UserProfileView: React.FC<UserProfileViewProps> = ({ userId, onClose }) =>
 
           <TabsContent value="plans" className="mt-0">
             <UserPlansManagement userId={userId} />
+          </TabsContent>
+
+          <TabsContent value="sales" className="mt-0">
+            <UserSales userId={userId} userName={profile.name} />
           </TabsContent>
 
           <TabsContent value="bank-invoices" className="mt-0">
