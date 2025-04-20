@@ -31,6 +31,7 @@ export default function PaymentConfirmDialog({
   const handleConfirmPayment = async () => {
     try {
       setLoading(true);
+      console.log(`Iniciando confirmação de pagamento para usuário: ${userId}`);
 
       // First check if there are any pending payments or invoices
       const { data: pendingInvoices, error: invoiceCheckError } = await supabase
@@ -45,6 +46,21 @@ export default function PaymentConfirmDialog({
         toast.error("Não há faturas pendentes para este usuário");
         return;
       }
+      
+      console.log(`Faturas pendentes encontradas: ${pendingInvoices.length}`);
+
+      // Verificar se já existem faturas pagas para evitar duplicação
+      const { data: paidInvoices, error: paidInvoicesError } = await supabase
+        .from('bank_invoices')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'paid');
+
+      if (paidInvoicesError) throw paidInvoicesError;
+
+      if (paidInvoices && paidInvoices.length > 0) {
+        console.log(`Atenção: Já existem ${paidInvoices.length} faturas pagas para este usuário`);
+      }
 
       // 1. Update profile status to Ativo
       const { error: profileError } = await supabase
@@ -53,6 +69,7 @@ export default function PaymentConfirmDialog({
         .eq('id', userId);
 
       if (profileError) throw profileError;
+      console.log('Status do perfil atualizado para Ativo');
 
       // 2. Get the pending subscription for this user
       const { data: subscription, error: subscriptionError } = await supabase
@@ -79,6 +96,7 @@ export default function PaymentConfirmDialog({
           .eq('id', subscription.id);
 
         if (updateSubError) throw updateSubError;
+        console.log(`Assinatura ID ${subscription.id} atualizada para ativa`);
       }
 
       // 4. Update bank invoice status to paid (only update pending invoices)
@@ -92,6 +110,7 @@ export default function PaymentConfirmDialog({
         .eq('status', 'pending');
 
       if (invoiceError) throw invoiceError;
+      console.log('Faturas bancárias atualizadas para pagas');
 
       // 5. Update payments status to paid (only update pending payments)
       const { error: paymentError } = await supabase
@@ -104,6 +123,7 @@ export default function PaymentConfirmDialog({
         .eq('status', 'pending');
 
       if (paymentError) throw paymentError;
+      console.log('Pagamentos atualizados para pagos');
 
       toast.success(`Pagamento confirmado para ${userName}`);
       onConfirmed();
