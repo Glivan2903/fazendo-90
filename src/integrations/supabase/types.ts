@@ -49,93 +49,7 @@ export type Database = {
           total?: number
           unit_price?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "bank_invoice_items_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "bank_invoices"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      bank_invoices: {
-        Row: {
-          bank_account: string | null
-          buyer_name: string
-          category: string | null
-          created_at: string | null
-          discount_amount: number
-          due_date: string
-          fornecedor: string | null
-          id: string
-          invoice_number: string
-          payment_date: string | null
-          payment_method: string | null
-          sale_date: string
-          seller_name: string
-          status: string
-          total_amount: number
-          transaction_type: string | null
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          bank_account?: string | null
-          buyer_name: string
-          category?: string | null
-          created_at?: string | null
-          discount_amount?: number
-          due_date: string
-          fornecedor?: string | null
-          id?: string
-          invoice_number: string
-          payment_date?: string | null
-          payment_method?: string | null
-          sale_date?: string
-          seller_name?: string
-          status?: string
-          total_amount: number
-          transaction_type?: string | null
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          bank_account?: string | null
-          buyer_name?: string
-          category?: string | null
-          created_at?: string | null
-          discount_amount?: number
-          due_date?: string
-          fornecedor?: string | null
-          id?: string
-          invoice_number?: string
-          payment_date?: string | null
-          payment_method?: string | null
-          sale_date?: string
-          seller_name?: string
-          status?: string
-          total_amount?: number
-          transaction_type?: string | null
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bank_invoices_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "bank_invoices_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "user_checkin_counts"
-            referencedColumns: ["user_id"]
-          },
-        ]
+        Relationships: []
       }
       checkins: {
         Row: {
@@ -288,13 +202,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "payments_bank_invoice_id_fkey"
-            columns: ["bank_invoice_id"]
-            isOneToOne: false
-            referencedRelation: "bank_invoices"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "payments_subscription_id_fkey"
             columns: ["subscription_id"]
