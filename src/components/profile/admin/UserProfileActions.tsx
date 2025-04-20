@@ -1,4 +1,3 @@
-
 import React from 'react';
 import {
   DropdownMenu,
@@ -8,12 +7,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { MoreVertical, Trash2, Mail, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,7 +17,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { MoreVertical, Trash2, Mail, RefreshCw, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface UserProfileActionsProps {
   userId: string;
@@ -37,7 +35,6 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
 
   const handleDeleteUser = async () => {
-    // Prevent deleting your own admin account
     if (user?.id === userId) {
       toast.error('Você não pode deletar sua própria conta de administrador');
       return;
@@ -45,8 +42,6 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
 
     setIsDeleting(true);
     try {
-      // Delete all data in the correct order to respect foreign key constraints
-      
       // First, check if user exists
       const { data: userExists, error: userCheckError } = await supabase
         .from('profiles')
@@ -64,48 +59,20 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
         navigate('/teacher-dashboard', { replace: true });
         return;
       }
-      
-      // 1. Delete checkins first
-      const { error: checkinError } = await supabase
-        .from('checkins')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (checkinError) {
-        console.error('Error deleting checkins:', checkinError);
-      }
-      
-      // 2. Delete payments
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (paymentError) {
-        console.error('Error deleting payments:', paymentError);
-      }
-      
-      // 3. Delete bank invoices
-      const { error: invoiceError } = await supabase
-        .from('bank_invoices')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (invoiceError) {
-        console.error('Error deleting bank invoices:', invoiceError);
-      }
-      
-      // 4. Delete subscriptions
-      const { error: subscriptionError } = await supabase
-        .from('subscriptions')
-        .delete()
-        .eq('user_id', userId);
-        
-      if (subscriptionError) {
-        console.error('Error deleting subscriptions:', subscriptionError);
-      }
-      
-      // 5. Finally delete the profile
+
+      // Delete all related data in the correct order
+      await Promise.all([
+        // Delete checkins
+        supabase.from('checkins').delete().eq('user_id', userId),
+        // Delete payments
+        supabase.from('payments').delete().eq('user_id', userId),
+        // Delete bank invoices
+        supabase.from('bank_invoices').delete().eq('user_id', userId),
+        // Delete subscriptions
+        supabase.from('subscriptions').delete().eq('user_id', userId),
+      ]);
+
+      // Delete profile
       const { error: profileError } = await supabase
         .from('profiles')
         .delete()
@@ -116,10 +83,20 @@ const UserProfileActions: React.FC<UserProfileActionsProps> = ({ userId }) => {
         throw profileError;
       }
 
+      // Delete the auth user using admin API
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        userId
+      );
+
+      if (authError) {
+        console.error('Error deleting auth user:', authError);
+        throw authError;
+      }
+
       toast.success('Usuário deletado com sucesso');
       setIsDeleteDialogOpen(false);
       
-      // First set dialog to closed, then navigate with slight delay to prevent UI issues
+      // Navigate after a slight delay to prevent UI issues
       setTimeout(() => {
         navigate('/teacher-dashboard', { replace: true });
       }, 100);
