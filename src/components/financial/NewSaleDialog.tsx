@@ -288,4 +288,7 @@ const NewSaleDialog: React.FC<NewSaleDialogProps> = ({
         </div>
       </DialogContent>
     </Dialog>
-  </DialogContent>
+  );
+};
+
+export default NewSaleDialog;
