@@ -36,7 +36,7 @@ const PaymentHistory = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
         <h2 className="text-lg sm:text-xl font-semibold">Histórico de Pagamentos</h2>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -48,7 +48,7 @@ const PaymentHistory = () => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
           <h2 className="text-lg sm:text-xl font-semibold">Pagamentos dos Alunos</h2>
@@ -73,8 +73,8 @@ const PaymentHistory = () => {
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-3 sm:p-6">
+      <Card className="w-full">
+        <CardContent className="p-2 sm:p-6">
           <PaymentFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -82,8 +82,9 @@ const PaymentHistory = () => {
             onDateRangeChange={setDateRange}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            className="w-full"
           />
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto -mx-2 sm:mx-0">
             <PaymentTable payments={payments} />
           </div>
         </CardContent>

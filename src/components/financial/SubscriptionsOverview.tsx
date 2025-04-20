@@ -74,7 +74,7 @@ const SubscriptionsOverview = () => {
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
         {[1, 2, 3, 4].map((i) => (
           <Skeleton key={i} className="h-32" />
         ))}
@@ -83,9 +83,9 @@ const SubscriptionsOverview = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-      <Card>
-        <CardContent className="p-4 sm:p-6">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full">
+      <Card className="w-full">
+        <CardContent className="p-3 sm:p-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-gray-500">Assinaturas Ativas</span>
