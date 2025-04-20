@@ -3,8 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import NewSaleDialog from "@/components/financial/NewSaleDialog";
 import { useSales } from "@/hooks/useSales";
 
@@ -59,7 +57,7 @@ const UserSales: React.FC<UserSalesProps> = ({ userId, userName }) => {
                       Venda #{sale.sale_code}
                     </CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      {format(new Date(sale.created_at), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                      {new Date(sale.created_at).toLocaleDateString('pt-BR')}
                     </p>
                   </div>
                   <div className="text-right">
@@ -90,7 +88,7 @@ const UserSales: React.FC<UserSalesProps> = ({ userId, userName }) => {
                       {sale.payments.map((payment: any) => (
                         <div key={payment.id} className="flex justify-between text-sm">
                           <span>
-                            {format(new Date(payment.due_date), 'dd/MM/yyyy')} - 
+                            {new Date(payment.due_date).toLocaleDateString('pt-BR')} - 
                             {payment.payment_method}
                           </span>
                           <span>{formatCurrency(payment.amount)}</span>
