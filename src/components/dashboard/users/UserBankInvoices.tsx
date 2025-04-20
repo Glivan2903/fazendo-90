@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from 'lucide-react';
 import InvoiceDetailDialog from './InvoiceDetailDialog';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 interface UserBankInvoicesProps {
   userId: string | null;
@@ -66,6 +68,13 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
     } catch (error) {
       return 'Data inválida';
     }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
   const handleInvoiceClick = (invoice: any) => {
