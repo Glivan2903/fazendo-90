@@ -26,19 +26,19 @@ export default function FinancialCleanupTool() {
       let fixedUncategorized = 0;
       let standardizedPaymentMethods = 0;
       
-      // 1. Obter todos os usuários com faturas pagas
-      const { data: userIds, error: userIdsError } = await supabase
+      // 1. Obter todos os usuários com faturas pagas de maneira única
+      const { data: invoicesData, error: invoicesError } = await supabase
         .from('bank_invoices')
         .select('user_id')
-        .eq('status', 'paid')
-        .distinct();
+        .eq('status', 'paid');
       
-      if (userIdsError) throw userIdsError;
+      if (invoicesError) throw invoicesError;
+      
+      // Extrair IDs de usuário únicos
+      const userIds = [...new Set(invoicesData?.map(item => item.user_id) || [])];
       
       // 2. Para cada usuário com faturas, verificar duplicações
-      for (const userRecord of (userIds || [])) {
-        const userId = userRecord.user_id;
-        
+      for (const userId of userIds) {
         // Obter todas as faturas pagas para este usuário
         const { data: paidInvoices, error: paidInvoicesError } = await supabase
           .from('bank_invoices')
@@ -65,19 +65,19 @@ export default function FinancialCleanupTool() {
         }
       }
       
-      // 3. Semelhante para pagamentos - obter usuários distintos com pagamentos pagos
-      const { data: userPaymentIds, error: userPaymentIdsError } = await supabase
+      // 3. Semelhante para pagamentos - obter usuários com pagamentos pagos de maneira única
+      const { data: paymentsData, error: paymentsError } = await supabase
         .from('payments')
         .select('user_id')
-        .eq('status', 'paid')
-        .distinct();
+        .eq('status', 'paid');
       
-      if (userPaymentIdsError) throw userPaymentIdsError;
+      if (paymentsError) throw paymentsError;
+      
+      // Extrair IDs de usuário únicos para pagamentos
+      const userPaymentIds = [...new Set(paymentsData?.map(item => item.user_id) || [])];
       
       // 4. Para cada usuário com pagamentos pagos, verificar duplicações
-      for (const userRecord of (userPaymentIds || [])) {
-        const userId = userRecord.user_id;
-        
+      for (const userId of userPaymentIds) {
         const { data: paidPayments, error: paidPaymentsError } = await supabase
           .from('payments')
           .select('*')
