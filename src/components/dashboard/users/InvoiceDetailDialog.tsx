@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +69,45 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
               </div>
             </div>
           </div>
+
+          {invoice.bank_invoice_items && invoice.bank_invoice_items.length > 0 && (
+            <div className="border rounded-lg p-4">
+              <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
+                <Tag className="h-4 w-4 mr-2" /> ITEM(S) DE VENDA
+              </h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoice.bank_invoice_items.map((item: any, index: number) => (
+                    <TableRow key={index}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-slate-100">
+                          {item.item_type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell>
+                        {item.period_start && item.period_end ? 
+                          `${formatDate(item.period_start)} - ${formatDate(item.period_end)}` : 
+                          '-'
+                        }
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
 
           <div className="border rounded-lg p-4">
             <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
