@@ -214,7 +214,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
 
   const mobileMenuContent = (
     <div className="flex flex-col h-full">
-      <div className="border-b p-4 flex items-center justify-between">
+      <header className="border-b p-4 flex items-center justify-between">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Menu className="h-6 w-6 md:hidden" />
           Check-in
@@ -222,9 +222,9 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
         <Button variant="ghost" size="icon" onClick={() => setShowMobileMenu(false)} aria-label="Fechar menu">
           <X className="h-5 w-5" />
         </Button>
-      </div>
+      </header>
       
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center space-x-4 p-4">
         <Avatar className="h-12 w-12">
           <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.name || 'User'} />
           <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
@@ -357,7 +357,11 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
       )}
 
       <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-        <SheetContent side="left" className="p-0 w-72">
+        <SheetContent
+          side="left"
+          className="p-0 w-72"
+          aria-label="Menu lateral do aplicativo"
+        >
           {mobileMenuContent}
         </SheetContent>
       </Sheet>
