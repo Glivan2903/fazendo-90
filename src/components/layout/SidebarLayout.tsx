@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Bell, Home, LogOut, CheckCircle, UserCheck } from 'lucide-react';
+import { Bell, Home, LogOut, CheckCircle, UserCheck, Menu, X, Calendar, BarChart2, UserCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -16,6 +16,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import BottomNavigation from '@/components/BottomNavigation';
 import { useCheckInPage } from '@/hooks/useCheckInPage';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { cn } from '@/lib/utils';
 
 interface SidebarLayoutProps {
   children: React.ReactNode;
@@ -29,6 +31,7 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
   const [pendingUsers, setPendingUsers] = useState(0);
   const [expiringSubscriptions, setExpiringSubscriptions] = useState(0);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const isMobile = useIsMobile();
   
   // Get active tab from location
   const getActiveTabFromLocation = () => {
@@ -50,7 +53,8 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
     setActiveTab(tab);
     if (tab === 'inicio') navigate('/check-in');
     else if (tab === 'perfil' && user) navigate(`/profile/${user.id}`);
-    // Add other navigation options as needed
+    else if (tab === 'aulas') navigate('/check-in'); // Temporary until aulas page is implemented
+    else if (tab === 'treinos') navigate('/check-in'); // Temporary until treinos page is implemented
   };
 
   useEffect(() => {
@@ -127,11 +131,12 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
     });
   };
 
-  const sidebarContent = (
-    <div className="flex h-full flex-col justify-between p-4">
-      <div className="space-y-6">
+  // Desktop sidebar content
+  const desktopSidebarContent = (
+    <div className="h-full flex flex-col bg-white">
+      <div className="p-4 border-b">
         <div className="flex flex-col items-center space-y-2">
-          <Avatar className="h-20 w-20">
+          <Avatar className="h-16 w-16">
             <AvatarImage src={user?.user_metadata?.avatar_url} />
             <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
           </Avatar>
@@ -140,23 +145,176 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
             <p className="text-sm text-muted-foreground truncate max-w-[200px]">{user?.email}</p>
           </div>
         </div>
-
-        <div className="space-y-2">
+      </div>
+      
+      <div className="flex-1 overflow-auto">
+        <div className="space-y-1 p-2">
           <Button
-            variant="ghost"
+            variant={activeTab === "inicio" ? "secondary" : "ghost"}
             className="w-full justify-start"
             onClick={() => navigate('/check-in')}
           >
-            <Home className="mr-2 h-5 w-5" />
+            <Home className="mr-2 h-4 w-4" />
             Início
           </Button>
 
+          <Button
+            variant={activeTab === "aulas" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => handleTabChange('aulas')}
+          >
+            <Calendar className="mr-2 h-4 w-4" />
+            Aulas
+          </Button>
+
+          <Button
+            variant={activeTab === "treinos" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => handleTabChange('treinos')}
+          >
+            <BarChart2 className="mr-2 h-4 w-4" />
+            Treinos
+          </Button>
+
+          <Button
+            variant={activeTab === "perfil" ? "secondary" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => navigate(`/profile/${user?.id}`)}
+          >
+            <UserCircle className="mr-2 h-4 w-4" />
+            Meu Perfil
+          </Button>
+
           {(userRole === 'admin' || userRole === 'coach') && (
-            <>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => navigate('/teacher-dashboard')}
+            >
+              <Bell className="mr-2 h-4 w-4" />
+              Dashboard
+              {userRole === 'admin' && totalNotifications > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {totalNotifications}
+                </Badge>
+              )}
+            </Button>
+          )}
+        </div>
+      </div>
+      
+      <div className="p-4 border-t">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-4 w-4" />
+          Sair
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Mobile menu content
+  const mobileMenuContent = (
+    <div className="flex flex-col h-full">
+      <div className="border-b p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold">CrossBox Fênix</h2>
+          <Button variant="ghost" size="icon" onClick={() => setShowMobileMenu(false)}>
+            <X className="h-5 w-5" />
+          </Button>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <Avatar className="h-12 w-12">
+            <AvatarImage src={user?.user_metadata?.avatar_url} alt={user?.user_metadata?.name || 'User'} />
+            <AvatarFallback>{getInitials(user?.user_metadata?.name || 'User')}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{user?.user_metadata?.name || 'User'}</p>
+            <p className="text-sm text-muted-foreground truncate max-w-[180px]">{user?.email}</p>
+          </div>
+        </div>
+      </div>
+      
+      <nav className="flex-1 p-4">
+        <ul className="space-y-2">
+          <li>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start",
+                activeTab === "inicio" && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                navigate('/check-in');
+                setShowMobileMenu(false);
+              }}
+            >
+              <Home className="mr-2 h-5 w-5" />
+              Início
+            </Button>
+          </li>
+          <li>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start",
+                activeTab === "aulas" && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                handleTabChange('aulas');
+                setShowMobileMenu(false);
+              }}
+            >
+              <Calendar className="mr-2 h-5 w-5" />
+              Aulas
+            </Button>
+          </li>
+          <li>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start",
+                activeTab === "treinos" && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                handleTabChange('treinos');
+                setShowMobileMenu(false);
+              }}
+            >
+              <BarChart2 className="mr-2 h-5 w-5" />
+              Treinos
+            </Button>
+          </li>
+          <li>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full justify-start",
+                activeTab === "perfil" && "bg-accent text-accent-foreground"
+              )}
+              onClick={() => {
+                navigate(`/profile/${user?.id}`);
+                setShowMobileMenu(false);
+              }}
+            >
+              <UserCircle className="mr-2 h-5 w-5" />
+              Meu Perfil
+            </Button>
+          </li>
+          
+          {(userRole === 'admin' || userRole === 'coach') && (
+            <li>
               <Button
                 variant="ghost"
                 className="w-full justify-start"
-                onClick={() => navigate('/teacher-dashboard')}
+                onClick={() => {
+                  navigate('/teacher-dashboard');
+                  setShowMobileMenu(false);
+                }}
               >
                 <Bell className="mr-2 h-5 w-5" />
                 Dashboard
@@ -166,59 +324,46 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
                   </Badge>
                 )}
               </Button>
-
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => navigate('/check-in')}
-              >
-                <UserCheck className="mr-2 h-5 w-5" />
-                Check-in
-              </Button>
-            </>
+            </li>
           )}
-
-          <Button
-            variant="ghost"
-            className="w-full justify-start"
-            onClick={() => navigate(`/profile/${user?.id}`)}
-          >
-            <CheckCircle className="mr-2 h-5 w-5" />
-            Meu Perfil
-          </Button>
-        </div>
+        </ul>
+      </nav>
+      
+      <div className="border-t p-4 mt-auto">
+        <Button 
+          variant="ghost" 
+          className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50" 
+          onClick={handleLogout}
+        >
+          <LogOut className="mr-2 h-5 w-5" />
+          Sair
+        </Button>
       </div>
-
-      <Button
-        variant="ghost"
-        className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50"
-        onClick={handleLogout}
-      >
-        <LogOut className="mr-2 h-5 w-5" />
-        Sair
-      </Button>
     </div>
   );
 
   return (
     <div className="flex h-screen">
       {/* Desktop Sidebar */}
-      <div className="hidden md:flex w-64 border-r bg-white overflow-hidden">
-        {sidebarContent}
+      <div className="hidden md:flex w-64 border-r overflow-hidden">
+        {desktopSidebarContent}
       </div>
 
       {/* Mobile Menu Button (only show if mobile sidebar is not open) */}
       {!showMobileMenu && (
-        <Button variant="ghost" className="md:hidden fixed top-4 left-4 z-50 p-2"
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="md:hidden fixed top-4 left-4 z-50 p-2"
           onClick={() => setShowMobileMenu(true)}>
-          <Home className="h-5 w-5" />
+          <Menu className="h-6 w-6" />
         </Button>
       )}
 
       {/* Mobile Sidebar */}
       <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-        <SheetContent side="left" className="w-64 p-0">
-          {sidebarContent}
+        <SheetContent side="left" className="p-0 w-72">
+          {mobileMenuContent}
         </SheetContent>
       </Sheet>
 
