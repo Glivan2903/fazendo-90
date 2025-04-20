@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -118,6 +119,10 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
               <div>
                 <p className="text-sm text-muted-foreground">Data de emissão</p>
                 <p>{formatDate(invoice.sale_date) || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Plano</p>
+                <p>{invoice.plan || 'Não especificado'}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Tipo de transação</p>

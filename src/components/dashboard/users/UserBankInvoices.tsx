@@ -29,6 +29,14 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
 
       setLoading(true);
       
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('plan')
+        .eq('id', userId)
+        .single();
+
+      if (profileError) throw profileError;
+
       const { data: invoicesData, error: invoicesError } = await supabase
         .from('bank_invoices')
         .select('*')
@@ -46,7 +54,10 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
         if (!uniqueInvoices.has(key) || 
             (invoice.status === 'paid') ||
             (uniqueInvoices.get(key).status !== 'paid' && invoice.status === 'pending')) {
-          uniqueInvoices.set(key, invoice);
+          uniqueInvoices.set(key, {
+            ...invoice,
+            plan: userProfile?.plan
+          });
         }
       });
 
