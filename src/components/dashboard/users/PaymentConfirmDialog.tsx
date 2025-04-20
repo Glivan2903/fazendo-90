@@ -29,12 +29,54 @@ export default function PaymentConfirmDialog({
 }: PaymentConfirmDialogProps) {
   const [loading, setLoading] = React.useState(false);
 
+  const cleanupUserFinancialRecords = async (userId: string) => {
+    console.log(`Iniciando limpeza de registros financeiros para o usuário ${userId}`);
+    
+    try {
+      // 1. Remover todas as faturas pagas (duplicadas)
+      const { error: deletePaidInvoicesError } = await supabase
+        .from('bank_invoices')
+        .delete()
+        .eq('user_id', userId)
+        .eq('status', 'paid');
+        
+      if (deletePaidInvoicesError) throw deletePaidInvoicesError;
+      
+      // 2. Remover todos os pagamentos pagos (duplicados)
+      const { error: deletePaidPaymentsError } = await supabase
+        .from('payments')
+        .delete()
+        .eq('user_id', userId)
+        .eq('status', 'paid');
+        
+      if (deletePaidPaymentsError) throw deletePaidPaymentsError;
+      
+      // 3. Limpar transações sem categoria
+      const { error: deleteUncategorizedInvoicesError } = await supabase
+        .from('bank_invoices')
+        .delete()
+        .eq('user_id', userId)
+        .is('category', null);
+        
+      if (deleteUncategorizedInvoicesError) throw deleteUncategorizedInvoicesError;
+      
+      console.log('Limpeza de registros financeiros concluída com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro durante a limpeza dos registros financeiros:', error);
+      return false;
+    }
+  };
+
   const handleConfirmPayment = async () => {
     try {
       setLoading(true);
       console.log(`Iniciando confirmação de pagamento para usuário: ${userId}`);
 
-      // First check if there are any pending payments or invoices
+      // Primeiro, limpar registros financeiros existentes
+      await cleanupUserFinancialRecords(userId);
+
+      // Verificar se há faturas pendentes
       const { data: pendingInvoices, error: invoiceCheckError } = await supabase
         .from('bank_invoices')
         .select('id')
@@ -49,50 +91,6 @@ export default function PaymentConfirmDialog({
       }
       
       console.log(`Faturas pendentes encontradas: ${pendingInvoices.length}`);
-
-      // Verificar se já existem faturas pagas para evitar duplicação
-      const { data: paidInvoices, error: paidInvoicesError } = await supabase
-        .from('bank_invoices')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('status', 'paid');
-
-      if (paidInvoicesError) throw paidInvoicesError;
-
-      if (paidInvoices && paidInvoices.length > 0) {
-        // Se já existem faturas pagas, vamos remover registros duplicados
-        console.log(`Limpando ${paidInvoices.length} faturas pagas duplicadas para este usuário`);
-        
-        // Remover faturas pagas duplicadas
-        const { error: deletePaidInvoicesError } = await supabase
-          .from('bank_invoices')
-          .delete()
-          .eq('user_id', userId)
-          .eq('status', 'paid');
-          
-        if (deletePaidInvoicesError) throw deletePaidInvoicesError;
-      }
-      
-      // Verificar e remover pagamentos pagos duplicados
-      const { data: paidPayments, error: paidPaymentsError } = await supabase
-        .from('payments')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('status', 'paid');
-        
-      if (paidPaymentsError) throw paidPaymentsError;
-      
-      if (paidPayments && paidPayments.length > 0) {
-        console.log(`Limpando ${paidPayments.length} pagamentos pagos duplicados`);
-        
-        const { error: deletePaidPaymentsError } = await supabase
-          .from('payments')
-          .delete()
-          .eq('user_id', userId)
-          .eq('status', 'paid');
-          
-        if (deletePaidPaymentsError) throw deletePaidPaymentsError;
-      }
 
       // 1. Update profile status to Ativo
       const { error: profileError } = await supabase
@@ -138,7 +136,8 @@ export default function PaymentConfirmDialog({
           status: 'paid',
           payment_date: new Date().toISOString().split('T')[0],
           category: 'Mensalidade', // Garantir que seja categorizado corretamente
-          payment_method: 'PIX' // Definir método de pagamento padrão
+          payment_method: 'PIX', // Definir método de pagamento padrão
+          transaction_type: 'income' // Garantir que seja marcado como receita
         })
         .eq('user_id', userId)
         .eq('status', 'pending');
@@ -152,7 +151,8 @@ export default function PaymentConfirmDialog({
         .update({ 
           status: 'paid',
           payment_date: new Date().toISOString().split('T')[0],
-          payment_method: 'PIX' // Definir método de pagamento padrão
+          payment_method: 'PIX', // Definir método de pagamento padrão
+          notes: 'Mensalidade' // Garantir descrição consistente
         })
         .eq('user_id', userId)
         .eq('status', 'pending');

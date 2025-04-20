@@ -54,17 +54,11 @@ export default function ApproveUserDialog({
     }
   };
 
-  const handleApprove = async () => {
+  const cleanupExistingUserData = async () => {
     try {
-      if (!selectedPlanId) {
-        toast.error("Por favor, selecione um plano");
-        return;
-      }
-
-      setLoading(true);
-      console.log(`Iniciando aprovação do usuário: ${userId} com plano: ${selectedPlanId}`);
-
-      // Verificar se já existem itens de assinatura para evitar duplicação
+      console.log(`Limpando dados existentes para usuário: ${userId}`);
+      
+      // 1. Verificar se já existem itens de assinatura para evitar duplicação
       const { data: existingItems, error: checkError } = await supabase
         .from('subscriptions')
         .select('id, status')
@@ -78,7 +72,6 @@ export default function ApproveUserDialog({
       if (existingItems && existingItems.length > 0) {
         console.log(`Removendo ${existingItems.length} assinaturas existentes`);
         
-        // 1. Cancel all existing subscriptions
         const { error: cancelSubError } = await supabase
           .from('subscriptions')
           .delete()
@@ -89,8 +82,8 @@ export default function ApproveUserDialog({
         }
       }
       
-      // Verificar por faturas pendentes
-      const { data: pendingInvoices, error: checkInvError } = await supabase
+      // 2. Verificar por faturas existentes (pendentes e pagas)
+      const { data: existingInvoices, error: checkInvError } = await supabase
         .from('bank_invoices')
         .select('id, status')
         .eq('user_id', userId);
@@ -100,10 +93,9 @@ export default function ApproveUserDialog({
       }
 
       // Remover todas as faturas existentes para evitar duplicação
-      if (pendingInvoices && pendingInvoices.length > 0) {
-        console.log(`Removendo ${pendingInvoices.length} faturas existentes`);
+      if (existingInvoices && existingInvoices.length > 0) {
+        console.log(`Removendo ${existingInvoices.length} faturas existentes`);
         
-        // 2. Remover todas as faturas (pendentes e pagas)
         const { error: cancelInvError } = await supabase
           .from('bank_invoices')
           .delete()
@@ -114,7 +106,7 @@ export default function ApproveUserDialog({
         }
       }
 
-      // Verificar pagamentos existentes
+      // 3. Verificar pagamentos existentes
       const { data: existingPayments, error: checkPayError } = await supabase
         .from('payments')
         .select('id, status')
@@ -128,7 +120,6 @@ export default function ApproveUserDialog({
       if (existingPayments && existingPayments.length > 0) {
         console.log(`Removendo ${existingPayments.length} pagamentos existentes`);
         
-        // 3. Remover todos os pagamentos
         const { error: cancelPayError } = await supabase
           .from('payments')
           .delete()
@@ -139,7 +130,28 @@ export default function ApproveUserDialog({
         }
       }
 
-      // 4. Update user status to Pendente
+      console.log('Limpeza de dados concluída com sucesso');
+      return true;
+    } catch (error) {
+      console.error("Erro durante a limpeza de dados:", error);
+      return false;
+    }
+  };
+
+  const handleApprove = async () => {
+    try {
+      if (!selectedPlanId) {
+        toast.error("Por favor, selecione um plano");
+        return;
+      }
+
+      setLoading(true);
+      console.log(`Iniciando aprovação do usuário: ${userId} com plano: ${selectedPlanId}`);
+
+      // Limpar dados existentes do usuário
+      await cleanupExistingUserData();
+
+      // 1. Update user status to Pendente
       const { error: statusError } = await supabase
         .from('profiles')
         .update({ status: 'Pendente' })
@@ -148,7 +160,7 @@ export default function ApproveUserDialog({
       if (statusError) throw statusError;
       console.log("Status do perfil atualizado para Pendente");
 
-      // 5. Create subscription for user based on selected plan with status pending
+      // 2. Create subscription for user based on selected plan with status pending
       const selectedPlan = plans.find(p => p.id === selectedPlanId);
       if (!selectedPlan) throw new Error("Plano não encontrado");
       
@@ -171,7 +183,7 @@ export default function ApproveUserDialog({
       if (subscriptionError) throw subscriptionError;
       console.log(`Nova assinatura criada: ${subscription.id}`);
 
-      // 6. Generate invoice number
+      // 3. Generate invoice number
       const { data: invoiceNumberData, error: invoiceNumberError } = await supabase
         .rpc('generate_invoice_number');
         
@@ -180,7 +192,7 @@ export default function ApproveUserDialog({
       const invoiceNumber = invoiceNumberData || "";
       console.log(`Número da fatura gerado: ${invoiceNumber}`);
 
-      // 7. Create only one bank invoice for the plan
+      // 4. Create only one bank invoice for the plan
       const { data: bankInvoice, error: bankInvoiceError } = await supabase
         .from('bank_invoices')
         .insert({
@@ -201,7 +213,7 @@ export default function ApproveUserDialog({
       if (bankInvoiceError) throw bankInvoiceError;
       console.log(`Nova fatura bancária criada: ${bankInvoice.id}`);
 
-      // 8. Create only one payment record linked to the invoice
+      // 5. Create only one payment record linked to the invoice
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert([{
@@ -211,7 +223,8 @@ export default function ApproveUserDialog({
           due_date: startDate.toISOString().split('T')[0],
           status: 'pending',
           reference: `Mensalidade - ${userName}`,
-          bank_invoice_id: bankInvoice.id
+          bank_invoice_id: bankInvoice.id,
+          notes: 'Mensalidade'
         }])
         .select()
         .single();
@@ -219,7 +232,7 @@ export default function ApproveUserDialog({
       if (paymentError) throw paymentError;
       console.log(`Novo pagamento criado: ${payment.id}`);
       
-      // 9. Update profile plan
+      // 6. Update profile plan
       const { error: updatePlanError } = await supabase
         .from('profiles')
         .update({ 
