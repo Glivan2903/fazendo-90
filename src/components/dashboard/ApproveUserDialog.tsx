@@ -110,12 +110,6 @@ export default function ApproveUserDialog({
 
       if ((existingInvoices && existingInvoices.length > 0) || (existingPayments && existingPayments.length > 0)) {
         // User already has an invoice or payment for this month
-        Alert({
-          title: "Aviso",
-          description: "Usuário já possui uma fatura ou pagamento para este mês.",
-          variant: "default",
-        });
-        
         toast.info("Usuário já possui uma fatura ou pagamento para este mês");
         onOpenChange(false);
         return;

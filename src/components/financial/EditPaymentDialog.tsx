@@ -32,7 +32,8 @@ const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
     due_date: "",
     status: "pending",
     payment_method: "",
-    notes: ""
+    notes: "",
+    reference: ""
   });
   
   const [isLoading, setIsLoading] = useState(false);
@@ -43,7 +44,8 @@ const EditPaymentDialog: React.FC<EditPaymentDialogProps> = ({
         ...payment,
         payment_date: payment.payment_date || null,
         payment_method: payment.payment_method || "",
-        notes: payment.notes || ""
+        notes: payment.notes || "",
+        reference: payment.reference || ""
       });
     }
   }, [payment]);
