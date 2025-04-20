@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -142,5 +141,21 @@
 
   .check-in-indicator {
     @apply text-blue-500 rounded-full w-5 h-5 flex items-center justify-center;
+  }
+
+  .sales-detail-dialog {
+    @apply max-w-4xl mx-auto;
+  }
+
+  .sales-detail-header {
+    @apply bg-blue-600 text-white p-4 -mx-6 -mt-6 mb-6;
+  }
+
+  .sales-detail-section {
+    @apply border border-dashed rounded-lg p-4 mb-6;
+  }
+
+  .sales-detail-title {
+    @apply text-sm font-semibold mb-4 flex items-center uppercase;
   }
 }
