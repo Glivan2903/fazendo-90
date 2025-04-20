@@ -31,15 +31,13 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
       setLoading(true);
       const { data, error } = await supabase
         .from('bank_invoices')
-        .select(`
-          *,
-          bank_invoice_items (*)
-        `)
+        .select('*')
         .eq('user_id', userId)
         .order('due_date', { ascending: false });
 
       if (error) throw error;
       
+      // Process invoices - get unique ones per month
       const uniqueInvoices = new Map();
       
       data?.forEach((invoice) => {
@@ -54,6 +52,7 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
       });
       
       setInvoices(Array.from(uniqueInvoices.values()));
+      console.log("Fetched invoices:", Array.from(uniqueInvoices.values()));
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast.error('Erro ao carregar faturas do usuário');

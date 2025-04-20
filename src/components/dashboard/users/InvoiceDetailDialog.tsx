@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -70,38 +69,29 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
             </div>
           </div>
 
-          {invoice.bank_invoice_items && (
-            <div className="border rounded-lg p-4">
-              <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
-                <Receipt className="h-4 w-4 mr-2" /> ITENS DA FATURA
-              </h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">#</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Período</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {invoice.bank_invoice_items.map((item: any, index: number) => (
-                    <TableRow key={item.id}>
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell>{item.description}</TableCell>
-                      <TableCell>
-                        {item.period_start && item.period_end ? 
-                          `${formatDate(item.period_start)} - ${formatDate(item.period_end)}` : 
-                          '-'
-                        }
-                      </TableCell>
-                      <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          <div className="border rounded-lg p-4">
+            <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
+              <Receipt className="h-4 w-4 mr-2" /> DETALHES DA FATURA
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Categoria</p>
+                <p>{invoice.category || 'Não especificado'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Fornecedor</p>
+                <p>{invoice.fornecedor || 'Não especificado'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Data de emissão</p>
+                <p>{formatDate(invoice.sale_date) || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Tipo de transação</p>
+                <p>{invoice.transaction_type || 'Não especificado'}</p>
+              </div>
             </div>
-          )}
+          </div>
 
           <div className="border rounded-lg p-4">
             <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
@@ -115,6 +105,14 @@ const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({
               <div>
                 <p className="text-sm text-muted-foreground">Data do pagamento</p>
                 <p>{formatDate(invoice.payment_date) || '-'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Status</p>
+                <p>{invoice.status}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Conta bancária</p>
+                <p>{invoice.bank_account || 'Não especificado'}</p>
               </div>
             </div>
           </div>
