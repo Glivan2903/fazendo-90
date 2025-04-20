@@ -221,7 +221,10 @@ const SidebarLayout = ({ children }: SidebarLayoutProps) => {
     <div className="flex flex-col h-full">
       <div className="border-b p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">CrossBox Fênix</h2>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Menu className="h-6 w-6 md:hidden" />
+            Check-in
+          </h2>          
           <Button variant="ghost" size="icon" onClick={() => setShowMobileMenu(false)}>
             <X className="h-5 w-5" />
           </Button>
