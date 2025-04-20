@@ -1,0 +1,127 @@
+
+import React from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
+import { Tag, Receipt, CreditCard } from 'lucide-react';
+
+interface InvoiceDetailDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  invoice: any;
+}
+
+const InvoiceDetailDialog: React.FC<InvoiceDetailDialogProps> = ({ 
+  open, 
+  onOpenChange, 
+  invoice 
+}) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return '-';
+    try {
+      return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  if (!invoice) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="bg-blue-600 text-white p-4 -m-6 mb-6">
+          <DialogTitle className="text-xl flex items-center">
+            <Tag className="mr-2" /> Fatura #{invoice.invoice_number}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          <div className="border rounded-lg p-4">
+            <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
+              <Tag className="h-4 w-4 mr-2" /> FATURA
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Cliente</p>
+                <p className="font-medium">{invoice.buyer_name}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Data de vencimento</p>
+                <p>{formatDate(invoice.due_date)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Valor total</p>
+                <p className="font-semibold">{formatCurrency(invoice.total_amount)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Desconto</p>
+                <p>{formatCurrency(invoice.discount_amount || 0)}</p>
+              </div>
+            </div>
+          </div>
+
+          {invoice.bank_invoice_items && (
+            <div className="border rounded-lg p-4">
+              <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
+                <Receipt className="h-4 w-4 mr-2" /> ITENS DA FATURA
+              </h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12">#</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Período</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invoice.bank_invoice_items.map((item: any, index: number) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{item.description}</TableCell>
+                      <TableCell>
+                        {item.period_start && item.period_end ? 
+                          `${formatDate(item.period_start)} - ${formatDate(item.period_end)}` : 
+                          '-'
+                        }
+                      </TableCell>
+                      <TableCell className="text-right">{formatCurrency(item.total)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          <div className="border rounded-lg p-4">
+            <h3 className="text-sm uppercase font-semibold mb-2 flex items-center">
+              <CreditCard className="h-4 w-4 mr-2" /> PAGAMENTO
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Forma de pagamento</p>
+                <p>{invoice.payment_method || 'Não especificado'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Data do pagamento</p>
+                <p>{formatDate(invoice.payment_date) || '-'}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default InvoiceDetailDialog;

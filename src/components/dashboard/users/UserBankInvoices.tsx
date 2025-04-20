@@ -1,33 +1,22 @@
 
 import React, { useState, useEffect } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Calendar } from 'lucide-react';
-
-interface BankInvoice {
-  id: string;
-  invoice_number: string;
-  due_date: string;
-  status: string;
-  payment_method: string | null;
-  total_amount: number;
-  payment_date: string | null;
-  reference: string | null;
-  buyer_name: string;
-}
+import InvoiceDetailDialog from './InvoiceDetailDialog';
 
 interface UserBankInvoicesProps {
   userId: string | null;
 }
 
 const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
-  const [invoices, setInvoices] = useState<BankInvoice[]>([]);
+  const [invoices, setInvoices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchInvoices();
@@ -40,20 +29,21 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
       setLoading(true);
       const { data, error } = await supabase
         .from('bank_invoices')
-        .select('*')
+        .select(`
+          *,
+          bank_invoice_items (*)
+        `)
         .eq('user_id', userId)
         .order('due_date', { ascending: false });
 
       if (error) throw error;
       
-      // Mapa para armazenar uma fatura por mês para evitar duplicatas
       const uniqueInvoices = new Map();
       
       data?.forEach((invoice) => {
-        const monthYear = new Date(invoice.due_date).toISOString().substring(0, 7); // YYYY-MM
+        const monthYear = new Date(invoice.due_date).toISOString().substring(0, 7);
         const key = `${invoice.user_id}_${monthYear}`;
         
-        // Se não temos uma fatura para este mês ou se essa é uma fatura paga (prioridade)
         if (!uniqueInvoices.has(key) || 
             (invoice.status === 'paid') ||
             (uniqueInvoices.get(key).status !== 'paid' && invoice.status === 'pending')) {
@@ -61,20 +51,7 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
         }
       });
       
-      // Map the data to match the BankInvoice interface
-      const mappedInvoices: BankInvoice[] = Array.from(uniqueInvoices.values()).map(invoice => ({
-        id: invoice.id,
-        invoice_number: invoice.invoice_number,
-        due_date: invoice.due_date,
-        status: invoice.status,
-        payment_method: invoice.payment_method,
-        total_amount: invoice.total_amount,
-        payment_date: invoice.payment_date,
-        reference: null, // Add a default null reference
-        buyer_name: invoice.buyer_name
-      }));
-
-      setInvoices(mappedInvoices);
+      setInvoices(Array.from(uniqueInvoices.values()));
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast.error('Erro ao carregar faturas do usuário');
@@ -83,19 +60,17 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    });
-  };
-
   const formatDate = (dateString: string) => {
     try {
       return format(new Date(dateString), 'dd/MM/yyyy', { locale: ptBR });
     } catch (error) {
       return 'Data inválida';
     }
+  };
+
+  const handleInvoiceClick = (invoice: any) => {
+    setSelectedInvoice(invoice);
+    setIsDialogOpen(true);
   };
 
   const getStatusBadge = (status: string) => {
@@ -140,10 +115,15 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
                   invoices.map((invoice) => (
                     <TableRow key={invoice.id}>
                       <TableCell>
-                        {invoice.invoice_number ? 
-                          `Fatura #${invoice.invoice_number.padStart(4, '0')}` : 
-                          `Fatura ${invoice.id.substring(0, 8)}`
-                        }
+                        <button
+                          onClick={() => handleInvoiceClick(invoice)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {invoice.invoice_number ? 
+                            `Fatura #${invoice.invoice_number.padStart(4, '0')}` : 
+                            `Fatura ${invoice.id.substring(0, 8)}`
+                          }
+                        </button>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center">
@@ -168,6 +148,12 @@ const UserBankInvoices: React.FC<UserBankInvoicesProps> = ({ userId }) => {
           </div>
         )}
       </CardContent>
+
+      <InvoiceDetailDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        invoice={selectedInvoice}
+      />
     </Card>
   );
 };
