@@ -6,6 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -59,7 +60,38 @@ export default function PaymentConfirmDialog({
       if (paidInvoicesError) throw paidInvoicesError;
 
       if (paidInvoices && paidInvoices.length > 0) {
-        console.log(`Atenção: Já existem ${paidInvoices.length} faturas pagas para este usuário`);
+        // Se já existem faturas pagas, vamos remover registros duplicados
+        console.log(`Limpando ${paidInvoices.length} faturas pagas duplicadas para este usuário`);
+        
+        // Remover faturas pagas duplicadas
+        const { error: deletePaidInvoicesError } = await supabase
+          .from('bank_invoices')
+          .delete()
+          .eq('user_id', userId)
+          .eq('status', 'paid');
+          
+        if (deletePaidInvoicesError) throw deletePaidInvoicesError;
+      }
+      
+      // Verificar e remover pagamentos pagos duplicados
+      const { data: paidPayments, error: paidPaymentsError } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'paid');
+        
+      if (paidPaymentsError) throw paidPaymentsError;
+      
+      if (paidPayments && paidPayments.length > 0) {
+        console.log(`Limpando ${paidPayments.length} pagamentos pagos duplicados`);
+        
+        const { error: deletePaidPaymentsError } = await supabase
+          .from('payments')
+          .delete()
+          .eq('user_id', userId)
+          .eq('status', 'paid');
+          
+        if (deletePaidPaymentsError) throw deletePaidPaymentsError;
       }
 
       // 1. Update profile status to Ativo
@@ -104,7 +136,9 @@ export default function PaymentConfirmDialog({
         .from('bank_invoices')
         .update({ 
           status: 'paid',
-          payment_date: new Date().toISOString().split('T')[0]
+          payment_date: new Date().toISOString().split('T')[0],
+          category: 'Mensalidade', // Garantir que seja categorizado corretamente
+          payment_method: 'PIX' // Definir método de pagamento padrão
         })
         .eq('user_id', userId)
         .eq('status', 'pending');
@@ -117,7 +151,8 @@ export default function PaymentConfirmDialog({
         .from('payments')
         .update({ 
           status: 'paid',
-          payment_date: new Date().toISOString().split('T')[0]
+          payment_date: new Date().toISOString().split('T')[0],
+          payment_method: 'PIX' // Definir método de pagamento padrão
         })
         .eq('user_id', userId)
         .eq('status', 'pending');
@@ -142,6 +177,9 @@ export default function PaymentConfirmDialog({
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle>Confirmar Pagamento</DialogTitle>
+          <DialogDescription>
+            Esta ação irá processar o pagamento e ativar o usuário.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="py-6">

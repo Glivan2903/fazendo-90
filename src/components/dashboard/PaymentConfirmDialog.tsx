@@ -1,3 +1,3 @@
 
-import PaymentConfirmDialog from '../dashboard/users/PaymentConfirmDialog';
+import PaymentConfirmDialog from './users/PaymentConfirmDialog';
 export default PaymentConfirmDialog;
