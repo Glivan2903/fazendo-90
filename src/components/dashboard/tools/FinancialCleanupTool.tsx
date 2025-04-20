@@ -26,20 +26,18 @@ export default function FinancialCleanupTool() {
       let fixedUncategorized = 0;
       let standardizedPaymentMethods = 0;
       
-      // 1. Obter todas as faturas pagas duplicadas por usuário
-      // (consideramos duplicadas quando há mais de uma fatura paga por usuário)
-      const { data: usersPaidInvoices, error: usersPaidInvoicesError } = await supabase
+      // 1. Obter todos os usuários com faturas pagas
+      const { data: userIds, error: userIdsError } = await supabase
         .from('bank_invoices')
-        .select('user_id, count(*)')
+        .select('user_id')
         .eq('status', 'paid')
-        .group('user_id')
-        .having('count(*) > 1');
+        .distinct();
       
-      if (usersPaidInvoicesError) throw usersPaidInvoicesError;
+      if (userIdsError) throw userIdsError;
       
-      // 2. Para cada usuário com faturas duplicadas, manter apenas a mais recente
-      for (const user of (usersPaidInvoices || [])) {
-        const userId = user.user_id;
+      // 2. Para cada usuário com faturas, verificar duplicações
+      for (const userRecord of (userIds || [])) {
+        const userId = userRecord.user_id;
         
         // Obter todas as faturas pagas para este usuário
         const { data: paidInvoices, error: paidInvoicesError } = await supabase
@@ -67,19 +65,18 @@ export default function FinancialCleanupTool() {
         }
       }
       
-      // 3. Semelhante para pagamentos
-      const { data: usersPaidPayments, error: usersPaidPaymentsError } = await supabase
+      // 3. Semelhante para pagamentos - obter usuários distintos com pagamentos pagos
+      const { data: userPaymentIds, error: userPaymentIdsError } = await supabase
         .from('payments')
-        .select('user_id, count(*)')
+        .select('user_id')
         .eq('status', 'paid')
-        .group('user_id')
-        .having('count(*) > 1');
+        .distinct();
       
-      if (usersPaidPaymentsError) throw usersPaidPaymentsError;
+      if (userPaymentIdsError) throw userPaymentIdsError;
       
-      // 4. Para cada usuário com pagamentos duplicados, manter apenas o mais recente
-      for (const user of (usersPaidPayments || [])) {
-        const userId = user.user_id;
+      // 4. Para cada usuário com pagamentos pagos, verificar duplicações
+      for (const userRecord of (userPaymentIds || [])) {
+        const userId = userRecord.user_id;
         
         const { data: paidPayments, error: paidPaymentsError } = await supabase
           .from('payments')
